@@ -1,0 +1,24 @@
+[workspace]
+members = ["./crates/*"]
+resolver = "2"
+
+
+
+[workspace.package]
+edition = "2024"
+homepage = "https://stanic.xyz/"
+license = "Mulan PSL v2"
+repository = "https://stanic.xyz"
+
+[package]
+name = "learn-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+concurrency = { workspace = true }
+
+[workspace.dependencies]
+concurrency = { version = "0.1.0", path = "./crates/concurrency" }
+http_server = { version = "0.1.0", path = "./crates/http_server" }
+test_rust = { version = "0.1.0", path = "./crates/test_rust" }
