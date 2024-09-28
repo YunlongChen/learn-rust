@@ -3,7 +3,12 @@ name = "http_server"
 version = "0.1.0"
 edition = "2021"
 
+default-run = "http_server"
+
 repository.workspace = true
 
 [dependencies]
 log = "0.4.22"
+
+[[bin]]
+name = "http_server"

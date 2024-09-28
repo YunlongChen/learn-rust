@@ -17,6 +17,7 @@ edition = "2021"
 
 [dependencies]
 concurrency = { workspace = true }
+serde = "1.0.210"
 
 [workspace.dependencies]
 concurrency = { version = "0.1.0", path = "./crates/concurrency" }
