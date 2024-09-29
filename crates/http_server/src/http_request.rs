@@ -165,7 +165,6 @@ mod tests {
     #[test]
     fn test_http_request_from_string() {
         let request = String::from("GET / HTTP/1.1\r\nHost: localhost:3000\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\nUpgrade-Insecure-Requests: 1\r\nUser-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8\r\n\r\nusername=123123");
-
         let http_request: HttpRequest = request.into();
         assert_eq!(http_request.method, Method::GET);
         assert_eq!(http_request.version, Version::V1_1);
