@@ -2,8 +2,6 @@
 members = ["./crates/*"]
 resolver = "2"
 
-
-
 [workspace.package]
 edition = "2024"
 homepage = "https://stanic.xyz/"
@@ -18,6 +16,7 @@ edition = "2021"
 [dependencies]
 concurrency = { workspace = true }
 serde = "1.0.210"
+actix-web = "4"
 
 [workspace.dependencies]
 concurrency = { version = "0.1.0", path = "./crates/concurrency" }

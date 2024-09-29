@@ -26,18 +26,19 @@ impl<'a> Default for HttpResponse<'a> {
 
 impl<'a> From<HttpResponse<'a>> for String {
     fn from(value: HttpResponse<'a>) -> Self {
-        let mut response_string = format!("{} {} {}\r\nContent-Length: {}\r\n\r\nTest Response!", value.version, value.status_code, value.status_text, "测试内容".as_bytes().len());
+        let mut response_string = format!("{} {} {}\r\n", value.version, value.status_code, value.status_text);
         println!("response_string: {}", response_string);
         if let Some(headers) = value.headers {
             for (key, value) in headers {
                 response_string.push_str(&format!("{}: {}\r\n", key, value));
             }
         }
-        // if let Some(body) = value.body {
-        //     response_string.push_str(&format!("{}\r\n", body));
-        // } else if let None = value.body {
-        //     println!("响应没有Body")
-        // }
+        if let Some(body) = value.body {
+            response_string.push_str(&format!("Content-Length: {}\r\n\r\n{}\r\n", body.as_bytes().len(), body));
+        } else {
+            response_string.push_str(&format!("Content-Length: {}\r\n\r\n{}\r\n", 0, ""));
+            println!("响应没有Body")
+        }
         response_string
     }
 }
@@ -61,7 +62,7 @@ impl<'a> HttpResponse<'a> {
             version: "HTTP/1.1".into(),
             status_code: status,
             status_text: "OK".into(),
-            headers: None,
+            headers: response.headers,
             body,
         }
     }
