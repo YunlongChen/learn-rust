@@ -91,7 +91,7 @@ fn print_username(username: String) {
 
 fn another_function() -> i64 {
     println!("Hello, runoob!");
-    return 123;
+    123
 }
 
 fn test_block() -> i64 {
@@ -104,7 +104,7 @@ fn test_block() -> i64 {
 
     println!("x 的值为 : {}", x);
     println!("y 的值为 : {}", y);
-    return y;
+    y
 }
 
 fn test_condition() -> i64 {
@@ -123,7 +123,7 @@ fn test_condition() -> i64 {
 
     println!("x 的值为 : {}", x);
     println!("y 的值为 : {}", y);
-    return y;
+    y
 }
 
 /// while循环

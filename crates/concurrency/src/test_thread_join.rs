@@ -37,4 +37,10 @@ mod tests {
         let result = test_thread_join();
         println!("{:?}", result);
     }
+
+    #[test]
+    fn it_works2() {
+        let result = test_thread_join();
+        println!("{:?}", result);
+    }
 }
