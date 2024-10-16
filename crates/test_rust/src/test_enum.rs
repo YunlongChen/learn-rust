@@ -33,7 +33,7 @@ pub fn test_enum() {
 
     println!("match的结果：{}", result);
 
-    let opt = Option::Some("Hello");
+    let opt = Some("Hello");
 
     match opt {
         None => {
