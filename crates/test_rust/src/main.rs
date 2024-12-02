@@ -6,14 +6,12 @@ use crate::test_slice::test_slice;
 use std::fs;
 
 // 下面两个方法他们的定义方式和定义层级都是一样的，但是支持两种不同的引入方式
-use concurrency::test_thread::{test_thread};
-use concurrency::{test_thread2};
+use concurrency::test_thread::test_thread;
 
 mod ownership;
 mod test_enum;
 mod test_slice;
 mod test_struct;
-
 
 // 这里是一个main函数
 fn main() {
@@ -21,8 +19,6 @@ fn main() {
 
     let username = concurrency::add(1, 2);
     println!("这里是测试用户名：{}", username);
-
-    test_thread2();
 
     test_thread();
 
