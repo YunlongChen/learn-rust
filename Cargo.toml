@@ -14,11 +14,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-concurrency = { workspace = true }
-serde = "1.0.210"
 actix-web = "4"
+actix-ws = "0.3.0"
+futures-util = "0.3.31"
 
 [workspace.dependencies]
 concurrency = { version = "0.1.0", path = "./crates/concurrency" }
-http_server = { version = "0.1.0", path = "./crates/http_server" }
-test_rust = { version = "0.1.0", path = "./crates/test_rust" }

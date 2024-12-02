@@ -1,9 +1,9 @@
-use std::io::{Read};
-use std::net::{TcpListener, TcpStream};
-use log::info;
 use crate::http_request::HttpRequest;
 use crate::router::Router;
 use crate::thread_pool::ThreadPool;
+use log::info;
+use std::io::Read;
+use std::net::{TcpListener, TcpStream};
 
 #[derive(Debug)]
 pub struct HttpServer {
@@ -25,7 +25,7 @@ impl HttpServer {
 
     pub fn start(&self) {
         let listener = TcpListener::bind(&self.socket_addr).expect("绑定到端口失败");
-        println!("服务器启动，监听地址：{}", self.socket_addr);
+        println!("服务器启动，监听地址：http://{}", self.socket_addr);
         for incoming in listener.incoming() {
             let stream = incoming.unwrap();
             println!("连接已建立");

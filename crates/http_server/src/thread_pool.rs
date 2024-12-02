@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{channel, Sender};
-use log::info;
 use crate::worker::{Job, Worker};
+use log::info;
+use std::sync::mpsc::{channel, Sender};
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 pub struct ThreadPool {
@@ -38,7 +38,10 @@ impl ThreadPool {
     where
         F: FnOnce() + Send + 'static,
     {
-        info!("收到请求，正在进行处理：当前建立连接的数量{}",self.workers.len());
+        info!(
+            "收到请求，正在进行处理：当前建立连接的数量{}",
+            self.workers.len()
+        );
         let job = Box::new(f);
         self.sender.as_ref().unwrap().send(job).unwrap();
     }

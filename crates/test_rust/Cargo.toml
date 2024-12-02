@@ -1,8 +1,7 @@
 [package]
 name = "test_rust"
 version = "0.1.0"
+edition = "2021"
 
 [dependencies]
-log = "0.4.22"
-ran = "1.1.2"
 concurrency = { workspace = true }
