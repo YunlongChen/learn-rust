@@ -23,5 +23,7 @@ jobs:
         run: cargo test --verbose
       - name: Build
         run: cargo build -p http_server --release --verbose
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag learn-rust:$(date +%s)
+      - name: Build Domain Manager
+        run: cargo build -p domain_manager --release --verbose
+#      - name: Build the Docker image
+#        run: docker build . --file Dockerfile --tag learn-rust:$(date +%s)
