@@ -27,7 +27,6 @@ pub fn test_thread_join() {
     println!("测试任务执行完毕，username的最终结果是{}!", username);
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

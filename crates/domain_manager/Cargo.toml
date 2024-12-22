@@ -1,0 +1,16 @@
+[package]
+name = "domain_manager"
+version = "0.1.0"
+edition = "2021"
+
+default-run = "dns_manager"
+
+repository.workspace = true
+
+[dependencies]
+log = "0.4.22"
+winit = "0.30.6"
+iced = { version = "0.13.1" }
+
+[[bin]]
+name = "dns_manager"
