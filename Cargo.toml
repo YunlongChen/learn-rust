@@ -1,5 +1,5 @@
 [workspace]
-members = ["./crates/*"]
+members = ["./crates/*", "crates/dns_manager"]
 resolver = "2"
 
 [workspace.package]
@@ -20,3 +20,5 @@ futures-util = "0.3.31"
 
 [workspace.dependencies]
 concurrency = { version = "0.1.0", path = "./crates/concurrency" }
+domain_manager = { version = "0.1.0", path = "./crates/domain_manager" }
+dns_manager = { version = "0.1.0", path = "./crates/dns_manager" }

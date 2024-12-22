@@ -1,6 +1,6 @@
-use std::io::Write;
 use crate::handler::{Handler, StaticHandler, WebServiceHandler};
 use crate::http_request::{HttpRequest, Method, Resource};
+use std::io::Write;
 
 #[derive(Debug)]
 pub struct Router {}
@@ -11,8 +11,8 @@ impl Router {
         match http_request.method() {
             Method::GET => {
                 match &http_request.resource() {
-                    Resource::PATH(s) => {
-                        let route: Vec<&str> = s.split("/").collect();
+                    Resource::PATH(path) => {
+                        let route: Vec<&str> = path.split("/").collect();
                         match route[1] {
                             "api" => {
                                 let response = WebServiceHandler::handle(&http_request);

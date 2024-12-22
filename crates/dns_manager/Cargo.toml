@@ -1,0 +1,12 @@
+[package]
+name = "dns_manager"
+version = "0.1.0"
+edition = "2021"
+
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+default-run = "dns_manager"
+
+[dependencies]

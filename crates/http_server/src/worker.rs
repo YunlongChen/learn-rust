@@ -12,7 +12,6 @@ pub struct Worker {
 pub type Job = Box<dyn FnOnce() + Send + 'static>;
 
 impl Worker {
-    
     ///
     /// 创建一个 Worker 实例。
     /// id 线程序号
