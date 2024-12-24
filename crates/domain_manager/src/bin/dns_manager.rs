@@ -2,6 +2,7 @@ use crate::Page::AddDomain;
 use iced::widget::{
     button, column, container, pick_list, row, stack, text, Button, Container, Text, TextInput,
 };
+use iced::window::settings::PlatformSpecific;
 use iced::window::Position;
 use iced::{application, color, window, Color, Element, Length, Size, Theme};
 use log::info;
@@ -11,6 +12,7 @@ use std::ops::AddAssign;
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;
 const CONTENT_SIZE: u16 = 20;
+const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
 
 #[derive(Debug, Clone)]
 enum Message {
@@ -68,7 +70,7 @@ impl App {
                 transparent: true,
                 #[cfg(target_os = "linux")]
                 platform_specific: PlatformSpecific {
-                    application_id: String::from(SNIFFNET_LOWERCASE),
+                    application_id: String::from(DOMAIN_MANAGER_LOWERCASE),
                     ..PlatformSpecific::default()
                 },
                 exit_on_close_request: true,
