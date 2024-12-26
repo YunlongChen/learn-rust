@@ -1,18 +1,28 @@
-use crate::Page::AddDomain;
 use iced::widget::{
-    button, column, container, pick_list, row, stack, text, Button, Container, Text, TextInput,
+    button, column, container, pick_list, row, stack, text, Button, Column, Container, Text,
+    TextInput,
 };
 use iced::window::settings::PlatformSpecific;
 use iced::window::Position;
 use iced::{application, color, window, Color, Element, Length, Size, Theme};
 use log::info;
 use std::fmt::{Display, Formatter};
-use std::ops::AddAssign;
+
+use rust_i18n::{i18n, t, Backend};
+
+i18n!("locales", fallback = "zh_CN");
 
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;
 const CONTENT_SIZE: u16 = 20;
+
 const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
+
+pub fn main() -> iced::Result {
+    rust_i18n::set_locale("en");
+    let app = App::default();
+    app.start()
+}
 
 #[derive(Debug, Clone)]
 enum Message {
@@ -26,6 +36,7 @@ enum Message {
     AddDomainFormChanged(String),
     DnsProviderSelected(DnsProvider),
 }
+
 #[derive(Debug, Clone)]
 struct AddDomainField {
     domain_name: String,
@@ -41,10 +52,7 @@ impl Default for AddDomainField {
     }
 }
 
-pub fn main() -> iced::Result {
-    let app = App::default();
-    app.start()
-}
+// # }
 
 #[derive(Debug)]
 struct App {
@@ -100,7 +108,6 @@ impl Default for App {
 }
 
 // 定义主题
-
 impl App {
     fn view(&self) -> Element<Message> {
         match &self.current_page {
@@ -230,7 +237,7 @@ fn add_domain_page(app: &App) -> Element<'static, Message> {
 
 /// 域名管理界面
 fn domain_page(app: &App) -> Element<'static, Message> {
-    container(
+    Container::new(
         // 返回到解析界面
         column(app.domain_names.iter().map(|domain_name| {
             // 这里是一行数据
@@ -251,8 +258,11 @@ fn domain_page(app: &App) -> Element<'static, Message> {
                 button("dns list")
                     .on_press(Message::ChangePage(Page::DnsRecord(domain_name.clone())))
                     .width(Length::Fill),
-                button("add domain")
+                button("Add Domain")
                     .on_press(Message::ChangePage(Page::AddDomain))
+                    .width(Length::Fill),
+                button(Text::new(t!("add_domain")))
+                    .on_press(Message::ToggleTheme)
                     .width(Length::Fill)
             ]
             .into()
@@ -308,4 +318,21 @@ fn it_counts_properly() {
     app.update(Message::Decrement);
 
     assert_eq!(app.counter, 1);
+}
+
+fn get_text(name: &str) -> String {
+    t!(name).into()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::get_text;
+
+    #[test]
+    fn test_get_text() {
+        rust_i18n::set_locale("en");
+        assert_eq!("Hello World!", get_text("hello"));
+        rust_i18n::set_locale("zh_CN");
+        assert_eq!("你好世界！", get_text("hello"));
+    }
 }
