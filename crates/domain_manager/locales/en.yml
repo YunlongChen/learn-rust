@@ -2,3 +2,4 @@ _version: 1
 hello: Hello World!
 messages: Hello,this is home message
 add_domain: Add Domain
+dns_record: DNS Record

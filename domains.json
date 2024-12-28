@@ -1,0 +1,27 @@
+{
+  "application": {
+    "name": "Domain Manager",
+    "description": "A simple domain manager",
+    "version": "1.0.0",
+    "author": "Stanic.xyz",
+    "license": "Mulan PSL v2"
+  },
+  "domain_names": [
+    {
+      "name": "example.com",
+      "provider": "Aliyun",
+      "dns_record": [
+        {
+          "type": "A",
+          "value": "192.168.1.1",
+          "ttl": 3600,
+          "priority": 0,
+          "weight": 0,
+          "port": 80,
+          "target": "",
+          "mx_priority": 0
+        }
+      ]
+    }
+  ]
+}
