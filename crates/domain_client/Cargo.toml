@@ -1,0 +1,19 @@
+[package]
+name = "domain_client"
+version = "0.1.0"
+edition = "2021"
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1.0" }
+serde_json = "1.0"
+rand = "0.8"
+sha2 = "0.10"
+chrono = "0.4"
+hmac = "0.12"
+hex = "0.4"
+reqwest = { version = "0.12.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+percent-encoding = "2.1"

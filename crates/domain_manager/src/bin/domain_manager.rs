@@ -147,7 +147,7 @@ enum Message {
     AddDomainFormChanged(String),
     DnsProviderSelected(DnsProvider),
     ToHelp,
-    KeyInput { key: Key, modifiers: Modifiers },
+    KeyInput { key: Key },
     CloseHelp,
     OpenHelp { last_page: Page },
 }
@@ -211,9 +211,9 @@ impl App {
     }
 }
 
-fn subscribe(state: &App) -> Subscription<Message> {
-    let key = keyboard::on_key_press(|key, modifiers| {
-        let msg = Message::KeyInput { key, modifiers };
+fn subscribe(_: &App) -> Subscription<Message> {
+    let key = keyboard::on_key_press(|key, _modifiers| {
+        let msg = Message::KeyInput { key };
         Some(msg)
     });
     Subscription::batch([key])
@@ -334,10 +334,7 @@ impl App {
                 self.add_domain_field.provider = provider.into();
             }
             Message::ToHelp => self.update(Message::ChangePage(Page::Help)),
-            Message::KeyInput {
-                key,
-                modifiers: Modifiers,
-            } => {
+            Message::KeyInput { key } => {
                 let msg = handle_key(&self, &key);
                 match msg {
                     Some(msg) => self.update(msg),
@@ -348,11 +345,9 @@ impl App {
                 self.last_page = Some(last_page);
                 self.update(Message::ChangePage(Page::Help))
             }
-            Message::CloseHelp => {
-                match &self.last_page {
-                    Some(page) => self.update(Message::ChangePage(page.clone())),
-                    _ => {}
-                }
+            Message::CloseHelp => match &self.last_page {
+                Some(page) => self.update(Message::ChangePage(page.clone())),
+                _ => {}
             },
         }
     }
@@ -367,13 +362,11 @@ fn handle_key(app: &App, key: &Key) -> Option<Message> {
         Page::Help => {
             if let Key::Character(c) = key {
                 match c.as_str() {
-                    "h" => {
-                        Some(Message::CloseHelp)
-                    },
+                    "h" => Some(Message::CloseHelp),
                     _ => None,
                 }
-            }else {
-                None   
+            } else {
+                None
             }
         }
         _ => {
@@ -381,12 +374,12 @@ fn handle_key(app: &App, key: &Key) -> Option<Message> {
             if let Key::Character(c) = key {
                 match c.as_str() {
                     "h" => Some(Message::OpenHelp {
-                        last_page:app.current_page.clone()
+                        last_page: app.current_page.clone(),
                     }),
                     _ => None,
                 }
             } else {
-                None   
+                None
             }
         }
     }

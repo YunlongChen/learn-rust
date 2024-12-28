@@ -3,7 +3,7 @@ name = "domain_manager"
 version = "0.1.0"
 edition = "2021"
 
-default-run = "dns_manager"
+default-run = "domain_manager"
 
 repository.workspace = true
 
@@ -14,6 +14,9 @@ iced = { version = "0.13.1" }
 rust-i18n = "3.1.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+reqwest = { version = "0.12.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+domain_client = { path = "../domain_client" }
 
 [[bin]]
-name = "dns_manager"
+name = "domain_manager"
