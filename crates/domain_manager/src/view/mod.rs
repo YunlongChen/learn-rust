@@ -1,3 +1,2 @@
-mod colors;
-
-pub use colors::colors;
+pub mod colors;
+mod view;
