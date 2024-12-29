@@ -5,19 +5,7 @@
   "author": "Stanic.xyz",
   "license": "MulanPSL2",
   "locale": "zh_CN",
-  "domain_names": [
-    {
-      "name": "example.com",
-      "provider": "Aliyun",
-      "dns_record": [
-        {
-          "domain_name": "example.com",
-          "dns_name": "12123",
-          "dns_type": "A",
-          "dns_value": "192.168.1.1",
-          "ttl": 3600
-        }
-      ]
-    }
-  ]
+  "domain_names": [],
+  "access_id": "",
+  "access_secret": ""
 }
