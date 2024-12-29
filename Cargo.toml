@@ -23,3 +23,4 @@ concurrency = { version = "0.1.0", path = "./crates/concurrency" }
 domain_manager = { version = "0.1.0", path = "./crates/domain_manager" }
 dns_manager = { version = "0.1.0", path = "./crates/dns_manager" }
 test_db = { version = "0.1.0", path = "./crates/test_db" }
+hello-wasm = { version = "0.1.1", package = "hello-wasm", path = "./crates/hello-wasm" }

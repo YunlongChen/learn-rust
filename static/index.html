@@ -7,4 +7,15 @@
 <body>
 <h1>测试类型</h1>
 </body>
+
+<script type="module">
+    import init, {greet} from './pkg/hello_wasm.js';
+
+    async function run_app() {
+        await init('./pkg/hello_wasm_bg.wasm');
+        greet();
+    }
+
+    run_app();
+</script>
 </html>

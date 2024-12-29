@@ -9,7 +9,6 @@ repository.workspace = true
 
 [dependencies]
 log = "0.4.22"
-winit = "0.30.6"
 iced = { version = "0.13.1" }
 rust-i18n = "3.1.2"
 serde = { version = "1.0", features = ["derive"] }
@@ -18,5 +17,7 @@ reqwest = { version = "0.12.11", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 domain_client = { path = "../domain_client" }
 
-[[bin]]
-name = "domain_manager"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"

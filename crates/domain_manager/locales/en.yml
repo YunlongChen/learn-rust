@@ -3,3 +3,11 @@ hello: Hello World!
 messages: Hello,this is home message
 add_domain: Add Domain
 dns_record: DNS Record
+return: Return
+reload: Reload
+delete: Delete
+in_query: querying...
+add_dns_record: Add DNS Record
+modify_dns_record: Modify DNS Record
+help:
+  title: Help
