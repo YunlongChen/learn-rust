@@ -1,2 +1,5 @@
 pub mod colors;
-mod view;
+pub mod theme;
+pub mod utils;
+
+pub use colors::*;
