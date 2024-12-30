@@ -268,9 +268,7 @@ pub async fn query_aliyun_dns_list( domain_name: String) -> Vec<Record> {
 
 #[cfg(test)]
 mod tests {
-    use serde::de::Unexpected::Str;
     use crate::ali_api::query_aliyun_dns_list;
-    use crate::DomainName;
 
     #[tokio::test]
     async fn test_get_text() {

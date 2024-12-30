@@ -1,18 +1,21 @@
 mod ali_api;
 mod dns_record_response;
 mod domain;
+mod view;
 
 use iced::alignment::Horizontal;
 
 use crate::ali_api::{query_aliyun_dns_list, query_aliyun_domain_list};
 use crate::dns_record_response::Record;
+use crate::view::danger_color;
+use crate::view::theme::danger_btn;
 use iced::border::Radius;
 use iced::keyboard::Key;
-use iced::widget::button::{danger, primary};
+use iced::widget::button::{danger, primary, Status};
 use iced::widget::text::LineHeight;
 use iced::widget::{
-    button, column, container, pick_list, row, text, text_input, Button, Column, Container, Row,
-    Text, TextInput,
+    button, column, container, horizontal_space, pick_list, row, text, text_input, Button, Column,
+    Container, Row, Text, TextInput,
 };
 use iced::window::Position;
 use iced::{
@@ -131,6 +134,7 @@ pub fn main() -> iced::Result {
         "配置文件信息：应用名称：{}，语言：{}",
         &config.name, &config.locale
     );
+
     rust_i18n::set_locale(config.locale.as_str());
     let app = App::new(config);
     app.start()
@@ -138,9 +142,6 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug, Clone)]
 enum Message {
-    // ...
-    Increment,
-    Decrement,
     ToggleTheme,
     ChangePage(Page),
     PageChanged(Page, Page),
@@ -421,7 +422,7 @@ impl App {
                                     // 北京颜色
                                     container::Style {
                                         text_color: Some(Color::WHITE),
-                                        border: Border{
+                                        border: Border {
                                             color: Color::from_rgb(255.0, 100.2, 0.0),
                                             radius: Radius::from(5),
                                             ..Default::default()
@@ -566,16 +567,6 @@ impl App {
 
         // 按照每一个事件来处理
         match message {
-            Message::Increment => {
-                self.counter += 1;
-                Task::none()
-            }
-            Message::Decrement => {
-                if self.counter > 0 {
-                    self.counter -= 1
-                }
-                Task::none()
-            }
             Message::ToggleTheme => {
                 if self.theme == Theme::Light {
                     self.theme = Theme::Dark
@@ -839,13 +830,37 @@ fn domain_page(app: &App) -> Element<'static, Message> {
                     .line_height(LineHeight::default())
                     .style(|_theme: &Theme| { text::Style::default() })
                     .align_x(Alignment::Start),
-                button(Text::new(t!("dns_record")))
+                button(Text::new(t!("dns_record")).center())
                     .on_press(Message::QueryDomainDnsRecord(domain_name.clone()))
-                    .width(Length::Fill)
+                    .width(Length::Fixed(100.0)),
+                button(Text::new(t!("delete")).center())
+                    .on_press(Message::DomainDeleted(domain_name.clone()))
+                    .width(Length::Fixed(100.0))
+                    .style(|theme: &Theme, status: Status| { danger_btn(theme, status) })
             ]
+            .spacing(5)
             .align_y(Alignment::Center)
             .into()
-        }));
+        }))
+        .spacing(5);
+
+    let action_row: Row<Message> = Row::new()
+        .push(Text::new("counter").width(Length::Fill))
+        .push(Text::new(get_text("domain_name")).width(Length::Fill))
+        .push(
+            Text::new(get_text("domain_name"))
+                .width(Length::Fill)
+                .style(|_theme: &Theme| text::Style::default())
+                .align_x(Alignment::Start),
+        )
+        .push(
+            Text::new(t!("operation"))
+                .center()
+                .width(Length::Fixed(200.0))
+                .align_y(Alignment::Center),
+        )
+        .height(Length::Shrink)
+        .spacing(5);
 
     let in_query_tag = if app.in_query {
         Some(Text::new(get_text("in_query")).width(Length::Fill))
@@ -854,22 +869,36 @@ fn domain_page(app: &App) -> Element<'static, Message> {
     };
 
     let actions = Row::new()
+        .push(
+            text(get_text("domain_manage"))
+                .align_x(Alignment::Start)
+                .width(Length::Fill),
+        )
         .push_maybe(in_query_tag)
         .push(
-            button(text(get_text("reload")).align_x(Alignment::Center))
+            button(text(get_text("reload")).center())
                 .on_press(Message::QueryDomain)
-                .width(Length::Fill),
+                .width(Length::Fixed(100.0)),
         )
         .push(
-            button(Text::new(get_text("add_domain")).align_x(Alignment::Center))
+            button(Text::new(get_text("add_domain")).center())
                 .on_press(Message::ChangePage(Page::AddDomain))
-                .width(Length::Fill),
+                .width(Length::Fixed(100.0)),
         )
-        .spacing(10)
+        .push(
+            button(Text::new(get_text("change_theme")).center())
+                .on_press(Message::ToggleTheme)
+                .width(Length::Fixed(100.0)),
+        )
+        .spacing(5)
         .width(Length::Fill)
-        .align_y(Alignment::End);
+        .padding(Padding {
+            bottom: 10.0,
+            ..Default::default()
+        })
+        .align_y(Alignment::Center);
 
-    let row1 = Column::new().push(actions).push(
+    let row1 = Column::new().push(actions).push(action_row).push(
         Container::new(domain_name_list)
             .style(container::rounded_box)
             .width(Length::Fill)
@@ -879,7 +908,11 @@ fn domain_page(app: &App) -> Element<'static, Message> {
     let content2: Column<Message> = Column::new().push(row1).width(Length::Fill);
 
     Container::new(
-        content2.push(text!("Made with Love by {}", app.config.author).align_x(Alignment::End)),
+        content2.push(
+            Row::new()
+                .push(horizontal_space().width(Length::Fill))
+                .push(text!("Made with Love by {}", app.config.author).align_x(Alignment::End)),
+        ),
     )
     .style(container::rounded_box)
     .width(Length::Fill)
@@ -1019,37 +1052,6 @@ impl Display for Page {
         }
     }
 }
-// DNS 解析类型
-#[derive(Debug, Clone)]
-enum DomainType {
-    A,
-    AAAA,
-    CNAME,
-    MX,
-    TXT,
-    NS,
-    SOA,
-    PTR,
-    SRV,
-    // 添加其他域名解析类型
-}
-
-impl Display for DomainType {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match self {
-            DomainType::A => write!(f, "A"),
-            DomainType::AAAA => write!(f, "AAAA"),
-            DomainType::CNAME => write!(f, "CNAME"),
-            DomainType::MX => write!(f, "MX"),
-            DomainType::TXT => write!(f, "TXT"),
-            DomainType::NS => write!(f, "NS"),
-            DomainType::SOA => write!(f, "SOA"),
-            DomainType::PTR => write!(f, "PTR"),
-            DomainType::SRV => write!(f, "SRV"),
-            // 处理其他域名解析类型
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Deserialize, Serialize)]
 struct DnsRecord {
@@ -1062,17 +1064,6 @@ struct DnsRecord {
 
 fn get_text(name: &str) -> String {
     t!(name).into()
-}
-
-#[test]
-fn it_counts_properly() {
-    let mut app = App::default();
-
-    let _ = app.update(Message::Increment);
-    let _ = app.update(Message::Increment);
-    let _ = app.update(Message::Decrement);
-
-    assert_eq!(app.counter, 1);
 }
 
 #[cfg(test)]
