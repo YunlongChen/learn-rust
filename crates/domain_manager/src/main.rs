@@ -1,28 +1,26 @@
 mod ali_api;
-mod dns_record_response;
-mod domain;
+mod locale;
+mod model;
 mod view;
 
 use iced::alignment::Horizontal;
 
-use crate::ali_api::{query_aliyun_dns_list, query_aliyun_domain_list};
-use crate::dns_record_response::Record;
-use crate::view::danger_color;
-use crate::view::theme::danger_btn;
-use iced::border::Radius;
-use iced::keyboard::Key;
-use iced::widget::button::{danger, primary, Status};
-use iced::widget::text::LineHeight;
-use iced::widget::{
-    button, column, container, horizontal_space, pick_list, row, text, text_input, Button, Column,
-    Container, Row, Text, TextInput,
+use crate::ali_api::{
+    query_aliyun_dns_list, query_aliyun_dns_operation_list, query_aliyun_domain_list,
 };
+use crate::locale::Locale;
+use crate::model::dns_operate::RecordLog;
+use crate::view::domain::{add_domain_page, domain_page};
+use crate::view::domain_dns_record::dns_record;
+use iced::keyboard::Key;
+use iced::widget::{button, column, row, text, text_input, Column, Container, Row, Text};
 use iced::window::Position;
 use iced::{
-    application, color, keyboard, window, Alignment, Background, Border, Color, Element, Font,
-    Length, Padding, Settings, Size, Subscription, Task, Theme,
+    application, keyboard, window, Alignment, Element, Font, Length, Settings, Size, Subscription,
+    Task, Theme,
 };
 use log::{error, info};
+use model::dns_record_response::Record;
 use rust_i18n::{i18n, t};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -134,14 +132,13 @@ pub fn main() -> iced::Result {
         "配置文件信息：应用名称：{}，语言：{}",
         &config.name, &config.locale
     );
-
-    rust_i18n::set_locale(config.locale.as_str());
     let app = App::new(config);
     app.start()
 }
 
 #[derive(Debug, Clone)]
 enum Message {
+    ChangeLocale,
     ToggleTheme,
     ChangePage(Page),
     PageChanged(Page, Page),
@@ -157,6 +154,7 @@ enum Message {
     QueryDomain,
     QueryDomainResult(Vec<DomainName>),
     QueryDnsResult(Vec<Record>),
+    QueryDnsLogResult(Vec<RecordLog>),
     DnsDelete,
     DnsEdit(Record),
     AddDnsRecord,
@@ -198,20 +196,21 @@ struct App {
     config: Config,
     theme: Theme,
     domain_names: Vec<DomainName>,
-    counter: i32,
     current_page: Page,
     current_domain_name: Option<DomainName>,
     add_domain_field: AddDomainField,
     last_page: Option<Page>,
     // 当前处于查询状态
     in_query: bool,
-    dns_list: Vec<Record>, // 当前域名对应的DNS记录
+    dns_list: Vec<Record>,        // 当前域名对应的DNS记录
+    dns_log_list: Vec<RecordLog>, // 当前域名对应的DNS记录
     add_dns_form: AddDnsField,
+    locale: Locale,
 }
 
 impl App {
     pub fn start(&self) -> iced::Result {
-        application("Dns manager", Self::update, Self::view)
+        application("Dns Manager", Self::update, Self::view)
             .subscription(subscribe)
             .window(window::Settings {
                 size: Size::new(1080f32, 720f32), // start size
@@ -249,7 +248,6 @@ impl Default for App {
         // 初始化数据
         Self {
             current_page: Page::DomainPage,
-            counter: 0,
             theme: Theme::Dark,
             domain_names: vec![],
             current_domain_name: None,
@@ -258,6 +256,8 @@ impl Default for App {
             last_page: None,
             in_query: false,
             dns_list: vec![],
+            dns_log_list: vec![],
+            locale: Locale::Chinese,
             config: Config {
                 name: String::from("Domain Manager"),
                 description: String::from("A simple domain manager"),
@@ -276,9 +276,10 @@ impl App {
     fn new(config: Config) -> Self {
         // 初始化数据
         let domain_names = config.domain_names.clone();
+        let locale: Locale = config.locale.clone().into();
+
         Self {
             current_page: Page::DomainPage,
-            counter: 0,
             theme: Theme::Light,
             domain_names,
             current_domain_name: None,
@@ -287,7 +288,9 @@ impl App {
             in_query: false,
             config,
             dns_list: vec![],
+            dns_log_list: vec![],
             add_dns_form: AddDnsField::default(),
+            locale,
         }
     }
 
@@ -296,176 +299,7 @@ impl App {
             Page::DomainPage => domain_page(&self),
             // 添加域名界面
             Page::AddDomain => add_domain_page(&self),
-            Page::DnsRecord => {
-                // 展示dns列表
-                match &self.current_domain_name {
-                    // 选中了域名
-                    Some(domain_name) => {
-                        // 返回到解析界面
-                        let dns_content: Column<Message> =
-                            Column::from_iter(self.dns_list.iter().map(|record: &Record| {
-                                // 这里是一行数据
-                                row![
-                                    text!("{}", record.rr).width(Length::Fixed(200.0)),
-                                    text!("{}", record.record_type)
-                                        .width(Length::Fixed(100.0))
-                                        .align_x(Alignment::Start),
-                                    text!("{}", record.value)
-                                        .width(Length::Fill)
-                                        .line_height(LineHeight::default())
-                                        .style(|_theme: &Theme| { text::Style::default() })
-                                        .align_x(Alignment::Start),
-                                    button(Text::new(get_text("edit")).align_x(Alignment::Center))
-                                        .style(|theme: &Theme, status| {
-                                            match status {
-                                                button::Status::Hovered => button::Style::default()
-                                                    .with_background(Color::from_rgb(
-                                                        255.0, 50.0, 50.0,
-                                                    )),
-                                                _ => primary(theme, status),
-                                            }
-                                        })
-                                        .on_press(Message::DnsEdit(record.clone()))
-                                        .width(Length::Fixed(100.0)),
-                                    button(
-                                        Text::new(get_text("delete")).align_x(Alignment::Center)
-                                    )
-                                    .style(|theme: &Theme, status| {
-                                        match status {
-                                            button::Status::Hovered => button::Style::default()
-                                                .with_background(Color::from_rgb(
-                                                    255.0, 50.0, 50.0,
-                                                )),
-                                            _ => danger(theme, status),
-                                        }
-                                    })
-                                    .on_press(Message::DnsDelete)
-                                    .width(Length::Fixed(100.0))
-                                ]
-                                .align_y(Alignment::Center)
-                                .into()
-                            }));
-
-                        let title: String = match self.in_query {
-                            true => format!(
-                                "{}：{}({})",
-                                get_text("dns_record"),
-                                domain_name.name,
-                                get_text("in_query")
-                            ),
-                            false => format!("{}：{}", get_text("dns_record"), domain_name.name),
-                        };
-
-                        Column::new()
-                            .push(
-                                row![
-                                    button(Text::new(get_text("return")).center())
-                                        .on_press(Message::ChangePage(Page::DomainPage)),
-                                    row!(
-                                        text!("{}", title).width(Length::Fill).center(),
-                                    ).width(Length::Fill)
-                                    ,
-                                    button(Text::new("Help").center())
-                                        .on_press(Message::ToHelp)
-                                        .width(Length::Fixed(100.0)),
-                                    button(Text::new(get_text("reload")))
-                                        .on_press(Message::ToHelp)
-                                        .width(Length::Fixed(100.0)),
-                                    button(Text::new(get_text("add_dns_record")).center())
-                                        .on_press(Message::AddDnsRecord)
-                                        .width(Length::Fixed(200.0))
-                                ]
-                                    .padding(Padding {
-                                        bottom: 20.0,
-                                        ..Default::default()
-                                    })
-                                    .align_y(Alignment::Center),
-                            )
-                            .push(
-                                // 选中了域名
-                                text!("Dns Record list for domain：{}", domain_name.name)
-                                    .width(Length::Fill),
-                            )
-                            .push_maybe(match self.in_query {
-                                true => Some(text!("{}", get_text("in_query")).width(Length::Fill)),
-                                false => None,
-                            })
-                            // dns 列表
-                            .push(
-                                row![
-                                    text!("主机记录").width(Length::Fixed(200.0)),
-                                    text!("记录类型")
-                                        .width(Length::Fixed(100.0))
-                                        .align_x(Alignment::Start),
-                                    text!("记录值")
-                                        .width(Length::Fill)
-                                        .line_height(LineHeight::default())
-                                        .style(|_theme: &Theme| { text::Style::default() })
-                                        .align_x(Alignment::Start),
-                                    text("操作")
-                                        .align_x(Alignment::Center)
-                                        .width(Length::Fixed(200.0))
-                                ]
-                                    .align_y(Alignment::Center),
-                            )
-                            .push(dns_content)
-                            .push(Container::new(row![
-                                text!("Dns解析操作记录").width(Length::Fill),
-                                button(Text::new(get_text("reload"))).width(Length::Fixed(100.0))
-                                .on_press(Message::ToHelp)
-                            ])
-                                .padding(Padding {
-                                    bottom: 20.0,
-                                    ..Default::default()
-                                })
-                                .style(|_theme: &Theme| {
-                                    // 北京颜色
-                                    container::Style {
-                                        text_color: Some(Color::WHITE),
-                                        border: Border {
-                                            color: Color::from_rgb(255.0, 100.2, 0.0),
-                                            radius: Radius::from(5),
-                                            ..Default::default()
-                                        },
-                                        ..container::Style::default()
-                                    }
-                                })
-                                .width(Length::Fill)
-                                .align_y(Alignment::Center)
-                                .align_x(Alignment::Start)
-                            )
-                            .push(row![
-                                text!("操作时间")
-                                    .width(Length::Fixed(200.0))
-                                    .align_x(Alignment::Start),
-                                text("操作方式")
-                                    .width(Length::Fixed(100.0))
-                                    .line_height(LineHeight::default()),
-                                text("详细信息")
-                                    .width(Length::Fill)
-                                    .line_height(LineHeight::default())
-                            ])
-                            .push(row![
-                                text!("2024-12-20T21:44Z")
-                                    .width(Length::Fixed(200.0))
-                                    .align_x(Alignment::Start),
-                                text("ADD")
-                                    .width(Length::Fixed(100.0))
-                                    .line_height(LineHeight::default()),
-                                text("Add resolution record. A record fnos Default 192.168.9.103 ( TTL: 600)")
-                                    .width(Length::Fill)
-                                    .line_height(LineHeight::default())
-                            ])
-                            .padding(10)
-                            .spacing(10)
-                            .into()
-                    }
-                    None => {
-                        // 没有选择域名，返回到域名列表(这里除非是除了BUG，应该不会走到这里来）
-                        text!("No Domain Name selected!").width(Length::Fill).into()
-                    }
-                }
-            }
+            Page::DnsRecord => dns_record(&self),
             Page::AddRecord => {
                 let record_id_column = match &self.add_dns_form.record_id {
                     Some(record_id) => text!("修改Dns记录：{}", record_id)
@@ -567,6 +401,19 @@ impl App {
 
         // 按照每一个事件来处理
         match message {
+            Message::ChangeLocale => {
+                self.locale = match self.locale {
+                    Locale::Chinese => {
+                        rust_i18n::set_locale("en");
+                        Locale::English
+                    }
+                    Locale::English => {
+                        rust_i18n::set_locale("zh_CN");
+                        Locale::Chinese
+                    }
+                };
+                Task::none()
+            }
             Message::ToggleTheme => {
                 if self.theme == Theme::Light {
                     self.theme = Theme::Dark
@@ -597,10 +444,25 @@ impl App {
                             match &self.current_domain_name {
                                 Some(domain_name) => {
                                     let name: String = domain_name.name.clone();
-                                    Task::perform(Self::handle_dns_reload(name), |dns_records| {
-                                        println!("获取dns记录成功:{:?}", dns_records);
-                                        Message::QueryDnsResult(dns_records)
-                                    })
+                                    let name_for_log_query: String = domain_name.name.clone();
+
+                                    // 多个事件
+                                    Task::batch([
+                                        Task::perform(
+                                            Self::handle_dns_reload(name),
+                                            |dns_records| {
+                                                println!("获取dns记录成功:{:?}", dns_records);
+                                                Message::QueryDnsResult(dns_records)
+                                            },
+                                        ),
+                                        Task::perform(
+                                            Self::handle_dns_operate_log_query(name_for_log_query),
+                                            |dns_records| {
+                                                println!("获取dns记录成功:{:?}", dns_records);
+                                                Message::QueryDnsLogResult(dns_records)
+                                            },
+                                        ),
+                                    ])
                                 }
                                 None => Task::none(),
                             }
@@ -614,6 +476,11 @@ impl App {
             }
             Message::QueryDnsResult(dns_list) => {
                 self.dns_list = dns_list;
+                Task::none()
+            }
+            Message::QueryDnsLogResult(logs) => {
+                dbg!("dns操作日志查询成功");
+                self.dns_log_list = logs;
                 Task::none()
             }
             Message::DomainDeleted(domain_name) => {
@@ -710,6 +577,12 @@ impl App {
         domain_list
     }
 
+    async fn handle_dns_operate_log_query(domain_name: String) -> Vec<RecordLog> {
+        dbg!("查询域名信息");
+        let dns_operate_logs = query_aliyun_dns_operation_list(domain_name);
+        dns_operate_logs
+    }
+
     fn theme(&self) -> Theme {
         self.theme.clone()
     }
@@ -776,152 +649,6 @@ impl Display for DnsProvider {
             DnsProvider::Tomato => write!(f, "Tomato"),
         }
     }
-}
-
-fn add_domain_page(app: &App) -> Element<'static, Message> {
-    let state = AddDomainField {
-        domain_name: String::from("www.example.com"),
-        provider: app.add_domain_field.provider.clone(),
-    };
-
-    Container::new(column![
-        text("add domain")
-            .color(color!(0x0000ff))
-            .size(20)
-            .style(|_theme: &Theme| {
-                text::Style {
-                    color: Some(color!(0xff00ff)),
-                }
-            })
-            .width(Length::Fill),
-        TextInput::new("domain name", &app.add_domain_field.domain_name)
-            .on_input(Message::AddDomainFormChanged),
-        pick_list(
-            &DnsProvider::ALL[..],
-            state.provider,
-            Message::DnsProviderSelected
-        )
-        .placeholder("Select your favorite fruit..."),
-        Button::new(text("confirm")).on_press(Message::SubmitDomainForm),
-        button(Text::new(get_text("return"))).on_press(Message::ChangePage(Page::DomainPage)),
-    ])
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .padding(10)
-    .align_top(0)
-    .center_x(Length::Fill)
-    .center_y(Length::Fill)
-    .into()
-}
-
-// 夏青.我爱你
-/// 域名管理界面
-fn domain_page(app: &App) -> Element<'static, Message> {
-    // 返回到解析界面
-    let domain_name_list: Column<Message> =
-        Column::from_iter(app.domain_names.iter().map(|domain_name: &DomainName| {
-            // 这里是一行数据
-            let counter: i32 = app.counter;
-            row![
-                text!("{counter}").width(Length::Fill),
-                text!("{}", domain_name.name).width(Length::Fill),
-                text!("{}", domain_name.provider)
-                    .width(Length::Fill)
-                    .line_height(LineHeight::default())
-                    .style(|_theme: &Theme| { text::Style::default() })
-                    .align_x(Alignment::Start),
-                button(Text::new(t!("dns_record")).center())
-                    .on_press(Message::QueryDomainDnsRecord(domain_name.clone()))
-                    .width(Length::Fixed(100.0)),
-                button(Text::new(t!("delete")).center())
-                    .on_press(Message::DomainDeleted(domain_name.clone()))
-                    .width(Length::Fixed(100.0))
-                    .style(|theme: &Theme, status: Status| { danger_btn(theme, status) })
-            ]
-            .spacing(5)
-            .align_y(Alignment::Center)
-            .into()
-        }))
-        .spacing(5);
-
-    let action_row: Row<Message> = Row::new()
-        .push(Text::new("counter").width(Length::Fill))
-        .push(Text::new(get_text("domain_name")).width(Length::Fill))
-        .push(
-            Text::new(get_text("domain_name"))
-                .width(Length::Fill)
-                .style(|_theme: &Theme| text::Style::default())
-                .align_x(Alignment::Start),
-        )
-        .push(
-            Text::new(t!("operation"))
-                .center()
-                .width(Length::Fixed(200.0))
-                .align_y(Alignment::Center),
-        )
-        .height(Length::Shrink)
-        .spacing(5);
-
-    let in_query_tag = if app.in_query {
-        Some(Text::new(get_text("in_query")).width(Length::Fill))
-    } else {
-        None
-    };
-
-    let actions = Row::new()
-        .push(
-            text(get_text("domain_manage"))
-                .align_x(Alignment::Start)
-                .width(Length::Fill),
-        )
-        .push_maybe(in_query_tag)
-        .push(
-            button(text(get_text("reload")).center())
-                .on_press(Message::QueryDomain)
-                .width(Length::Fixed(100.0)),
-        )
-        .push(
-            button(Text::new(get_text("add_domain")).center())
-                .on_press(Message::ChangePage(Page::AddDomain))
-                .width(Length::Fixed(100.0)),
-        )
-        .push(
-            button(Text::new(get_text("change_theme")).center())
-                .on_press(Message::ToggleTheme)
-                .width(Length::Fixed(100.0)),
-        )
-        .spacing(5)
-        .width(Length::Fill)
-        .padding(Padding {
-            bottom: 10.0,
-            ..Default::default()
-        })
-        .align_y(Alignment::Center);
-
-    let row1 = Column::new().push(actions).push(action_row).push(
-        Container::new(domain_name_list)
-            .style(container::rounded_box)
-            .width(Length::Fill)
-            .height(Length::Fill),
-    );
-
-    let content2: Column<Message> = Column::new().push(row1).width(Length::Fill);
-
-    Container::new(
-        content2.push(
-            Row::new()
-                .push(horizontal_space().width(Length::Fill))
-                .push(text!("Made with Love by {}", app.config.author).align_x(Alignment::End)),
-        ),
-    )
-    .style(container::rounded_box)
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .padding(10)
-    .center(800)
-    .center_x(Length::Fill)
-    .center_y(Length::Shrink)
-    .into()
 }
 
 fn help(_app: &App) -> Element<Message> {
@@ -1057,7 +784,7 @@ impl Display for Page {
 struct DnsRecord {
     domain_name: String,
     dns_name: String,
-    dns_type: String, // A, AAAA, CNAME, MX, TXT, etc.
+    dns_type: String,
     dns_value: String,
     ttl: i64,
 }

@@ -3,9 +3,7 @@ use iced::border::Radius;
 use iced::widget::button::{Status, Style};
 use iced::{Background, Border, Color, Theme};
 
-pub fn danger_btn(theme: &Theme, status: Status) -> Style {
-    let palette = theme.palette();
-
+pub fn danger_btn(_theme: &Theme, status: Status) -> Style {
     let border: Border = Border::default().rounded(Radius::default());
 
     let default_style: Style = Style {
