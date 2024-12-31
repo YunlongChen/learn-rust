@@ -116,7 +116,7 @@ pub enum Status {
 
 #[cfg(test)]
 mod tests {
-    use crate::dns_record_response::{DnsRecordResponse, Status};
+    use crate::model::dns_record_response::{DnsRecordResponse, Status};
 
     #[tokio::test]
     async fn test_get_text() {

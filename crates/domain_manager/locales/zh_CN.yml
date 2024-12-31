@@ -3,6 +3,7 @@ hello: 你好世界！
 messages: 你好
 add_domain: 新增域名
 dns_record: 域名解析
+domain_name: 域名
 domain_manage: 域名管理
 return: 返回
 reload: 加载
@@ -15,5 +16,6 @@ confirm: 确定
 cancel: 取消
 operation: 操作
 change_theme: 切换主题
+change_locale: 切换语言
 help:
   title: 帮助
