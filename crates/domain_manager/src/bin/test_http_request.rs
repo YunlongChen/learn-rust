@@ -1,8 +1,8 @@
 use domain_client::{call_api, RequestBody};
+use reqwest::{Client, Method};
 use serde_json::json;
 use std::collections::HashMap;
 use std::env;
-use reqwest::{Client, Method};
 
 /**
  * 签名示例，您需要根据实际情况替换main方法中的示例参数。

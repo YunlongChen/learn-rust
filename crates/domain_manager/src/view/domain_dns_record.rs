@@ -1,10 +1,12 @@
 use crate::model::dns_operate::RecordLog;
-use crate::model::dns_record_response::Record;
+use crate::model::dns_record_response::{Record, Type};
 use crate::{get_text, App, Message, Page};
 use iced::border::Radius;
 use iced::widget::button::{danger, primary};
 use iced::widget::text::{LineHeight, Wrapping};
-use iced::widget::{button, container, row, text, Column, Container, Text};
+use iced::widget::{
+    button, container, pick_list, row, slider, text, text_input, Column, Container, Row, Text,
+};
 use iced::{Alignment, Border, Color, Element, Length, Padding, Theme};
 
 pub fn dns_record(app: &App) -> Element<'static, Message> {
@@ -35,7 +37,7 @@ pub fn dns_record(app: &App) -> Element<'static, Message> {
                                     _ => primary(theme, status),
                                 }
                             })
-                            .on_press(Message::DnsEdit(record.clone()))
+                            .on_press(Message::AddDnsFormSubmit)
                             .width(Length::Fixed(100.0)),
                         button(Text::new(get_text("delete")).align_x(Alignment::Center))
                             .style(|theme: &Theme, status| {
@@ -45,7 +47,7 @@ pub fn dns_record(app: &App) -> Element<'static, Message> {
                                     _ => danger(theme, status),
                                 }
                             })
-                            .on_press(Message::DnsDelete)
+                            .on_press(Message::DnsDelete(record.record_id.clone()))
                             .width(Length::Fixed(100.0))
                     ]
                     .align_y(Alignment::Center)
@@ -115,7 +117,9 @@ pub fn dns_record(app: &App) -> Element<'static, Message> {
                 .push(
                     row![
                         text!("记录标识").width(Length::Fixed(200.0)),
-                        text!("主机记录").width(Length::Fixed(200.0)).wrapping(Wrapping::Word),
+                        text!("主机记录")
+                            .width(Length::Fixed(200.0))
+                            .wrapping(Wrapping::Word),
                         text!("记录类型")
                             .width(Length::Fixed(100.0))
                             .align_x(Alignment::Start),
@@ -180,4 +184,74 @@ pub fn dns_record(app: &App) -> Element<'static, Message> {
         }
     };
     page.into()
+}
+
+pub fn add_dns_record(app: &App) -> Element<'static, Message> {
+    {
+        let record_id_column = match &app.add_dns_form.record_id {
+            Some(record_id) => text!("修改Dns记录：{}", record_id)
+                .width(Length::Fill)
+                .into(),
+            None => text!("No record id").width(Length::Fill).into(),
+        };
+
+        // 添加 dns 记录
+        Container::new(
+            Column::new()
+                .width(Length::Fill)
+                .align_x(Alignment::Start)
+                .push_maybe(record_id_column)
+                .push(
+                    Text::new(get_text("add_dns_record"))
+                        .width(Length::Fill)
+                        .center(),
+                )
+                .push(
+                    Column::new()
+                        .push(text!("主机记录").width(Length::Fill))
+                        .push(
+                            text_input("Type something here...", &app.add_dns_form.record_name)
+                                .on_input(Message::DnsFormNameChanged),
+                        )
+                        .push(text!("记录类型").width(Length::Fill))
+                        .push(pick_list(
+                            &Type::ALL[..],
+                            app.add_dns_form.record_type.clone(),
+                            Message::DnsFormRecordTypeChanged,
+                        ))
+                        .push(text!("记录值").width(Length::Fill))
+                        .push(
+                            text_input("Type something here...", &app.add_dns_form.value)
+                                .on_input(Message::DnsFormValueChanged),
+                        )
+                        .push(text!("TTL：{}", app.add_dns_form.ttl).width(Length::Fill))
+                        .push(slider(
+                            600..=1000,
+                            app.add_dns_form.ttl,
+                            Message::DnsFormTtlChanged,
+                        ))
+                        .width(Length::Fill),
+                )
+                .push(
+                    Row::new()
+                        .push(
+                            button(Text::new(get_text("cancel")))
+                                .on_press(Message::AddDnsFormCancelled)
+                                .width(Length::Fixed(200.0)),
+                        )
+                        .push(
+                            button(Text::new(get_text("confirm")))
+                                .on_press(Message::AddDnsFormSubmit)
+                                .width(Length::Fixed(200.0)),
+                        )
+                        .spacing(20)
+                        .width(Length::Fill)
+                        .align_y(Alignment::Center),
+                ),
+        )
+        .padding(10)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+    }
 }

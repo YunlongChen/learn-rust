@@ -6,18 +6,19 @@ mod view;
 use iced::alignment::Horizontal;
 
 use crate::ali_api::{
-    query_aliyun_dns_list, query_aliyun_dns_operation_list, query_aliyun_domain_list,
+    add_aliyun_dns_record, delete_aliyun_dns, query_aliyun_dns_list,
+    query_aliyun_dns_operation_list, query_aliyun_domain_list,
 };
 use crate::locale::Locale;
 use crate::model::dns_operate::RecordLog;
+use crate::model::dns_record_response::Type;
 use crate::view::domain::{add_domain_page, domain_page};
-use crate::view::domain_dns_record::dns_record;
+use crate::view::domain_dns_record::{add_dns_record, dns_record};
 use iced::keyboard::Key;
-use iced::widget::{button, column, row, text, text_input, Column, Container, Row, Text};
+use iced::widget::{button, column, row, text, Column, Container};
 use iced::window::Position;
 use iced::{
-    application, keyboard, window, Alignment, Element, Font, Length, Settings, Size, Subscription,
-    Task, Theme,
+    application, keyboard, window, Element, Font, Length, Settings, Size, Subscription, Task, Theme,
 };
 use log::{error, info};
 use model::dns_record_response::Record;
@@ -137,7 +138,7 @@ pub fn main() -> iced::Result {
 }
 
 #[derive(Debug, Clone)]
-enum Message {
+pub(crate) enum Message {
     ChangeLocale,
     ToggleTheme,
     ChangePage(Page),
@@ -155,10 +156,15 @@ enum Message {
     QueryDomainResult(Vec<DomainName>),
     QueryDnsResult(Vec<Record>),
     QueryDnsLogResult(Vec<RecordLog>),
-    DnsDelete,
-    DnsEdit(Record),
+    DnsDelete(String),
     AddDnsRecord,
-    DnsFormContentChanged(String),
+    DnsFormNameChanged(String),
+    DnsFormRecordTypeChanged(Type),
+    DnsFormValueChanged(String),
+    DnsFormTtlChanged(i32),
+    AddDnsFormSubmit,
+    AddDnsFormCancelled,
+    DnsRecordDeleted(String),
 }
 
 #[derive(Debug, Clone)]
@@ -180,13 +186,33 @@ impl Default for AddDomainField {
 struct AddDnsField {
     record_id: Option<String>,
     domain_name: String,
+    record_name: String,
+    value: String,
+    ttl: i32,
+    record_type: Option<Type>,
+}
+
+impl AddDnsField {
+    /// update_input
+    pub fn update_value(&mut self) {
+        self.record_name = String::new();
+    }
+
+    pub(crate) fn validate(&self) -> bool {
+        println!("验证输入是否合法！{:?}", &self);
+        true
+    }
 }
 
 impl Default for AddDnsField {
     fn default() -> Self {
         AddDnsField {
             record_id: None,
+            record_name: String::new(),
             domain_name: String::new(),
+            ttl: 600,
+            record_type: Some(Type::A),
+            value: String::new(),
         }
     }
 }
@@ -206,32 +232,6 @@ struct App {
     dns_log_list: Vec<RecordLog>, // 当前域名对应的DNS记录
     add_dns_form: AddDnsField,
     locale: Locale,
-}
-
-impl App {
-    pub fn start(&self) -> iced::Result {
-        application("Dns Manager", Self::update, Self::view)
-            .subscription(subscribe)
-            .window(window::Settings {
-                size: Size::new(1080f32, 720f32), // start size
-                position: Position::Default,
-                min_size: Some(Size::new(1080f32, 720f32)), // Some(ConfigWindow::MIN_SIZE.to_size()), // min size allowed
-                max_size: None,
-                visible: true,
-                resizable: true,
-                decorations: true,
-                transparent: true,
-                exit_on_close_request: true,
-                ..Default::default()
-            })
-            .settings(Settings {
-                fonts: vec![include_bytes!("../fonts/MapleMono-NF-CN-Regular.ttf").into()],
-                default_font: Font::with_name("Maple Mono NF CN"),
-                ..Default::default()
-            })
-            .theme(Self::theme)
-            .run()
-    }
 }
 
 // 监听键盘
@@ -273,6 +273,38 @@ impl Default for App {
 
 // 定义主题
 impl App {
+    pub fn start(&self) -> iced::Result {
+        self.locale();
+        application("Dns Manager", Self::update, Self::view)
+            .subscription(subscribe)
+            .window(window::Settings {
+                size: Size::new(1080f32, 720f32), // start size
+                position: Position::Default,
+                min_size: Some(Size::new(1080f32, 720f32)), // Some(ConfigWindow::MIN_SIZE.to_size()), // min size allowed
+                max_size: None,
+                visible: true,
+                resizable: true,
+                decorations: true,
+                transparent: true,
+                exit_on_close_request: true,
+                ..Default::default()
+            })
+            .settings(Settings {
+                fonts: vec![include_bytes!("../fonts/MapleMono-NF-CN-Regular.ttf").into()],
+                default_font: Font::with_name("Maple Mono NF CN"),
+                ..Default::default()
+            })
+            .theme(Self::theme)
+            .run()
+    }
+
+    fn locale(&self) {
+        match self.locale {
+            Locale::Chinese => rust_i18n::set_locale("zh_CN"),
+            Locale::English => rust_i18n::set_locale("en"),
+        }
+    }
+
     fn new(config: Config) -> Self {
         // 初始化数据
         let domain_names = config.domain_names.clone();
@@ -300,91 +332,7 @@ impl App {
             // 添加域名界面
             Page::AddDomain => add_domain_page(&self),
             Page::DnsRecord => dns_record(&self),
-            Page::AddRecord => {
-                let record_id_column = match &self.add_dns_form.record_id {
-                    Some(record_id) => text!("修改Dns记录：{}", record_id)
-                        .width(Length::Fill)
-                        .into(),
-                    None => text!("No record id").width(Length::Fill).into(),
-                };
-
-                // 添加 dns 记录
-                Container::new(
-                    Column::new()
-                        .width(Length::Fill)
-                        .align_x(Alignment::Start)
-                        .push_maybe(record_id_column)
-                        .push(
-                            Text::new(get_text("add_dns_record"))
-                                .width(Length::Fill)
-                                .center(),
-                        )
-                        .push(
-                            Column::new()
-                                .push(text!("记录类型").width(Length::Fill))
-                                .push(
-                                    text_input(
-                                        "Type something here...",
-                                        &self.add_dns_form.domain_name,
-                                    )
-                                    .on_input(Message::DnsFormContentChanged),
-                                )
-                                .push(text!("主机记录").width(Length::Fill))
-                                .push(
-                                    text_input(
-                                        "Type something here...",
-                                        &self.add_dns_form.domain_name,
-                                    )
-                                    .on_input(Message::DnsFormContentChanged),
-                                )
-                                .push(text!("请求来源").width(Length::Fill))
-                                .push(
-                                    text_input(
-                                        "Type something here...",
-                                        &self.add_dns_form.domain_name,
-                                    )
-                                    .on_input(Message::DnsFormContentChanged),
-                                )
-                                .push(text!("记录值").width(Length::Fill))
-                                .push(
-                                    text_input(
-                                        "Type something here...",
-                                        &self.add_dns_form.domain_name,
-                                    )
-                                    .on_input(Message::DnsFormContentChanged),
-                                )
-                                .push(text!("TTL").width(Length::Fill))
-                                .push(
-                                    text_input(
-                                        "Type something here...",
-                                        &self.add_dns_form.domain_name,
-                                    )
-                                    .on_input(Message::DnsFormContentChanged),
-                                )
-                                .width(Length::Fill),
-                        )
-                        .push(
-                            Row::new()
-                                .push(
-                                    button(Text::new(get_text("cancel")))
-                                        .on_press(Message::ChangePage(Page::DnsRecord))
-                                        .width(Length::Fixed(200.0)),
-                                )
-                                .push(
-                                    button(Text::new(get_text("confirm")))
-                                        .on_press(Message::AddDnsRecord)
-                                        .width(Length::Fixed(200.0)),
-                                )
-                                .spacing(20)
-                                .width(Length::Fill)
-                                .align_y(Alignment::Center),
-                        ),
-                )
-                .padding(10)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into()
-            }
+            Page::AddRecord => add_dns_record(&self),
             Page::Help => help(&self),
         }
     }
@@ -403,15 +351,10 @@ impl App {
         match message {
             Message::ChangeLocale => {
                 self.locale = match self.locale {
-                    Locale::Chinese => {
-                        rust_i18n::set_locale("en");
-                        Locale::English
-                    }
-                    Locale::English => {
-                        rust_i18n::set_locale("zh_CN");
-                        Locale::Chinese
-                    }
+                    Locale::Chinese => Locale::English,
+                    Locale::English => Locale::Chinese,
                 };
+                self.locale();
                 Task::none()
             }
             Message::ToggleTheme => {
@@ -545,22 +488,88 @@ impl App {
                 self.in_query = false;
                 self.update(Message::ChangePage(Page::DomainPage))
             }
-            Message::DnsDelete => {
-                dbg!("删除dns记录");
-                Task::none()
+            Message::DnsDelete(record_id) => {
+                dbg!("删除dns记录:{}", &record_id);
+                Task::perform(Self::handle_dns_record_delete(record_id), |response| {
+                    println!("请求接口信息:{:?}", response);
+                    match response {
+                        None => Message::ChangePage(Page::DnsRecord),
+                        Some(record_id) => Message::DnsRecordDeleted(record_id.clone()),
+                    }
+                })
             }
-            Message::AddDnsRecord => self.update(Message::ChangePage(Page::AddRecord)),
-            Message::DnsFormContentChanged(record) => {
-                dbg!("添加dns记录表单变化：", record);
-                Task::none()
-            }
-            Message::DnsEdit(record) => {
+            Message::AddDnsRecord => match &self.current_domain_name {
+                Some(domain_name) => {
+                    let name = domain_name.name.clone();
+                    self.add_dns_form = AddDnsField {
+                        domain_name: name,
+                        ..AddDnsField::default()
+                    };
+                    self.update(Message::ChangePage(Page::AddRecord))
+                }
+                None => Task::none(),
+            },
+            Message::DnsFormNameChanged(record_name) => {
+                dbg!("添加dns记录表单变化：", &record_name);
                 self.add_dns_form = AddDnsField {
-                    record_id: Some(record.record_id), // 记录ID
-                    domain_name: record.value,
-                    ..Default::default()
+                    record_name,
+                    ..self.add_dns_form.clone()
                 };
-                self.update(Message::ChangePage(Page::AddRecord))
+                Task::none()
+            }
+            Message::AddDnsFormSubmit => match self.add_dns_form.validate() {
+                true => {
+                    dbg!("添加dns记录表单提交：", &self.add_dns_form);
+                    Task::perform(
+                        Self::handle_dns_record_add(AddDnsField {
+                            ..self.add_dns_form.clone()
+                        }),
+                        |domain_names| {
+                            println!("请求接口信息:{:?}", domain_names);
+                            Message::ChangePage(Page::AddRecord)
+                        },
+                    )
+                }
+                false => {
+                    dbg!("添加dns记录表单提交失败：", &self.add_dns_form);
+                    Task::none()
+                }
+            },
+            Message::DnsFormRecordTypeChanged(record_type) => {
+                dbg!("添加dns记录表单变化：", &record_type);
+                self.handle_dns_add(AddDnsField {
+                    record_type: Some(record_type),
+                    ..self.add_dns_form.clone()
+                });
+                Task::none()
+            }
+            Message::DnsFormValueChanged(value) => {
+                dbg!("添加dns记录表单变化：", &value);
+                self.handle_dns_add(AddDnsField {
+                    value,
+                    ..self.add_dns_form.clone()
+                });
+                Task::none()
+            }
+            Message::DnsFormTtlChanged(ttl) => {
+                dbg!("添加dns记录表单变化：", ttl);
+                // 这里会不会卡呀
+                self.handle_dns_add(AddDnsField {
+                    ttl,
+                    ..self.add_dns_form.clone()
+                });
+                Task::none()
+            }
+            Message::AddDnsFormCancelled => {
+                // 提交表单恢复原状
+                self.add_dns_form = AddDnsField::default();
+                // 返回到dns管理界面
+                self.update(Message::ChangePage(Page::DnsRecord))
+            }
+            Message::DnsRecordDeleted(record_id) => {
+                self.dns_list.retain(|record| record.record_id != record_id);
+                // 返回到dns管理界面
+                self.update(Message::ChangePage(Page::DnsRecord))
             }
         }
     }
@@ -583,8 +592,22 @@ impl App {
         dns_operate_logs
     }
 
+    async fn handle_dns_record_add(domain_name: AddDnsField) -> bool {
+        dbg!("添加域名解析记录");
+        add_aliyun_dns_record(&domain_name)
+    }
+
+    async fn handle_dns_record_delete(record_id: String) -> Option<String> {
+        dbg!("删除域名解析记录");
+        delete_aliyun_dns(record_id)
+    }
+
     fn theme(&self) -> Theme {
         self.theme.clone()
+    }
+
+    fn handle_dns_add(&mut self, form: AddDnsField) {
+        self.add_dns_form = form;
     }
 }
 
@@ -795,7 +818,8 @@ fn get_text(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{get_text, Config};
+    use crate::{get_text, App, Config, Message};
+    use serial_test::parallel;
 
     #[test]
     fn test_get_text() {
@@ -810,5 +834,12 @@ mod tests {
     fn test_parse_json_config() {
         let config = Config::new_from_file("config.json");
         assert_eq!(config.name, "Domain Manager");
+    }
+
+    #[test]
+    #[parallel] // needed to not collide with other tests generating configs files
+    fn test_correctly_update_ip_version() {
+        let mut app = App::default();
+        let _ = app.update(Message::AddDnsRecord);
     }
 }

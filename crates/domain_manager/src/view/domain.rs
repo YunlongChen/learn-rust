@@ -106,6 +106,7 @@ pub fn domain_page(app: &App) -> Element<'static, Message> {
     Container::new(
         content2.push(
             Row::new()
+                .push(text(get_text("domain_manager")).width(Length::Fixed(200.0)))
                 .push(horizontal_space().width(Length::Fill))
                 .push(text!("Made with Love by {}", app.config.author).align_x(Alignment::End)),
         ),
