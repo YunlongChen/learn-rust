@@ -75,14 +75,12 @@ pub enum Line {
     Default,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     #[serde(rename = "A")]
     A,
-
     #[serde(rename = "CNAME")]
     Cname,
-
     MX,
     AAAA,
     TXT,
@@ -90,6 +88,24 @@ pub enum Type {
     SOA,
     PTR,
     SRV,
+}
+
+impl Type {
+    pub const ALL: [Type; 5] = [Type::A, Type::AAAA, Type::Cname, Type::MX, Type::TXT];
+
+    pub fn get_value(&self) -> &str {
+        match self {
+            Type::A => "A",
+            Type::Cname => "CNAME",
+            Type::MX => "MX",
+            Type::AAAA => "AAAA",
+            Type::TXT => "TXT",
+            Type::NS => "NS",
+            Type::SOA => "SOA",
+            Type::PTR => "PTR",
+            Type::SRV => "SRV",
+        }
+    }
 }
 
 impl Display for Type {
@@ -114,6 +130,14 @@ pub enum Status {
     Enable,
 }
 
+pub enum TimeUnit{
+    Second,
+    Minute,
+    Hour,
+    Day
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::model::dns_record_response::{DnsRecordResponse, Status};
@@ -121,7 +145,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_text() {
         // The type of `j` is `&str`
-        let json_str = r#" 
+        let json_str = r#"
         {
           "TotalCount": 24,
           "PageSize": 20,

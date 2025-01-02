@@ -77,3 +77,18 @@ impl Display for Action {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DnsRecordDeleteResponse {
+    #[serde(rename = "RecordId")]
+    pub record_id: Option<String>,
+
+    #[serde(rename = "RequestId")]
+    pub request_id: String,
+}
+
+impl From<String> for DnsRecordDeleteResponse {
+    fn from(value: String) -> Self {
+        serde_json::from_str(&value).unwrap()
+    }
+}

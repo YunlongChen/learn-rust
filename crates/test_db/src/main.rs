@@ -115,7 +115,6 @@ fn test_cornucopia() {
 /// `postgres` for details.
 use postgres::{Config, NoTls};
 
-
 fn get_client() -> Result<postgres::Client, postgres::Error> {
     Config::new()
         .user("postgres")

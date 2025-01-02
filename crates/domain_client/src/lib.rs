@@ -10,7 +10,7 @@ use reqwest::{
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap}; 
+use std::collections::{BTreeMap, HashMap};
 use std::time::{SystemTime, SystemTimeError};
 // 加载base64 crate
 
@@ -213,7 +213,7 @@ pub async fn call_api(
         &body,         // 接收body请求体参数（包含Json，Map，二进制）
         &body_content, // 接收body请求体参数。当body为map 或者 formDate 的时候，该变量有值；若body参数为二进制，则该变量为空
     )
-        .await?;
+    .await?;
 
     // 读取响应
     let (_, res) = read_response(response).await?;

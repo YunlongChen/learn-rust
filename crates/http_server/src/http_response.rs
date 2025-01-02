@@ -11,7 +11,6 @@ pub struct HttpResponse<'a> {
     body: Option<String>,
 }
 
-
 impl<'a> Default for HttpResponse<'a> {
     fn default() -> Self {
         HttpResponse {
@@ -26,7 +25,10 @@ impl<'a> Default for HttpResponse<'a> {
 
 impl<'a> From<HttpResponse<'a>> for String {
     fn from(value: HttpResponse<'a>) -> Self {
-        let mut response_string = format!("{} {} {}\r\n", value.version, value.status_code, value.status_text);
+        let mut response_string = format!(
+            "{} {} {}\r\n",
+            value.version, value.status_code, value.status_text
+        );
         println!("response_string: {}", response_string);
         if let Some(headers) = value.headers {
             for (key, value) in headers {
@@ -34,7 +36,11 @@ impl<'a> From<HttpResponse<'a>> for String {
             }
         }
         if let Some(body) = value.body {
-            response_string.push_str(&format!("Content-Length: {}\r\n\r\n{}\r\n", body.as_bytes().len(), body));
+            response_string.push_str(&format!(
+                "Content-Length: {}\r\n\r\n{}\r\n",
+                body.as_bytes().len(),
+                body
+            ));
         } else {
             response_string.push_str(&format!("Content-Length: {}\r\n\r\n{}\r\n", 0, ""));
             println!("响应没有Body")
@@ -44,7 +50,11 @@ impl<'a> From<HttpResponse<'a>> for String {
 }
 
 impl<'a> HttpResponse<'a> {
-    pub fn new(status: &'a str, headers: Option<HashMap<&'a str, &'a str>>, body: Option<String>) -> Self {
+    pub fn new(
+        status: &'a str,
+        headers: Option<HashMap<&'a str, &'a str>>,
+        body: Option<String>,
+    ) -> Self {
         let mut response = HttpResponse::default();
 
         if status != "200" {
@@ -53,9 +63,7 @@ impl<'a> HttpResponse<'a> {
 
         response.headers = match &headers {
             Some(_h) => headers,
-            None => {
-                None
-            }
+            None => None,
         };
 
         HttpResponse {
@@ -101,12 +109,8 @@ impl<'a> HttpResponse<'a> {
 
     pub fn body(&self) -> &str {
         match &self.body {
-            None => {
-                ""
-            }
-            Some(b) => {
-                b.as_str()
-            }
+            None => "",
+            Some(b) => b.as_str(),
         }
     }
 }

@@ -19,7 +19,7 @@ impl From<&str> for Method {
 
 #[derive(Debug, PartialEq)]
 pub enum Resource {
-    PATH(String)
+    PATH(String),
 }
 
 #[derive(Debug, PartialEq)]
@@ -32,7 +32,13 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
-    pub fn new(method: Method, version: Version, resource: Resource, headers: HashMap<String, String>, body: Option<String>) -> Self {
+    pub fn new(
+        method: Method,
+        version: Version,
+        resource: Resource,
+        headers: HashMap<String, String>,
+        body: Option<String>,
+    ) -> Self {
         HttpRequest {
             method,
             version,
@@ -99,11 +105,7 @@ fn process_req_line(line: &str) -> (Method, Resource, Version) {
     let method = parts.next().unwrap().into();
     let resource = parts.next().unwrap().to_string();
     let version = parts.next().unwrap().into();
-    (
-        method,
-        Resource::PATH(resource),
-        version
-    )
+    (method, Resource::PATH(resource), version)
 }
 
 ///

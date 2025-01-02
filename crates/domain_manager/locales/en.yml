@@ -9,5 +9,6 @@ delete: Delete
 in_query: querying...
 add_dns_record: Add DNS Record
 modify_dns_record: Modify DNS Record
+domain_manager: Domain Manager
 help:
   title: Help

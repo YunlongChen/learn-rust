@@ -14,9 +14,9 @@ async fn main() -> std::io::Result<()> {
             .route("/hey", web::get().to(manual_hello))
             .route("/index.html", web::get().to(echo))
     })
-        .bind(("127.0.0.1", 8089))?
-        .run()
-        .await
+    .bind(("127.0.0.1", 8089))?
+    .run()
+    .await
 }
 
 use actix_web::{get, post, rt, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};

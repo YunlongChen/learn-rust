@@ -17,7 +17,12 @@ reqwest = { version = "0.12.11", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 domain_client = { path = "../domain_client" }
 
+[dev-dependencies]
+serde_test = "1.0.177"
+rstest = "0.24.0"
+serial_test = { version = "3.2.0", default-features = false }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+

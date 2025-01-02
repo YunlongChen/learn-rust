@@ -4,6 +4,8 @@ pub enum Locale {
     English,
 }
 
+
+
 impl From<String> for Locale {
     fn from(value: String) -> Self {
         match value.as_str() {

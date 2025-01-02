@@ -17,5 +17,6 @@ cancel: 取消
 operation: 操作
 change_theme: 切换主题
 change_locale: 切换语言
+domain_manager: 域名管理器
 help:
   title: 帮助

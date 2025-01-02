@@ -25,7 +25,6 @@ pub trait Handler {
     }
 }
 
-
 #[derive(Debug)]
 pub struct StaticHandler;
 #[derive(Debug)]
@@ -47,7 +46,11 @@ impl Handler for PageNotFoundHandler {
         let Resource::PATH(s) = &req.resource();
         let route: Vec<&str> = s.split("/").collect();
         println!("Page not found: {}", route[1]);
-        HttpResponse::new("404", Some(HashMap::new()), Some(String::from("Page not found")))
+        HttpResponse::new(
+            "404",
+            Some(HashMap::new()),
+            Some(String::from("Page not found")),
+        )
     }
 }
 
@@ -76,12 +79,13 @@ impl Handler for StaticHandler {
                         map.insert("Content-Type", "text/css");
                     } else if path.ends_with(".js") {
                         map.insert("Content-Type", "text/javascript");
-                    } else { map.insert("Content-Type", "text/html"); }
+                    } else {
+                        map.insert("Content-Type", "text/html");
+                    }
                     HttpResponse::new("200", Some(map), Some(content))
                 }
-                None =>
-                    HttpResponse::new("404", None, Self::load_file("404.html"))
-            }
+                None => HttpResponse::new("404", None, Self::load_file("404.html")),
+            },
         }
     }
 }
@@ -101,15 +105,17 @@ impl WebServiceHandler {
         println!("Loading file: {}", file_path);
 
         let mut vec = Vec::new();
-        vec.insert(0, OrderStatus {
-            order_id: String::from("1"),
-            order_date: String::from("2022-01-01"),
-            order_status: String::from("Delivered"),
-        });
+        vec.insert(
+            0,
+            OrderStatus {
+                order_id: String::from("1"),
+                order_date: String::from("2022-01-01"),
+                order_status: String::from("Delivered"),
+            },
+        );
         vec
     }
 }
-
 
 #[cfg(test)]
 mod tests {
