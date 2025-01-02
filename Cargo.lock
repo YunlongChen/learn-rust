@@ -877,16 +877,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1892,15 +1882,6 @@ name = "hello-game"
 version = "0.1.0"
 
 [[package]]
-name = "hello-wasm"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2594,16 +2575,6 @@ name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
-
-[[package]]
-name = "minicov"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f27fe9f1cc3c22e1687f9446c2083c4c5fc7f0bcf1c7a86bdbded14985895b4b"
-dependencies = [
- "cc",
- "walkdir",
-]
 
 [[package]]
 name = "miniz_oxide"
@@ -4507,9 +4478,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.40.0"
+version = "1.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2b070231665d27ad9ec9b8df639893f46727666c6767db40317fbe920a5d998"
+checksum = "5cec9b21b0450273377fc97bd4c33a8acffc8c996c987a7c5b319a0083707551"
 dependencies = [
  "backtrace",
  "bytes",
@@ -4944,31 +4915,6 @@ name = "wasm-bindgen-shared"
 version = "0.2.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "943aab3fdaaa029a6e0271b35ea10b72b943135afe9bffca82384098ad0e06a6"
-
-[[package]]
-name = "wasm-bindgen-test"
-version = "0.3.49"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c61d44563646eb934577f2772656c7ad5e9c90fac78aa8013d776fcdaf24625d"
-dependencies = [
- "js-sys",
- "minicov",
- "scoped-tls",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test-macro",
-]
-
-[[package]]
-name = "wasm-bindgen-test-macro"
-version = "0.3.49"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54171416ce73aa0b9c377b51cc3cb542becee1cd678204812e8392e5b0e4a031"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.79",
-]
 
 [[package]]
 name = "wasm-timer"
