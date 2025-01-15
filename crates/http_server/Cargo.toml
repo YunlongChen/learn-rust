@@ -8,7 +8,7 @@ default-run = "http_server"
 repository.workspace = true
 
 [dependencies]
-log = "0.4.22"
+log = "0.4.25"
 
 [[bin]]
 name = "http_server"
