@@ -7,6 +7,6 @@ repository.workspace = true
 edition = "2021"
 
 [dependencies]
-postgres = "0.19.4"
+postgres = "0.19.10"
 postgres-types = { version = "0.2.4", features = ["derive"] }
 cornucopia_sync = "0.4.0"
