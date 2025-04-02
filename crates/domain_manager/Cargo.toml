@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 log = "0.4.22"
 iced = { version = "0.13.1" }
-rust-i18n = "3.1.2"
+rust-i18n = "3.1.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.12.12", features = ["json"] }
