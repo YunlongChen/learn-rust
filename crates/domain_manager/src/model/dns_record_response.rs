@@ -130,11 +130,11 @@ pub enum Status {
     Enable,
 }
 
-pub enum TimeUnit{
+pub enum TimeUnit {
     Second,
     Minute,
     Hour,
-    Day
+    Day,
 }
 
 

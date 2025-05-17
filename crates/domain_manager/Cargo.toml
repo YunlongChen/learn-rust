@@ -9,20 +9,39 @@ repository.workspace = true
 
 [dependencies]
 log = "0.4.22"
-iced = { version = "0.13.1" }
+iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image"] }
+maxminddb = "0.26.0"
+plotters = { version = "0.3.7", default-features = false, features = ["area_series", "line_series"] }
 rust-i18n = "3.1.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.12.12", features = ["json"] }
+rodio = { version = "0.20.1", default-features = false, features = ["mp3"] }
 tokio = { version = "1", features = ["full"] }
+toml = "0.8.22"
 domain_client = { path = "../domain_client" }
+chrono = "0.4.39"
+confy = { version = "1.0.0" }
+winapi = { version = "0.3.9", features = ["wincon", "winuser"] }
+
 
 [dev-dependencies]
 serde_test = "1.0.177"
-rstest = "0.24.0"
 serial_test = { version = "3.2.0", default-features = false }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
-opt-level = "s"
+opt-level = 3
 
+[target."cfg(windows)".build-dependencies]
+winres = "0.1.12"
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[package.metadata.wix]
+include = [".\\resources\\packaging\\windows\\setup.wxs"]
+
+
+[[bin]]
+name = "domain_manager"

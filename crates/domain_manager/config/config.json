@@ -1,11 +1,16 @@
 {
   "name": "Domain Manager",
-  "description": "A simple domain manager",
+  "description": "A Simple Domain Manager",
   "version": "1.0.0",
-  "author": "Stanic.xyz",
+  "author": "stanic.xyz",
   "license": "MulanPSL2",
   "locale": "zh_CN",
   "domain_names": [],
   "access_id": "",
-  "access_secret": ""
+  "access_secret": "",
+  "style_type": {
+    "style": "Day"
+  },
+  "language": "ZH",
+  "color_gradient": "Mild"
 }
