@@ -1,6 +1,7 @@
 // YApi QuickType插件生成，具体参考文档:https://plugins.jetbrains.com/plugin/18847-yapi-quicktype/documentation
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::fmt::{Display, Formatter};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -19,6 +20,14 @@ pub struct DnsRecordResponse {
 
     #[serde(rename = "PageNumber")]
     page_number: i64,
+}
+
+impl TryFrom<Value> for DnsRecordResponse {
+    type Error = serde_json::Error;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        serde_json::from_value(value)
+    }
 }
 
 impl From<String> for DnsRecordResponse {
@@ -136,7 +145,6 @@ pub enum TimeUnit {
     Hour,
     Day,
 }
-
 
 #[cfg(test)]
 mod tests {

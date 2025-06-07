@@ -31,6 +31,7 @@ impl ContainerType {
         let colors = style.get_palette();
         let ext = style.get_extension();
         Style {
+            // 文本颜色
             text_color: Some(match self {
                 ContainerType::Gradient(_) | ContainerType::Highlighted => colors.text_headers,
                 _ => colors.text_body,
