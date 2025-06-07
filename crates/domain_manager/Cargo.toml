@@ -1,6 +1,6 @@
 [package]
 name = "domain_manager"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 default-run = "domain_manager"
@@ -9,7 +9,8 @@ repository.workspace = true
 
 [dependencies]
 log = "0.4.22"
-iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image"] }
+iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image", "tokio"] }
+image = "0.25.6"
 maxminddb = "0.26.0"
 plotters = { version = "0.3.7", default-features = false, features = ["area_series", "line_series"] }
 rust-i18n = "3.1.2"
@@ -22,7 +23,10 @@ toml = "0.8.22"
 domain_client = { path = "../domain_client" }
 chrono = "0.4.39"
 confy = { version = "1.0.0" }
-winapi = { version = "0.3.9", features = ["wincon", "winuser"] }
+sqlite = { version = "0.37.0", features = ["bundled"] }
+cloudflare = "0.14.0"
+clap = { version = "4.5.39", features = ["derive"] }
+ali-dns = "0.0.1"
 
 
 [dev-dependencies]

@@ -4,7 +4,7 @@ pub enum WebPage {
     /// GitHub repository.
     Repo,
     ///  website main page.
-    // Website,
+    Website,
     ///  website/download page.
     WebsiteDownload,
     ///  website/news page.
@@ -24,15 +24,15 @@ pub enum WebPage {
 impl WebPage {
     pub fn get_url(&self) -> &str {
         match self {
-            WebPage::Repo => "https://github.com/GyulyVGC/sniffnet",
-            // WebPage::Website => "https://www.sniffnet.net",
-            WebPage::WebsiteSponsor => "https://www.sniffnet.net/sponsor",
-            WebPage::WebsiteDownload => "https://www.sniffnet.net/download",
-            WebPage::WebsiteNews => "https://www.sniffnet.net/news",
-            WebPage::Issues => "https://github.com/GyulyVGC/sniffnet/issues",
-            WebPage::IssueLanguages => "https://github.com/GyulyVGC/sniffnet/issues/60",
-            WebPage::Wiki => "https://github.com/GyulyVGC/sniffnet/wiki",
-            WebPage::MyGitHub => "https://github.com/GyulyVGC",
+            WebPage::Repo => "https://github.com/YunlongChen/learn-rust",
+            WebPage::Website => "https://www.stanic.xyz",
+            WebPage::WebsiteSponsor => "https://www.stanic.xyz/sponsor",
+            WebPage::WebsiteDownload => "https://github.com/YunlongChen/learn-rust/releases",
+            WebPage::WebsiteNews => "https://www.stanic.xyz/news",
+            WebPage::Issues => "https://github.com/YunlongChen/learn-rust/issues",
+            WebPage::IssueLanguages => "https://github.com/YunlongChen/learn-rust/issues/60",
+            WebPage::Wiki => "https://github.com/YunlongChen/learn-rust/wiki",
+            WebPage::MyGitHub => "https://github.com/YunlongChen",
         }
     }
 }
@@ -41,10 +41,10 @@ impl WebPage {
 fn test_web_page() {
     assert_eq!(
         WebPage::Repo.get_url(),
-        "https://github.com/GyulyVGC/sniffnet"
+        "https://github.com/YunlongChen/learn-rust"
     );
     assert_eq!(
         WebPage::WebsiteDownload.get_url(),
-        "https://www.sniffnet.net/download"
+        "https://github.com/YunlongChen/learn-rust/releases"
     );
 }

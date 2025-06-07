@@ -7,15 +7,59 @@ pub enum DnsProvider {
     TencentCloud,
     CloudFlare,
     Tomato,
+    Dnspod,
+    Aws,
+    Google,
 }
 
 impl DnsProvider {
-    pub(crate) const ALL: [DnsProvider; 4] = [
+    pub(crate) const ALL: [DnsProvider; 7] = [
         DnsProvider::Aliyun,
         DnsProvider::TencentCloud,
         DnsProvider::CloudFlare,
         DnsProvider::Tomato,
+        DnsProvider::Google,
+        DnsProvider::Aws,
+        DnsProvider::Dnspod,
     ];
+}
+
+impl DnsProvider {
+    pub fn name(&self) -> &str {
+        match self {
+            DnsProvider::CloudFlare => "Cloudflare",
+            DnsProvider::Aliyun => "阿里云",
+            DnsProvider::TencentCloud => "腾讯云",
+            DnsProvider::Dnspod => "DNSPod",
+            DnsProvider::Aws => "Amazon Route 53",
+            DnsProvider::Google => "Google Domains",
+            DnsProvider::Tomato => "Tomato DNS",
+        }
+    }
+
+    pub(crate) fn icon(&self) -> char {
+        match self {
+            DnsProvider::CloudFlare => 'C',
+            DnsProvider::Aliyun => 'A',
+            DnsProvider::TencentCloud => 'T',
+            DnsProvider::Dnspod => 'D',
+            DnsProvider::Aws => 'S',
+            DnsProvider::Google => 'G',
+            DnsProvider::Tomato => 'T',
+        }
+    }
+
+    pub(crate) fn features(&self) -> Vec<&str> {
+        match self {
+            DnsProvider::CloudFlare => vec!["安全设置", "性能优化", "DNSSEC", "刷新DNS"],
+            DnsProvider::Aliyun => vec!["域名解析", "安全加速", "域名转移"],
+            DnsProvider::TencentCloud => vec!["DNS管理", "安全防护", "CDN加速"],
+            DnsProvider::Dnspod => vec!["域名解析", "智能解析", "安全监控"],
+            DnsProvider::Aws => vec!["路由策略", "健康检查", "地理路由"],
+            DnsProvider::Google => vec!["域名转移", "隐私保护", "DNS配置"],
+            DnsProvider::Tomato => vec!["域名解析", "安全防护", "DNS缓存"],
+        }
+    }
 }
 
 impl Display for DnsProvider {
@@ -25,6 +69,39 @@ impl Display for DnsProvider {
             DnsProvider::TencentCloud => write!(f, "TencentCloud"),
             DnsProvider::CloudFlare => write!(f, "CloudFlare"),
             DnsProvider::Tomato => write!(f, "Tomato"),
+            DnsProvider::Dnspod => write!(f, "Dnspod"),
+            DnsProvider::Aws => write!(f, "Aws"),
+            DnsProvider::Google => write!(f, "Google"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialOrd, PartialEq, Serialize, Deserialize)]
+pub struct Domain {
+    pub name: String,
+    pub provider: DnsProvider,
+    pub status: DomainStatus,
+    pub expiry: String,
+}
+
+impl Default for Domain {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            provider: DnsProvider::Aliyun,
+            status: DomainStatus::Active,
+            expiry: String::new(),
+        }
+    }
+}
+
+impl From<String> for Domain {
+    fn from(value: String) -> Self {
+        Self {
+            name: value,
+            provider: DnsProvider::Tomato,
+            expiry: String::new(),
+            status: DomainStatus::Active,
         }
     }
 }
@@ -69,10 +146,51 @@ impl Default for DomainName {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Deserialize, Serialize)]
-struct DnsRecord {
-    domain_name: String,
-    dns_name: String,
-    dns_type: String,
-    dns_value: String,
-    ttl: i64,
+pub struct DnsRecord {
+    pub name: String,
+    pub record_type: String,
+    pub value: String,
+    pub ttl: String,
+}
+
+#[derive(Debug, Clone, PartialOrd, PartialEq, Serialize, Deserialize)]
+pub enum DomainStatus {
+    Active,
+    Warning,
+    Suspended,
+}
+
+impl DomainStatus {
+    pub(crate) fn text(&self) -> &str {
+        match self {
+            DomainStatus::Active => "正常",
+            DomainStatus::Warning => "即将到期",
+            DomainStatus::Suspended => "暂停",
+        }
+    }
+
+    pub(crate) fn color(&self) -> iced::Color {
+        match self {
+            DomainStatus::Active => iced::Color::from_rgb(0.1, 0.8, 0.2), // 绿色
+            DomainStatus::Warning => iced::Color::from_rgb(1.0, 0.6, 0.0), // 橙色
+            DomainStatus::Suspended => iced::Color::from_rgb(1.0, 0.2, 0.2), // 红色
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DomainStats {
+    total: usize,
+    expiring: usize,
+    providers: usize,
+}
+
+impl Default for DomainStats {
+    fn default() -> Self {
+        Self {
+            total: 42,
+            expiring: 5,
+            providers: 6,
+        }
+    }
 }

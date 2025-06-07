@@ -24,7 +24,7 @@ pub async fn query_aliyun_domain_list() -> Vec<DomainName> {
     let canonical_uri = "/"; // RPC接口无资源路径，故使用正斜杠（/）作为CanonicalURI
     let action = "QueryDomainList"; // API名称
     let version = "2018-01-29"; // API版本号
-    // RegionId在元数据中显示的类型是String，"in":"query"，必填
+                                // RegionId在元数据中显示的类型是String，"in":"query"，必填
     let query_params = &[
         ("RegionId", "cn-hangzhou"),
         ("PageNum", "1"),
@@ -112,16 +112,24 @@ pub async fn query_aliyun_domain_list() -> Vec<DomainName> {
         access_key_id.as_str(),
         access_key_secret.as_str(),
     )
-        .await
+    .await
     {
         Ok(response) => {
             println!("响应信息: {}", response);
             // 处理响应数据
-            let domain_query_response: DomainQueryResponse = response.into();
-            let domain_list = domain_query_response.data.domain;
-            println!("查询结果：{:?}", domain_list);
-            // Pre-reserve the memory, exiting if we can't
-            process_domain_data(&domain_list).unwrap()
+            let result: Result<DomainQueryResponse, _> = response.try_into();
+            match result {
+                Ok(data) => {
+                    let domain_list = data.data.domain;
+                    println!("查询结果：{:?}", domain_list);
+                    // Pre-reserve the memory, exiting if we can't
+                    process_domain_data(&domain_list).unwrap_or_else(|_| vec![])
+                }
+                Err(_) => {
+                    println!("查询结果为空");
+                    vec![]
+                }
+            }
         }
         Err(error) => {
             eprintln!("查询异常: {}", error);
@@ -158,7 +166,7 @@ pub async fn query_aliyun_dns_list(domain_name: String) -> Vec<Record> {
     let canonical_uri = "/"; // RPC接口无资源路径，故使用正斜杠（/）作为CanonicalURI
     let action = "DescribeDomainRecords"; // API名称
     let version = "2015-01-09"; // API版本号
-    // RegionId在元数据中显示的类型是String，"in":"query"，必填
+                                // RegionId在元数据中显示的类型是String，"in":"query"，必填
     let query_params = &[
         ("RegionId", "cn-qingdao"),
         ("DomainName", domain_name.as_str()),
@@ -246,7 +254,7 @@ pub async fn query_aliyun_dns_list(domain_name: String) -> Vec<Record> {
         access_key_id.as_str(),
         access_key_secret.as_str(),
     )
-        .await
+    .await
     {
         Ok(response) => {
             println!("响应信息: {}", response);
@@ -283,7 +291,7 @@ pub async fn add_aliyun_dns_record(add_dns_field: &AddDnsField) -> bool {
     let canonical_uri = "/"; // RPC接口无资源路径，故使用正斜杠（/）作为CanonicalURI
     let action = "AddDomainRecord"; // API名称
     let version = "2015-01-09"; // API版本号
-    // RegionId在元数据中显示的类型是String，"in":"query"，必填
+                                // RegionId在元数据中显示的类型是String，"in":"query"，必填
 
     let value = &add_dns_field.clone().record_type.unwrap();
 
@@ -384,7 +392,7 @@ pub async fn add_aliyun_dns_record(add_dns_field: &AddDnsField) -> bool {
         access_key_id.as_str(),
         access_key_secret.as_str(),
     )
-        .await
+    .await
     {
         Ok(response) => {
             println!("响应信息: {}", response);
@@ -413,7 +421,7 @@ pub async fn query_aliyun_dns_operation_list(domain_name: String) -> Vec<RecordL
     let canonical_uri = "/"; // RPC接口无资源路径，故使用正斜杠（/）作为CanonicalURI
     let action = "DescribeRecordLogs"; // API名称
     let version = "2015-01-09"; // API版本号
-    // RegionId在元数据中显示的类型是String，"in":"query"，必填
+                                // RegionId在元数据中显示的类型是String，"in":"query"，必填
     let query_params = &[
         ("RegionId", "cn-qingdao"),
         ("DomainName", domain_name.as_str()),
@@ -501,7 +509,7 @@ pub async fn query_aliyun_dns_operation_list(domain_name: String) -> Vec<RecordL
         access_key_id.as_str(),
         access_key_secret.as_str(),
     )
-        .await
+    .await
     {
         Ok(response) => {
             println!("响应信息: {}", response);
@@ -538,7 +546,7 @@ pub async fn delete_aliyun_dns(record_id: String) -> Option<String> {
     let canonical_uri = "/"; // RPC接口无资源路径，故使用正斜杠（/）作为CanonicalURI
     let action = "DeleteDomainRecord"; // API名称
     let version = "2015-01-09"; // API版本号
-    // RegionId在元数据中显示的类型是String，"in":"query"，必填
+                                // RegionId在元数据中显示的类型是String，"in":"query"，必填
     let query_params = &[("RegionId", "cn-qingdao"), ("RecordId", record_id.as_str())];
     // 构建查询参数  InstanceId的在元数据中显示的类型是array，"in":"query"，非必填
     // let region_id = "cn-hangzhou";
@@ -622,7 +630,7 @@ pub async fn delete_aliyun_dns(record_id: String) -> Option<String> {
         access_key_id.as_str(),
         access_key_secret.as_str(),
     )
-        .await
+    .await
     {
         Ok(response) => {
             println!("响应信息: {}", response);
@@ -634,16 +642,5 @@ pub async fn delete_aliyun_dns(record_id: String) -> Option<String> {
             eprintln!("查询异常: {}", error);
             None
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::api::ali_api::query_aliyun_dns_list;
-
-    #[tokio::test]
-    pub async fn test_get_text() {
-        let dns_list = query_aliyun_dns_list(String::from("example.com"));
-        println!("dns_list: {:?}", dns_list.len());
     }
 }

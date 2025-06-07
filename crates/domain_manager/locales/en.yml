@@ -2,6 +2,7 @@ _version: 1
 hello: Hello World!
 messages: Hello,this is home message
 add_domain: Add Domain
+add_provider: Add Provider
 dns_record: DNS Record
 return: Return
 reload: Reload

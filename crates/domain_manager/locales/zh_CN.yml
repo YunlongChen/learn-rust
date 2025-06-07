@@ -2,6 +2,7 @@ _version: 1
 hello: 你好世界！
 messages: 你好
 add_domain: 新增域名
+add_provider: 新增厂商
 dns_record: 域名解析
 domain_name: 域名
 domain_manage: 域名管理

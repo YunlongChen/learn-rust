@@ -1,6 +1,7 @@
 // #![cfg_attr(windows, windows_subsystem = "windows")]
 
 mod api;
+mod cli;
 mod configs;
 mod countries;
 mod gui;
@@ -13,13 +14,18 @@ mod utils;
 use crate::configs::config::Config;
 use crate::gui::manager::DomainManager;
 pub use crate::gui::styles::types::style_type::StyleType;
+pub use crate::utils::i18_utils::get_text;
 use gui::types::message::Message;
+use iced::window::icon::from_rgba;
+use iced::{application, window, Font, Pixels, Settings, Task};
+use log::error;
 use rust_i18n::i18n;
 use std::{panic, process};
 
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;
 const CONTENT_SIZE: u16 = 20;
+pub(crate) const VERSION: &str = "0.0.1";
 
 const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
 
@@ -33,7 +39,7 @@ i18n!("locales", fallback = "en");
 
 pub fn main() -> iced::Result {
     // 读取配置文件
-    let config = Config::new_from_file("config.json");
+    let config: Config = Config::new_from_file("config.json");
     dbg!("配置文件信息：应用名称：{:?}", &config.name);
 
     // kill the main thread as soon as a secondary thread panics
@@ -41,12 +47,50 @@ pub fn main() -> iced::Result {
 
     panic::set_hook(Box::new(move |panic_info| {
         // invoke the default handler and exit the process
-        dbg!("程序崩溃了，退出程序！");
+        error!("程序崩溃了，退出程序！");
         orig_hook(panic_info);
         process::exit(1);
     }));
 
-    let domain_manager = DomainManager::new(config);
-    dbg!("启动程序");
-    domain_manager.start()
+    let icon = match image::load_from_memory(include_bytes!("../resources/logos/raw/icon.png")) {
+        Ok(buffer) => {
+            let buffer = buffer.to_rgba8();
+            let width = buffer.width();
+            let height = buffer.height();
+            let dynamic_image = image::DynamicImage::ImageRgba8(buffer);
+
+            let result = from_rgba(dynamic_image.into_bytes(), width, height);
+            match result {
+                Ok(icon) => Some(icon),
+                Err(err) => {
+                    dbg!("加载图标失败：{}", err);
+                    None
+                }
+            }
+        }
+        Err(err) => {
+            dbg!("加载图标文件失败：{}", err);
+            None
+        }
+    };
+
+    let settings = Settings {
+        fonts: vec![
+            include_bytes!("../resources/fonts/subset/icons.ttf").into(),
+            include_bytes!("../resources/fonts/full/MapleMono-NF-CN-Regular.ttf").into(),
+        ],
+        default_font: Font::with_name("Maple Mono NF CN"),
+        default_text_size: Pixels::from(14),
+        ..Default::default()
+    };
+
+    let app = application("Domain Manager", DomainManager::update, DomainManager::view)
+        .window(window::Settings {
+            icon,
+            ..Default::default()
+        })
+        .subscription(DomainManager::keyboard_subscription)
+        .subscription(DomainManager::subscription)
+        .settings(settings);
+    app.run_with(move || (DomainManager::new(config), Task::done(Message::Start)))
 }

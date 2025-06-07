@@ -53,7 +53,7 @@ pub fn footer<'a>(
                 .push(
                     rich_text![
                         "Made with ❤ by ",
-                        span("Giuliano Bellini")
+                        span("Stanic.xyz")
                             .underline(true)
                             .link(Message::OpenWebPage(WebPage::MyGitHub)),
                     ]
@@ -109,7 +109,7 @@ fn get_button_wiki<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
 
     Tooltip::new(
         content,
-        row_open_link_tooltip("Sniffnet Wiki", font),
+        row_open_link_tooltip("Domain Manager Wiki", font),
         Position::Top,
     )
     .gap(7.5)
@@ -135,7 +135,7 @@ fn get_button_github<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
         Position::Top,
     )
     .gap(5)
-    .class(ContainerType::Tooltip)
+    .class(ContainerType::Badge)
 }
 
 fn get_button_news<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {

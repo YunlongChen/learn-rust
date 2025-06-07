@@ -1,15 +1,12 @@
-use crate::gui::model::domain::DomainName;
+use crate::gui::model::domain::Domain;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
-use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE};
-use iced::Font;
+use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE, VERSION};
 use log::error;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Display;
 use std::fs::read_to_string;
-
-pub static CONFIGS: std::sync::LazyLock<Config> = std::sync::LazyLock::new(Config::default);
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum LICENCE {
@@ -26,7 +23,7 @@ pub enum LICENCE {
 //     "license": "Mulan PSL v2"
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    pub domain_names: Vec<DomainName>,
+    pub domain_names: Vec<Domain>,
     pub name: String,
     pub description: String,
     pub version: String,
@@ -36,6 +33,8 @@ pub struct Config {
     pub style_type: StyleType,
     pub language: Language,
     pub color_gradient: GradientType,
+    pub ali_access_key_id: Option<String>,
+    pub ali_access_key_secret: Option<String>,
 }
 
 impl From<String> for Config {
@@ -51,6 +50,8 @@ impl From<String> for Config {
             style_type: StyleType::Day,
             language: Language::ZH,
             color_gradient: GradientType::None,
+            ali_access_key_id: None,
+            ali_access_key_secret: None,
         }
     }
 }
@@ -66,13 +67,15 @@ impl Default for Config {
             domain_names: vec![],
             name: String::from(DOMAIN_MANAGER_LOWERCASE),
             description: String::new(),
-            version: String::new(),
+            version: VERSION.to_string(),
             author: String::new(),
             license: LICENCE::MulanPSL2,
             locale: String::from("en"),
             style_type: StyleType::Day,
             language: Language::ZH,
             color_gradient: GradientType::None,
+            ali_access_key_id: None,
+            ali_access_key_secret: None,
         }
     }
 }

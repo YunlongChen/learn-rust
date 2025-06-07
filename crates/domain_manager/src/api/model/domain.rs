@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DomainQueryResponse {
@@ -105,8 +106,18 @@ pub struct TagElement {
     key: String,
 }
 
-impl From<String> for DomainQueryResponse {
-    fn from(value: String) -> Self {
-        serde_json::from_str(&value).unwrap()
+impl TryFrom<String> for DomainQueryResponse {
+    type Error = serde_json::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        serde_json::from_str(&value)
+    }
+}
+
+impl TryFrom<Value> for DomainQueryResponse {
+    type Error = serde_json::Error;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        serde_json::from_value(value)
     }
 }

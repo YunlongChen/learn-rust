@@ -1,10 +1,11 @@
 use crate::api::model::dns_operate::RecordLog;
-use crate::gui::model::domain::{DnsProvider, DomainName};
+use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::pages::names::Page;
 use crate::gui::pages::types::running::RunningPage;
 use crate::gui::pages::types::settings::SettingsPage;
 use crate::model::dns_record_response::{Record, Type};
 use crate::translations::types::language::Language;
+use crate::translations::types::locale::Locale;
 use crate::utils::types::file_info::FileInfo;
 use crate::utils::types::web_page::WebPage;
 use iced::keyboard::Key;
@@ -14,26 +15,31 @@ use std::fmt::Display;
 #[derive(Debug, Clone)]
 pub enum Message {
     /// Change the language of the application
-    ChangeLocale,
+    ChangeLocale(Locale),
+    LocaleChanged(Locale),
     /// Change the theme of the application
     ToggleTheme,
     ChangePage(Page),
     PageChanged(Page, Page),
     SubmitDomainForm,
-    DomainDeleted(DomainName),
+    DomainDeleted(Domain),
     AddDomainFormChanged(String),
+    DashBoardMessage(DashBoardMessage),
+    SyncDomains,
+    SyncDomainsSuccess(Vec<Domain>),
+    SyncDomainsFailed,
     DnsProviderSelected(DnsProvider),
-    QueryDomainDnsRecord(DomainName),
+    QueryDomainDnsRecord(Domain),
     ToHelp,
     KeyInput {
         key: Key,
     },
     CloseHelp,
     OpenHelp {
-        last_page: Page,
+        last_page: Option<Page>,
     },
     QueryDomain,
-    QueryDomainResult(Vec<DomainName>),
+    QueryDomainResult(Vec<Domain>),
     QueryDnsResult(Vec<Record>),
     QueryDnsLogResult(Vec<RecordLog>),
     DnsDelete(String),
@@ -62,10 +68,28 @@ pub enum Message {
     HideModal,
     OpenFile(String, FileInfo, fn(String) -> Message),
     OpenWebPage(WebPage),
+    Start,
     Reset,
     Quit,
     CloseSettings,
     WindowId(Option<window::Id>),
+
+    /// 试验品
+    ProviderSelected(DnsProvider),
+    DomainSelected(usize),
+    SearchChanged(String),
+    AddDomain,
+    // AddDnsRecord,
+    EditDnsRecord(usize),
+    DeleteDnsRecord(usize),
+    Refresh,
+    ReSet,
+    FeatureClicked(String),
+}
+
+#[derive(Debug, Clone)]
+pub enum DashBoardMessage {
+    DnsProviderSelected(DnsProvider),
 }
 
 impl Display for Message {

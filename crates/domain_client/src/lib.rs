@@ -2,7 +2,7 @@ use chrono::DateTime;
 use core::str;
 use hmac::{Hmac, Mac};
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use rand::Rng;
+use rand::{rng, Rng};
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Method, Response, StatusCode,
@@ -53,9 +53,9 @@ pub fn hmac256(key: &[u8], message: &str) -> Result<Vec<u8>, String> {
 /// 生成指定长度的随机字符串
 pub fn generate_random_string(length: usize) -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let mut rng = rand::thread_rng();
+    let mut range = rng();
     (0..length)
-        .map(|_| CHARSET[rng.gen_range(0..CHARSET.len())] as char)
+        .map(|_| CHARSET[range.random_range(0..CHARSET.len())] as char)
         .collect()
 }
 
@@ -74,6 +74,7 @@ pub enum FormValue {
 }
 
 // 定义一个body请求体枚举，用于统一处理请求体类型,包含Json,Map，二进制类型
+#[derive(Debug, Clone)]
 pub enum RequestBody {
     Json(HashMap<String, Value>),         // Json
     Binary(Vec<u8>),                      // Binary
