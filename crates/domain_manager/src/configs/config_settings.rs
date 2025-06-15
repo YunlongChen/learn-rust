@@ -30,6 +30,7 @@ impl ConfigSettings {
         {
             settings
         } else {
+            dbg!("测试空间：「{}」", DOMAIN_MANAGER_LOWERCASE);
             // let _ = confy::store(
             //     DOMAIN_MANAGER_LOWERCASE,
             //     Self::FILE_NAME,

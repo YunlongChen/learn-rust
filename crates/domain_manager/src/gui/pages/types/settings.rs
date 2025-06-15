@@ -53,7 +53,7 @@ impl SettingsPage {
             SettingsPage::Appearance => Icon::HalfSun,
             SettingsPage::General => Icon::Generals,
         }
-            .to_text()
+        .to_text()
     }
 
     pub fn action(self) -> Message {

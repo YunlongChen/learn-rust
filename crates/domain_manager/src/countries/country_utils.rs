@@ -299,9 +299,9 @@ fn get_flag_from_country<'a>(
             flag
         }
     })))
-        .class(svg_style)
-        .width(width)
-        .height(width * 0.75);
+    .class(svg_style)
+    .width(width)
+    .height(width * 0.75);
     (svg, tooltip)
 }
 

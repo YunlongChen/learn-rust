@@ -6,8 +6,7 @@ use iced::widget::svg::{Catalog, Status, Style};
 
 use crate::StyleType;
 
-#[derive(Default)]
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub enum SvgType {
     AdaptColor,
     #[default]

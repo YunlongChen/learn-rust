@@ -4,6 +4,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub enum Page {
     DomainPage,
+    AddProvider,
     AddDomain,
     DnsRecord,
     AddRecord,
@@ -14,6 +15,7 @@ pub enum Page {
 impl Display for Page {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Page::AddProvider => write!(f, "添加服务商"),
             Page::DomainPage => write!(f, "page_domain_manage"),
             Page::AddDomain => write!(f, "page_add_domain"),
             Page::DnsRecord => write!(f, "DnsRecord"),

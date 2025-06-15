@@ -15,8 +15,7 @@ pub trait DnsClientTrait {
         page_size: u32,
     ) -> Result<Vec<DomainName>, Box<dyn Error>>;
 
-    fn query_domain(&self, domain_name: &Domain)
-        -> Result<DomainQueryResponse, Box<dyn Error>>;
+    fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse, Box<dyn Error>>;
     async fn list_dns_records(
         self: &Self,
         domain_name: String,

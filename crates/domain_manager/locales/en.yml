@@ -13,3 +13,8 @@ modify_dns_record: Modify DNS Record
 domain_manager: Domain Manager
 help:
   title: Help
+sync: sync
+syncing: syncing...
+exit: Exit
+provider:
+  add: Add Domain Provider

@@ -57,9 +57,9 @@ impl RunningPage {
             RunningPage::Overview => Icon::Overview,
             RunningPage::Inspect => Icon::Inspect,
             RunningPage::Notifications => Icon::Notification,
-            RunningPage::Init => Icon::Sniffnet,
+            RunningPage::Init => Icon::DomainManager,
         }
-            .to_text()
+        .to_text()
     }
 
     pub fn action(self) -> Message {

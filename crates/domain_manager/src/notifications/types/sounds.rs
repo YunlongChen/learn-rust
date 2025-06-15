@@ -45,10 +45,10 @@ impl Sound {
             Swoosh => Text::new("Swoosh").font(font),
             Sound::None => Icon::Forbidden.to_text(),
         }
-            .size(FONT_SIZE_FOOTER)
-            .width(Length::Fill)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center)
+        .size(FONT_SIZE_FOOTER)
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center)
     }
 }
 

@@ -13,11 +13,14 @@ mod utils;
 
 use crate::configs::config::Config;
 use crate::gui::manager::DomainManager;
+use crate::gui::styles::style_constants::{
+    ICONS_BYTES, MAPLE_MONO_NF_CN_REGULAR, SARASA_MONO_BOLD_BYTES, SARASA_MONO_BYTES,
+};
 pub use crate::gui::styles::types::style_type::StyleType;
 pub use crate::utils::i18_utils::get_text;
 use gui::types::message::Message;
 use iced::window::icon::from_rgba;
-use iced::{application, window, Font, Pixels, Settings, Task};
+use iced::{application, window, Font, Pixels, Settings, Size, Task};
 use log::error;
 use rust_i18n::i18n;
 use std::{panic, process};
@@ -27,13 +30,14 @@ const TITLE_PADDING: u16 = 20;
 const CONTENT_SIZE: u16 = 20;
 pub(crate) const VERSION: &str = "0.0.1";
 
-const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
+pub(crate) const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
 
 /// Update period (milliseconds)
 pub const PERIOD_TICK: u64 = 1000;
 
-pub const FONT_FAMILY_NAME: &str = "Sarasa Mono SC for Sniffnet";
-pub const ICON_FONT_FAMILY_NAME: &str = "Icons for Sniffnet";
+pub const FONT_FAMILY_NAME: &str = "Sarasa Mono SC for DomainManager";
+pub const ICON_FONT_FAMILY_NAME: &str = "Icons for Domain Manager";
+pub const FONT_CN_FAMILY_NAME: &str = "Maple Mono NF CN";
 
 i18n!("locales", fallback = "en");
 
@@ -76,16 +80,19 @@ pub fn main() -> iced::Result {
 
     let settings = Settings {
         fonts: vec![
-            include_bytes!("../resources/fonts/subset/icons.ttf").into(),
-            include_bytes!("../resources/fonts/full/MapleMono-NF-CN-Regular.ttf").into(),
+            ICONS_BYTES.into(),
+            MAPLE_MONO_NF_CN_REGULAR.into(),
+            SARASA_MONO_BYTES.into(),
+            SARASA_MONO_BOLD_BYTES.into(),
         ],
-        default_font: Font::with_name("Maple Mono NF CN"),
+        default_font: Font::with_name(FONT_CN_FAMILY_NAME),
         default_text_size: Pixels::from(14),
         ..Default::default()
     };
 
     let app = application("Domain Manager", DomainManager::update, DomainManager::view)
         .window(window::Settings {
+            // size: Size::new(1920.0, 1080.0),
             icon,
             ..Default::default()
         })

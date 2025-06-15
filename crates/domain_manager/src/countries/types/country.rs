@@ -528,3 +528,14 @@ impl Country {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::countries::types::country::Country;
+
+    #[test]
+    fn test_country() {
+        assert_eq!(Country::from_str("CN"), Country::CN);
+        assert_eq!(Country::from_str("DDD"), Country::ZZ);
+    }
+}
