@@ -69,6 +69,13 @@ impl StyleType {
     }
 }
 
+// 自定义样式
+pub struct SidebarStyle;
+pub struct BadgeStyle;
+pub struct StatCardStyle;
+pub struct DomainRowStyle;
+pub struct SelectedDomainRowStyle;
+
 #[cfg(test)]
 mod tests {
     use iced::{color, Color};

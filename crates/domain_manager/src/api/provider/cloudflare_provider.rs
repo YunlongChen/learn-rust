@@ -47,10 +47,7 @@ impl DnsClientTrait for CloudflareDnsClient {
         }
     }
 
-    fn query_domain(
-        &self,
-        domain_name: &Domain,
-    ) -> Result<DomainQueryResponse, Box<dyn Error>> {
+    fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse, Box<dyn Error>> {
         todo!()
     }
 

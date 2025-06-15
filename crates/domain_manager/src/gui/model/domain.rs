@@ -1,3 +1,7 @@
+use crate::gui::components::credential_form::CredentialForm;
+use crate::gui::types::credential::{
+    ApiKeyCredential, Credential, TokenCredential, UsernamePasswordCredential,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
@@ -25,6 +29,26 @@ impl DnsProvider {
 }
 
 impl DnsProvider {
+    pub(crate) fn credential(self) -> Credential {
+        match self {
+            DnsProvider::Aliyun => Credential::ApiKey(ApiKeyCredential::default()),
+            DnsProvider::CloudFlare => Credential::Token(TokenCredential::default()),
+            DnsProvider::Aws => Credential::ApiKey(ApiKeyCredential::default()),
+            DnsProvider::Google => Credential::ApiKey(ApiKeyCredential::default()),
+            _ => Credential::UsernamePassword(UsernamePasswordCredential::default()),
+        }
+    }
+
+    pub(crate) fn get_credential_form(&self) -> Option<Box<dyn CredentialForm>> {
+        match self.credential() {
+            Credential::UsernamePassword(username_password_credential) => {
+                Some(Box::new(username_password_credential))
+            }
+            Credential::Token(tokenCredential) => Some(Box::new(tokenCredential)),
+            Credential::ApiKey(apiKeyCredential) => Some(Box::new(apiKeyCredential)),
+        }
+    }
+
     pub fn name(&self) -> &str {
         match self {
             DnsProvider::CloudFlare => "Cloudflare",
@@ -76,7 +100,7 @@ impl Display for DnsProvider {
     }
 }
 
-#[derive(Debug, Clone, PartialOrd, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Domain {
     pub name: String,
     pub provider: DnsProvider,
@@ -153,7 +177,7 @@ pub struct DnsRecord {
     pub ttl: String,
 }
 
-#[derive(Debug, Clone, PartialOrd, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Serialize, Eq, Deserialize)]
 pub enum DomainStatus {
     Active,
     Warning,

@@ -84,7 +84,7 @@ pub fn get_path_termination_string(full_path: &str, i: usize) -> String {
         &chars[tot_len - slice_len..].iter().collect::<String>(),
         " ",
     ]
-        .concat()
+    .concat()
 }
 
 pub fn get_formatted_num_seconds(num_seconds: u128) -> String {

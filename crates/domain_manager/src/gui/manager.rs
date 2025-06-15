@@ -6,30 +6,37 @@ use crate::api::dns_client::{DnsClient, DnsClientTrait};
 use crate::api::model::dns_operate::RecordLog;
 use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::configs::config::LICENCE;
-use crate::gui::components::types::my_modal::MyModal;
-use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
+use crate::gui::components::footer::footer;
+use crate::gui::components::header::header;
+use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainName, DomainStatus};
 use crate::gui::model::form::{AddDnsField, AddDomainField};
-use crate::gui::pages::names::Page;
+use crate::gui::pages::demo::scrollables::scrollables;
+use crate::gui::pages::domain::{
+    add_domain_page, add_domain_provider_page, AddDomainProviderForm, DomainProvider,
+};
+use crate::gui::pages::domain_dns_record::{add_dns_record, dns_record};
+use crate::gui::pages::help::help;
+use crate::gui::pages::names::{DemoPage, Page};
 use crate::gui::pages::types::settings::SettingsPage;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
-use crate::gui::types::message::DashBoardMessage::DnsProviderSelected;
-use crate::gui::types::message::Message;
+use crate::gui::types::credential::Credential;
+use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
 use crate::utils::types::web_page::WebPage;
-use crate::{Config, StyleType};
+use crate::{get_text, Config, StyleType};
 use iced::keyboard::Key;
 use iced::widget::{
-    button, container, horizontal_rule, horizontal_space, scrollable, Button, Column,
-    Container, Row, Text, Tooltip,
+    button, container, horizontal_rule, horizontal_space, scrollable, text, text_input, Button,
+    Column, Container, Row, Text, Tooltip,
 };
 use iced::Event::Window;
 use iced::{
-    keyboard, window, Alignment, Element, Font, Length, Point, Size,
-    Subscription, Task, Theme,
+    keyboard, window, Alignment, Color, Element, Font, Length, Point, Size, Subscription, Task,
+    Theme,
 };
 use log::info;
 use sqlite::Connection;
@@ -47,6 +54,8 @@ pub struct DomainManager {
     pub current_page: Page,
     pub current_domain_name: Option<Domain>,
     pub add_domain_field: AddDomainField,
+    pub add_domain_provider_form: AddDomainProviderForm,
+    pub domain_providers: Vec<DomainProvider>,
     pub last_page: Option<Page>,
     /// 查询进行中
     pub in_query: bool,
@@ -59,20 +68,18 @@ pub struct DomainManager {
     pub thumb_nail: bool,
     /// 未读通知数
     pub unread_notifications: usize,
-    pub last_opened_setting: Option<SettingsPage>,
-    pub newer_release_available: Mutex<Option<bool>>,
-    pub modal: Option<MyModal>,
     /// dns客户端
     pub dns_client: DnsClient,
     pub connection: Option<Connection>,
 
     /// 客户端状态
-    selected_provider: Option<DnsProvider>,
-    selected_domain: Option<usize>,
-    search_query: String,
-    providers: Vec<DnsProvider>,
+    pub selected_provider: Option<DomainProvider>,
+    pub selected_domain: Option<Domain>,
+    pub search_query: String,
+    pub providers: Vec<DnsProvider>,
     dns_records: Vec<DnsRecord>,
     stats: DomainStats,
+    is_syncing: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -125,9 +132,6 @@ impl Default for DomainManager {
             config,
             thumb_nail: false,
             unread_notifications: 0,
-            last_opened_setting: None,
-            newer_release_available: Mutex::new(None),
-            modal: None,
             dns_client: DnsClient::default(),
             connection: None,
 
@@ -140,46 +144,12 @@ impl Default for DomainManager {
                 total: 10,
                 ..Default::default()
             },
+            is_syncing: false,
+            add_domain_provider_form: Default::default(),
+            domain_providers: vec![],
         }
     }
 }
-
-// 自定义样式
-struct SidebarStyle;
-struct BadgeStyle;
-struct StatCardStyle;
-struct DomainRowStyle;
-struct SelectedDomainRowStyle;
-
-// impl container::StyleSheet for SidebarStyle {
-//     type Style = Theme;
-//
-//     fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-//         container::Appearance {
-//             background: Some(iced::Background::Color(iced::Color::from_rgb(
-//                 0.1, 0.1, 0.15,
-//             ))),
-//             border_radius: 8.0.into(),
-//             border_width: 1.0,
-//             border_color: iced::Color::from_rgb(0.2, 0.2, 0.3),
-//             ..Default::default()
-//         }
-//     }
-// }
-//
-// impl container for BadgeStyle {
-//     type Style = Theme;
-//
-//     fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-//         container::Appearance {
-//             background: Some(iced::Background::Color(iced::Color::from_rgb(
-//                 0.2, 0.4, 0.9,
-//             ))),
-//             border_radius: 4.0.into(),
-//             ..Default::default()
-//         }
-//     }
-// }
 
 // 定义主题
 impl DomainManager {
@@ -220,126 +190,81 @@ impl DomainManager {
         };
 
         // 初始化容器
-        manager.init();
+        // manager.init_mock_data();
         dbg!("初始化完成");
         manager
     }
 
-    pub(crate) fn view(&self) -> Element<Message, StyleType> {
+    pub fn view(&self) -> Element<Message, StyleType> {
+        let font = self.config.style_type.get_extension().font;
         // 整体布局：三列
-        let content = Row::new()
-            .push(self.provider_sidebar().width(Length::Fixed(240.0))) // 左侧服务商导航
-            .push(self.domain_list().width(Length::FillPortion(5))) // 中间域名列表
-            .push(self.detail_panel().width(Length::FillPortion(2))) // 右侧详情面板
-            .height(Length::Fill)
-            .width(Length::Fill);
+        let header = header(self);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(5)
+        // 保持锁的有效性
+        let config = &self.config;
+        let body = match &self.current_page {
+            Page::DomainPage => {
+                Container::new(
+                    Row::new()
+                        .push(Self::provider_sidebar(self).width(Length::Fixed(240.0))) // 左侧服务商导航
+                        .push(self.domain_list().width(Length::FillPortion(5))) // 中间域名列表
+                        .push_maybe(match &self.selected_domain {
+                            Some(domain) => {
+                                dbg!("当前选择的域名标签：「{?}」", domain);
+                                Some(self.detail_panel().width(Length::FillPortion(2)))
+                            }
+                            // 右侧详情面板
+                            None => Container::new(Text::new("选择域名以查看详情"))
+                                .width(Length::FillPortion(2))
+                                .into(),
+                        }) // 右侧详情面板
+                        .height(Length::Fill)
+                        .width(Length::Fill),
+                )
+            }
+            Page::AddDomain => add_domain_page(self),
+            Page::DnsRecord => dns_record(self),
+            Page::AddRecord => add_dns_record(self),
+            Page::Help => help(self),
+            Page::Demo(demo) => match demo {
+                DemoPage::Scrollers => scrollables(self),
+            },
+            Page::AddProvider => add_domain_provider_page(self),
+        };
+
+        // 底部
+        let footer = footer(
+            false,
+            config.language,
+            config.color_gradient,
+            config.style_type.get_extension().font,
+            config.style_type.get_extension().font_headers,
+            &Mutex::new(Some(true)),
+        );
+
+        // 页头
+        Column::new()
+            .push(header)
+            .push(body.height(Length::Fill))
+            .push(footer)
             .into()
-
-        // let font = self.config.style_type.get_extension().font;
-        //
-        // // 保持锁的有效性
-        // let config = &self.config;
-        // let body = match &self.current_page {
-        //     Page::DomainPage => domain_page(self),
-        //     Page::AddDomain => add_domain_page(self),
-        //     Page::DnsRecord => dns_record(self),
-        //     Page::AddRecord => add_dns_record(self),
-        //     Page::Help => help(self),
-        //     Page::Demo(demo) => match demo {
-        //         DemoPage::Scrollers => scrollables(self),
-        //     },
-        // };
-        //
-        // let body = body
-        //     .padding(Padding::new(10f32).top(0).bottom(0))
-        //     .height(Length::Fill)
-        //     .width(Length::Fill);
-        //
-        // // 头部
-        // let header = header(self);
-        //
-        // // 底部
-        // let footer = footer(
-        //     false,
-        //     config.language,
-        //     config.color_gradient,
-        //     config.style_type.get_extension().font,
-        //     config.style_type.get_extension().font_headers,
-        //     &Mutex::new(Some(true)),
-        // );
-        //
-        // // 域名服务商
-        // let provider_side: Container<Message, StyleType> = Container::new(
-        //     Column::new().push(
-        //         Row::new()
-        //             .push(
-        //                 Row::new()
-        //                     .push(
-        //                         Column::new()
-        //                             .push(Row::new().push(text!("域名服务商")).width(Length::Fill))
-        //                             .push(
-        //                                 Column::new()
-        //                                     .push(
-        //                                         Row::new()
-        //                                             .push(text!("域名服务商2"))
-        //                                             .width(Length::Fill),
-        //                                     )
-        //                                     .push(get_custom_button(
-        //                                         font,
-        //                                         config.language,
-        //                                         SettingsPage::Appearance,
-        //                                         Message::DashBoardMessage(DnsProviderSelected(
-        //                                             DnsProvider::Aliyun,
-        //                                         )),
-        //                                         Icon::Settings,
-        //                                         get_text("change_locale"),
-        //                                     ))
-        //                                     .push(
-        //                                         Row::new()
-        //                                             .push(text!("域名服务商2"))
-        //                                             .width(Length::Fill),
-        //                                     ),
-        //                             ),
-        //                     )
-        //                     .width(Length::FillPortion(1))
-        //                     .height(Length::Fill),
-        //             )
-        //             .push(
-        //                 Row::new()
-        //                     .push(body)
-        //                     .width(Length::FillPortion(4))
-        //                     .height(Length::Fill),
-        //             ),
-        //     ),
-        // )
-        // .width(Length::Fill)
-        // .height(Length::Fill);
-        //
-        // // 页头
-        // Column::new()
-        //     .push(header)
-        //     .push(provider_side)
-        //     .push(footer)
-        //     .into()
     }
 
     // 左侧服务商导航
-    fn provider_sidebar(&self) -> Container<Message, StyleType> {
+    fn provider_sidebar(app: &DomainManager) -> Container<Message, StyleType> {
         let provider_list = Column::new().padding(10).spacing(10).width(Length::Shrink);
 
-        dbg!("服务商数量：「{?}」", self.providers.len());
-        let provider_list = self.providers.iter().fold(provider_list, |col, provider| {
-            let is_selected = self.selected_provider.as_ref() == Some(provider);
-            col.push(
-                provider_item(provider, is_selected)
-                    .on_press(Message::ProviderSelected(provider.clone())),
-            )
-        });
+        dbg!("服务商数量：「{?}」", app.domain_providers.len());
+        let provider_list = app
+            .domain_providers
+            .iter()
+            .fold(provider_list, |col, provider| {
+                let is_selected = app.selected_provider.as_ref() == Some(provider);
+                col.push(
+                    provider_item(provider, is_selected)
+                        .on_press(Message::ProviderSelected(provider.clone())),
+                )
+            });
 
         let sidebar = Column::new()
             .push(Text::new("域名服务商").size(16))
@@ -357,12 +282,17 @@ impl DomainManager {
     fn domain_list(&self) -> Container<Message, StyleType> {
         let font: Font = self.config.style_type.get_extension().font;
 
-        let title = match self.selected_provider {
+        let title = match &self.selected_provider {
             None => "域名管理".to_string(),
             Some(provider) => {
-                format!("{} 域名", provider.name())
+                format!(
+                    "{} 域名 [{}]",
+                    provider.provider_name,
+                    provider.provider.name()
+                )
             }
         };
+        //https://jsd.nn.ci/gh/YunlongChen/yunlongchen@main/out/github-snake-dark.svg
 
         let header = Row::new()
             .push(Text::new(title).size(20).width(Length::Fill))
@@ -370,8 +300,8 @@ impl DomainManager {
                 Row::new()
                     .spacing(10)
                     .push(button("重置").on_press(Message::Reset))
-                    .push(button("筛选").on_press(Message::Refresh))
-                    .push(button("导出").on_press(Message::Refresh)),
+                    .push(button("筛选").on_press(Message::Filter))
+                    .push(button("导出").on_press(Message::Export)),
             )
             .padding(10);
 
@@ -402,15 +332,22 @@ impl DomainManager {
         let domain_list = self
             .domain_names
             .iter()
-            .filter(|domain| match self.selected_provider {
-                Some(provider) => domain.provider == provider,
+            .filter(|domain| match &self.selected_provider {
+                Some(provider) => domain.provider == provider.provider,
                 None => true,
             })
             .enumerate()
             .fold(domain_list, |column, (index, domain)| {
-                let is_selected = self.selected_domain == Some(index);
+                let is_selected = self.selected_domain == Some(domain.clone());
+                let button_event = if let false = is_selected {
+                    dbg!("当前是否添加异常信息");
+                    Some(Message::DomainSelected(domain.clone()))
+                } else {
+                    None
+                };
                 column.push(
-                    domain_row(domain, is_selected, font).on_press(Message::DomainSelected(index)),
+                    //SelectedDomainRowStyle
+                    domain_row(domain, is_selected, font).on_press_maybe(button_event),
                 )
             });
 
@@ -429,8 +366,8 @@ impl DomainManager {
 
     // 右侧详情面板
     fn detail_panel(&self) -> Container<Message, StyleType> {
-        if let Some(index) = self.selected_domain {
-            if let Some(domain) = self.domain_names.get(index) {
+        if let Some(index) = &self.selected_domain {
+            if let Some(domain) = self.domain_names.get(0) {
                 dbg!("选中了，现在查看详情：当前选中域名：「{:?}」", &domain.name);
                 return self.domain_detail(domain);
             }
@@ -447,9 +384,7 @@ impl DomainManager {
         let domain_title = Row::new()
             .spacing(10)
             .push(Text::new(&domain.name).size(20))
-            .push(
-                container(Text::new(domain.provider.name())), //.style(Container::Custom(Box::new(BadgeStyle))),
-            );
+            .push(container(Text::new(domain.provider.name())));
 
         let status = Text::new(domain.status.text()); //.style(domain.status.color());
 
@@ -472,7 +407,13 @@ impl DomainManager {
             .spacing(10)
             .push(Text::new("DNS记录管理").size(16))
             .push(horizontal_space().width(Length::Fill))
-            .push(button("添加记录").on_press(Message::AddDnsRecord));
+            .push(
+                Button::new(Text::new(get_text("query_dns_record")))
+                    .on_press(Message::AddDnsRecord),
+            )
+            .push(
+                Button::new(Text::new(get_text("add_dns_record"))).on_press(Message::AddDnsRecord),
+            );
 
         let dns_table = Column::new().spacing(5);
 
@@ -569,33 +510,58 @@ impl DomainManager {
                 dbg!("修改主题为{}", &self.theme);
                 Task::none()
             }
-            Message::DashBoardMessage(event) => {
-                match event {
-                    DnsProviderSelected(provider) => {
-                        dbg!("选择的域名服务商:{:?}", provider);
-                        // 新选择了域名服务商
-                        Task::none()
-                    }
-                }
+            Message::DomainSelected(domain) => {
+                self.selected_domain = Some(domain);
+                Task::none()
             }
-            Message::DomainSelected(index) => {
-                self.selected_domain = Some(index);
+            Message::SearchChanged(search_content) => {
+                dbg!("搜索内容:{}", &search_content);
+                self.search_query = search_content;
+                Task::none()
+            }
+            Message::AddProviderFormProviderChanged(dns_provider) => {
+                self.add_domain_provider_form.provider = Some(dns_provider.clone());
+                self.add_domain_provider_form.credential = Some(dns_provider.credential());
+                Task::none()
+            }
+            Message::AddProviderFormNameChanged(name) => {
+                dbg!("域名服务商的名称发生了变化：「{}」", &name);
+                self.add_domain_provider_form.provider_name = name;
+                Task::none()
+            }
+            Message::AddProviderFormCredentialChanged(credential) => {
+                self.add_domain_provider_form.credential = Some(credential);
                 Task::none()
             }
             Message::ProviderSelected(dns_provider) => {
+                self.in_query = true;
                 self.selected_provider = Some(dns_provider);
-                Task::none()
+
+                if let Some(provider) = &self.selected_provider {
+                    // 同步域名信息
+                    Task::perform(
+                        Self::handle_domain_reload(provider.clone()),
+                        |dns_records| {
+                            dbg!("获取dns记录成功:{:?}", &dns_records);
+                            Message::QueryDomainResult(dns_records)
+                        },
+                    )
+                } else {
+                    self.in_query = false;
+                    Task::none()
+                }
             }
             Message::Reset => {
                 self.selected_provider = None;
                 self.selected_domain = None;
                 Task::none()
             }
-            Message::SyncDomains => {
+            Message::SyncAllDomains => {
+                self.is_syncing = true;
                 // 同步域名信息
                 Task::perform(Self::sync_domains(self.dns_client.clone()), |dns_records| {
                     println!("获取dns记录成功:{:?}", dns_records);
-                    Message::SyncDomainsSuccess(dns_records)
+                    Message::SyncAllDomainsComplete(SyncResult::Success)
                 })
             }
             // 改变当前页面
@@ -651,6 +617,18 @@ impl DomainManager {
                     }
                 }
             }
+            Message::AddDnsProvider => {
+                self.add_domain_provider_form.clear();
+                self.update(Message::ChangePage(Page::AddProvider))
+            }
+            Message::ValidateCredential => {
+                let provider: DomainProvider = self.add_domain_provider_form.clone().into();
+                dbg!("添加域名服务商{}", &provider);
+                // 创建新增域名服务商信息
+                self.domain_providers.push(provider);
+                dbg!("服务商数量{}", self.domain_providers.len());
+                Task::none()
+            }
             Message::QueryDnsResult(dns_list) => {
                 self.dns_list = dns_list;
                 Task::none()
@@ -704,24 +682,24 @@ impl DomainManager {
                 Some(page) => self.update(Message::ChangePage(page.clone())),
                 _ => Task::none(),
             },
-            Message::QueryDomain => {
-                dbg!("点击查询域名：当前使用的客户端：{:?}", &self.config);
-                dbg!("dns_client 大小: {}", size_of_val(&self.dns_client));
-
-                if !self.in_query {
-                    self.in_query = true;
-                    Task::perform(
-                        Self::handle_domain_reload(self.dns_client.clone()),
-                        |domain_names| {
-                            println!("请求接口信息:{:?}", domain_names);
-                            Message::QueryDomainResult(domain_names)
-                        },
-                    )
-                } else {
-                    info!("正在查询中，请勿重复点击！");
-                    Task::none()
-                }
-            }
+            // Message::QueryDomain => {
+            //     dbg!("点击查询域名：当前使用的客户端：{:?}", &self.config);
+            //     dbg!("dns_client 大小: {}", size_of_val(&self.dns_client));
+            //
+            //     if !self.in_query {
+            //         // self.in_query = true;
+            //         // Task::perform(
+            //         //     Self::handle_domain_reload(self.dns_client.clone()),
+            //         //     |domain_names| {
+            //         //         println!("请求接口信息:{:?}", domain_names);
+            //         //         Message::QueryDomainResult(domain_names)
+            //         //     },
+            //         // )
+            //     } else {
+            //         info!("正在查询中，请勿重复点击！");
+            //         Task::none()
+            //     }
+            // }
             Message::QueryDomainResult(domain_names) => {
                 self.domain_names = domain_names;
                 self.in_query = false;
@@ -842,20 +820,56 @@ impl DomainManager {
         vec![]
     }
 
-    async fn handle_domain_reload(dns_client: DnsClient) -> Vec<Domain> {
-        dbg!("查询域名信息");
+    async fn handle_domain_reload(provider: DomainProvider) -> Vec<Domain> {
+        let domains: Vec<Domain> = vec![];
         dbg!("开始查询列表");
+        match provider.provider {
+            DnsProvider::Aliyun => {
+                let credential = &provider.credential;
 
-        let aliyun_dns_client =
-            AliyunDnsClient::new(dns_client.access_key_id, dns_client.access_key_secret);
-        dbg!("开始查询列表，使用的客户端：{:?}", &aliyun_dns_client);
+                dbg!(
+                    "正在查询服务商：「{}」的域名信息,服务商类型：「{}」，credential：「{}」",
+                    &provider.provider_name,
+                    &provider.provider.name(),
+                    &provider.credential
+                );
+                match credential {
+                    Credential::ApiKey(apikeyCredential) => {
+                        let aliyun_dns_client = AliyunDnsClient::new(
+                            apikeyCredential.api_key.clone(),
+                            apikeyCredential.api_secret.clone(),
+                        );
+                        dbg!("开始查询列表，使用的客户端：{:?}", &aliyun_dns_client);
 
-        let result = aliyun_dns_client.list_domains(0, 100).await;
-        match result {
-            Ok(_) => {
-                vec![]
+                        let result = aliyun_dns_client.list_domains(0, 100).await;
+                        match result {
+                            Ok(domain_names) => {
+                                dbg!(
+                                    "获取到了域名：「{}」，域名数量：「{}」",
+                                    &domain_names,
+                                    domain_names.len()
+                                );
+                                domain_names
+                                    .into_iter()
+                                    .map(|domain_name| Domain {
+                                        name: domain_name.name,
+                                        ..Default::default()
+                                    })
+                                    .collect()
+                            }
+                            Err(_) => {
+                                vec![]
+                            }
+                        }
+                    }
+                    _ => {
+                        dbg!("认证方式错误:阿里云的认证方式应该是apiKey");
+                        vec![]
+                    }
+                }
             }
-            Err(_) => {
+            _ => {
+                dbg!("当前认证方式未实现:{}", provider.provider.name());
                 vec![]
             }
         }
@@ -897,7 +911,7 @@ impl DomainManager {
         #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
         let cmd = "xdg-open";
 
-        std::process::Command::new(cmd)
+        process::Command::new(cmd)
             .arg(url)
             .spawn()
             .unwrap()
@@ -936,7 +950,7 @@ impl DomainManager {
         })
     }
 
-    fn init(&mut self) {
+    fn init_mock_data(&mut self) {
         // 初始化提供程序列表
         let providers = vec![
             DnsProvider::CloudFlare,
@@ -1040,7 +1054,6 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, St
 
     let expiry = if matches!(domain.status, DomainStatus::Warning) {
         Text::new(&domain.expiry)
-        //.style(iced::Color::from_rgb(1.0, 0.6, 0.0)
     } else {
         Text::new(&domain.expiry)
     };
@@ -1051,7 +1064,7 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, St
             Text::new(format!(
                 "{}{}",
                 &domain.name,
-                if selected { "✅" } else { "" }
+                if selected { "[☑️]" } else { "" }
             ))
             .font(font)
             .width(Length::FillPortion(3)),
@@ -1061,11 +1074,19 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, St
         .push(expiry.width(Length::FillPortion(1)))
         .push(
             Row::new()
-                .spacing(5)
-                .push(button(Text::new("✎")).on_press(Message::DomainSelected(0)))
-                .push(button(Text::new("🗑")).on_press(Message::DomainSelected(0)))
-                .width(Length::FillPortion(1)),
-        );
+                .push(
+                    button(Text::new(get_text("modify")))
+                        .width(Length::Fixed(100.0))
+                        .on_press(Message::DomainSelected(domain.clone())),
+                )
+                .push(
+                    button(Text::new(get_text("delete")))
+                        .width(Length::Fixed(100.0))
+                        .on_press(Message::DomainSelected(domain.clone())),
+                )
+                .spacing(5),
+        )
+        .align_y(Alignment::Center);
 
     button(content).padding(10).width(Length::Fill)
 }
@@ -1148,25 +1169,15 @@ fn handle_key(app: &DomainManager, key: &Key) -> Option<Message> {
 }
 
 // 辅助组件
-fn provider_item(provider: &DnsProvider, selected: bool) -> Button<Message, StyleType> {
+fn provider_item(provider: &DomainProvider, selected: bool) -> Button<Message, StyleType> {
     let content = Row::new()
         .spacing(10)
         .push(
-            container(Text::new(provider.icon().to_string()))
+            Text::new(provider.provider.name().to_string())
                 .width(30)
-                .height(30)
-                .center_x(10)
-                .center_y(10),
+                .height(30),
         )
-        .push(
-            Text::new(format!(
-                "{}{}",
-                provider.name(),
-                if selected { "✅" } else { "" }
-            ))
-            .width(Length::Fill),
-        );
-
+        .push(Text::new(format!("{}", provider.provider_name,)).width(Length::Fill));
     button(content).padding(10).width(Length::Fill)
     // .style(if selected {
     //     Button::Primary

@@ -8,7 +8,7 @@ use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::gui::types::message::Message;
-use crate::translations::translations::{quit_analysis_translation};
+use crate::translations::translations::quit_analysis_translation;
 use crate::translations::translations_3::thumbnail_mode_translation;
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
@@ -17,19 +17,19 @@ use crate::{get_text, StyleType, DOMAIN_MANAGER_LOWERCASE};
 use iced::widget::text::LineHeight;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, horizontal_space, Button, Container, Row, Space, Text, Tooltip};
-use iced::{Alignment, Font};
+use iced::{Alignment, Font, Length};
 
 pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
     let is_running = true;
     let config = &app.config;
     let font = app.config.style_type.get_extension().font;
 
-    // let logo = Icon::Sniffnet
-    //     .to_text()
-    //     .align_y(Alignment::Center)
-    //     .height(Length::Fill)
-    //     .line_height(LineHeight::Relative(0.7))
-    //     .size(80);
+    let logo = Icon::DomainManager
+        .to_text()
+        .align_y(Alignment::Center)
+        .height(Length::Fill)
+        .line_height(LineHeight::Relative(0.7))
+        .size(40);
 
     Container::new(
         Row::new()
@@ -43,49 +43,51 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
             .push(horizontal_space())
             .push(Container::new(Space::with_width(40)))
             .push(Space::with_width(20))
-            // .push(logo)
+            .push(logo)
             .push(Space::with_width(20))
-            // .push(if is_running {
-            //     Container::new(get_button_minimize(
-            //         NIGHT_PALETTE_EXTENSION.font,
-            //         config.language,
-            //         false,
-            //     ))
-            // } else {
-            //     Container::new(Space::with_width(40))
-            // })
             .push(horizontal_space())
+            .push_maybe(if app.in_query {
+                Some(get_custom_button(
+                    font,
+                    config.language,
+                    SettingsPage::Appearance,
+                    None,
+                    Icon::Sync,
+                    get_text("in_query"),
+                ))
+            } else {
+                None
+            })
             .push(get_custom_button(
                 font,
                 config.language,
                 SettingsPage::Appearance,
-                Message::OpenHelp {
-                    last_page: app.last_page.clone(),
-                },
-                Icon::Notification,
-                get_text("help"),
+                Some(Message::AddDnsProvider),
+                Icon::Add,
+                get_text("provider.add"),
             ))
             .push(get_custom_button(
                 font,
                 config.language,
                 SettingsPage::Appearance,
-                Message::ToggleTheme,
-                Icon::Copy,
+                Some(Message::ToggleTheme),
+                Icon::HalfSun,
                 get_text("change_theme"),
             ))
             .push(get_custom_button(
                 font,
                 config.language,
                 SettingsPage::Appearance,
-                Message::ChangeLocale(Locale::Chinese),
-                Icon::Settings,
+                Some(Message::ChangeLocale(Locale::Chinese)),
+                Icon::Language,
                 get_text("change_locale"),
             ))
             .push(get_button_exit(
                 font,
                 config.language,
                 SettingsPage::Appearance,
-            )),
+            ))
+            .spacing(10),
     )
     .height(70)
     .align_y(Alignment::Center)
@@ -117,7 +119,7 @@ fn get_button_reset<'a>(
 
     Tooltip::new(
         content,
-        Text::new(quit_analysis_translation(language)).font(font),
+        Text::new(quit_analysis_translation(language)),
         Position::Right,
     )
     .gap(5)
@@ -128,7 +130,7 @@ pub fn get_custom_button<'a>(
     font: Font,
     language: Language,
     open_overlay: SettingsPage,
-    message: Message,
+    message: Option<Message>,
     icon: Icon,
     title: String,
 ) -> Tooltip<'a, Message, StyleType> {
@@ -141,9 +143,9 @@ pub fn get_custom_button<'a>(
     .padding(0)
     .height(40)
     .width(60)
-    .on_press(message);
+    .on_press_maybe(message);
 
-    Tooltip::new(content, Text::new(title.clone()).font(font), Position::Left)
+    Tooltip::new(content, Text::new(title.clone()), Position::Top)
         .gap(5)
         .class(ContainerType::Tooltip)
 }
@@ -165,7 +167,7 @@ pub fn get_button_exit<'a>(
     .width(60)
     .on_press(Message::Quit);
 
-    Tooltip::new(content, Text::new("exit").font(font), Position::Top)
+    Tooltip::new(content, Text::new(get_text("exit")), Position::Top)
         .gap(5)
         .class(ContainerType::Tooltip)
 }
@@ -207,7 +209,7 @@ pub fn get_button_minimize<'a>(
         ;
 
     Tooltip::new(content, Text::new(tooltip).font(font), Position::Right)
-        .gap(0)
+        .gap(5)
         .class(tooltip_style)
 }
 

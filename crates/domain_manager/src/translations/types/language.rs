@@ -109,7 +109,7 @@ impl Language {
             Language::VI => VN,
             Language::ID => ID,
         })))
-            .width(FLAGS_WIDTH_BIG)
+        .width(FLAGS_WIDTH_BIG)
     }
 
     pub fn is_up_to_date(self) -> bool {

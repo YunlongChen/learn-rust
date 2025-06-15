@@ -28,8 +28,8 @@ impl MmdbCountryEntryInner<'_> {
     fn get_country(&self) -> Country {
         match self {
             Self::Standard(StandardCountryEntry {
-                               country: Some(StandardCountryEntryInner { iso_code: Some(c) }),
-                           })
+                country: Some(StandardCountryEntryInner { iso_code: Some(c) }),
+            })
             | Self::Ipinfo(IpinfoCountryEntry { country: Some(c) }) => Country::from_str(c),
             _ => Country::ZZ,
         }

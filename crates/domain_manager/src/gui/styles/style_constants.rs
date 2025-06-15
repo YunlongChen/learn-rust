@@ -193,8 +193,21 @@ pub const MON_AMOUR_PALETTE_EXTENSION: PaletteExtension = PaletteExtension {
     red_alert_color: RED_ALERT_COLOR_DAILY,
 };
 
+pub const SARASA_MONO_BYTES: &[u8] =
+    include_bytes!("../../../resources/fonts/full/sarasa-mono-sc-regular.ttf");
+
 pub const SARASA_MONO_BOLD_BYTES: &[u8] =
-    include_bytes!("../../../resources/fonts/subset/sarasa-mono-sc-bold.subset.ttf");
+    include_bytes!("../../../resources/fonts/full/sarasa-mono-sc-bold.ttf");
+
+pub const MAPLE_MONO_NF_CN_REGULAR: &[u8] =
+    include_bytes!("../../../resources/fonts/full/MapleMono-NF-CN-Regular.ttf");
+
+//font to display icons
+pub const ICONS_BYTES: &[u8] =
+    include_bytes!("../../../resources/icons/Icons for Domain Manager.ttf");
+
+pub const ICONS: Font = Font::with_name(ICON_FONT_FAMILY_NAME);
+
 pub const SARASA_MONO_BOLD: Font = Font {
     family: Family::Name(FONT_FAMILY_NAME),
     weight: Weight::Bold,
@@ -202,18 +215,12 @@ pub const SARASA_MONO_BOLD: Font = Font {
     style: Style::Normal,
 };
 
-pub const SARASA_MONO_BYTES: &[u8] =
-    include_bytes!("../../../resources/fonts/subset/sarasa-mono-sc-regular.subset.ttf");
 pub const SARASA_MONO: Font = Font {
     family: Family::Name(FONT_FAMILY_NAME),
     weight: Weight::Normal,
     stretch: Stretch::Normal,
     style: Style::Normal,
 };
-
-//font to display icons
-pub const ICONS_BYTES: &[u8] = include_bytes!("../../../resources/fonts/subset/icons.ttf");
-pub const ICONS: Font = Font::with_name(ICON_FONT_FAMILY_NAME);
 
 // font sizes
 pub const FONT_SIZE_FOOTER: f32 = 14.3;

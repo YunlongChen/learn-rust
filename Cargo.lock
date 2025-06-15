@@ -264,25 +264,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ali-dns"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe6a26cc22b85dd757dc44579fe7eef90311cd9c37153178e93a29a1a111d84a"
-dependencies = [
- "anyhow",
- "base64",
- "bytes",
- "chrono",
- "rand 0.8.5",
- "reqwest",
- "ring",
- "serde",
- "serde_json",
- "thiserror 1.0.65",
- "url",
-]
-
-[[package]]
 name = "aliasable"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1635,7 +1616,6 @@ dependencies = [
 name = "domain_manager"
 version = "0.0.1"
 dependencies = [
- "ali-dns",
  "chrono",
  "clap",
  "cloudflare",

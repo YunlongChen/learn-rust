@@ -9,8 +9,8 @@ use std::hash::{Hash, Hasher};
 
 use iced::Color;
 use serde::{
-    de::{Error as DeErrorTrait, Unexpected}, Deserialize, Deserializer,
-    Serializer,
+    de::{Error as DeErrorTrait, Unexpected},
+    Deserialize, Deserializer, Serializer,
 };
 
 // #aabbcc is seven bytes long

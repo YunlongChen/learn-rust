@@ -41,7 +41,7 @@ impl ConfigWindow {
                 Self::FILE_NAME,
                 ConfigWindow::default(),
             )
-                .log_err(location!());
+            .log_err(location!());
             ConfigWindow::default()
         }
     }

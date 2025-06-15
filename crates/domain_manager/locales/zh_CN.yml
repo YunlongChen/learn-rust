@@ -11,8 +11,9 @@ reload: 加载
 delete: 删除
 edit: 编辑
 in_query: 查询中。。。
-add_dns_record: 添加解析记录
-modify_dns_record: 更新解析记录
+add_dns_record: 添加记录
+query_dns_record: 同步记录
+modify_dns_record: 修改记录
 confirm: 确定
 cancel: 取消
 operation: 操作
@@ -21,3 +22,9 @@ change_locale: 切换语言
 domain_manager: 域名管理器
 help:
   title: 帮助
+sync: 同步
+syncing: 同步中。。。
+exit: 退出
+provider:
+  add: 添加服务商
+validate_credential: 验证凭据
