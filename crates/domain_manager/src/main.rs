@@ -7,7 +7,9 @@ mod countries;
 mod gui;
 mod mmdb;
 mod model;
+mod models;
 mod notifications;
+pub mod storage;
 mod translations;
 mod utils;
 
