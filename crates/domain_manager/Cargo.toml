@@ -10,24 +10,29 @@ repository.workspace = true
 [dependencies]
 domain_client = { path = "../domain_client" }
 
-log = "0.4.22"
+log = { version = "0.4.22" }
 iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image", "tokio"] }
-image = "0.25.6"
-maxminddb = "0.26.0"
+image = { version = "0.25.6" }
+maxminddb = { version = "0.26.0" }
 plotters = { version = "0.3.7", default-features = false, features = ["area_series", "line_series"] }
-rust-i18n = "3.1.2"
+rust-i18n = { version = "3.1.2" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { version = "1.0" }
 reqwest = { version = "0.12.12", features = ["json"] }
 rodio = { version = "0.20.1", default-features = false, features = ["mp3"] }
 tokio = { version = "1", features = ["full"] }
-toml = "0.8.22"
-chrono = "0.4.39"
+toml = { version = "0.8.22" }
+chrono = { version = "0.4.39" }
 confy = { version = "1.0.0" }
-sqlite = { version = "0.37.0", features = ["bundled"] }
-cloudflare = "0.14.0"
+cloudflare = { version = "0.14.0" }
 clap = { version = "4.5.39", features = ["derive"] }
-
+rand = { version = "0.9.1" }
+secrecy = { version = "0.10.3" }
+rusqlite = { version = "0.36.0", features = ["bundled"] }
+directories = { version = "6.0.0" }
+rusqlite_migration = { version = "2.2.0" }
+anyhow = { version = "1.0.98" }
+base64 = { version = "0.22.1" }
 
 [dev-dependencies]
 serde_test = "1.0.177"

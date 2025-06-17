@@ -8,7 +8,7 @@ use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::configs::config::LICENCE;
 use crate::gui::components::footer::footer;
 use crate::gui::components::header::header;
-use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainName, DomainStatus};
+use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
 use crate::gui::model::form::{AddDnsField, AddDomainField};
 use crate::gui::pages::demo::scrollables::scrollables;
 use crate::gui::pages::domain::{
@@ -20,9 +20,10 @@ use crate::gui::pages::names::{DemoPage, Page};
 use crate::gui::pages::types::settings::SettingsPage;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
-use crate::gui::types::credential::Credential;
+use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
 use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
+use crate::storage::{init_database, list_accounts};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
@@ -39,7 +40,7 @@ use iced::{
     Theme,
 };
 use log::info;
-use sqlite::Connection;
+use rusqlite::Connection;
 use std::error::Error;
 use std::sync::Mutex;
 use std::{env, process};
@@ -165,7 +166,7 @@ impl DomainManager {
         let domain_names = config.domain_names.clone();
         let locale: Locale = config.locale.clone().into();
 
-        let connection: Connection = init_db_connection().expect("Cannot connect to database.");
+        let connection: Connection = init_database().expect("Cannot connect to database.");
 
         let dns_client: DnsClient = init_dns_client(&config).expect("Cannot init dns client.");
         dbg!("初始化dns客户端成功:{?}", &dns_client);
@@ -190,7 +191,7 @@ impl DomainManager {
         };
 
         // 初始化容器
-        // manager.init_mock_data();
+        manager.init();
         dbg!("初始化完成");
         manager
     }
@@ -458,18 +459,18 @@ impl DomainManager {
                 .align_x(Alignment::Center)
                 .align_y(Alignment::Center),
         )
-        .padding(0)
-        .height(40)
-        .width(60)
-        .on_press(message);
+            .padding(0)
+            .height(40)
+            .width(60)
+            .on_press(message);
 
         Tooltip::new(
             content,
             Text::new(title.clone()).font(font),
             iced::widget::tooltip::Position::Left,
         )
-        .gap(5)
-        .class(ContainerType::Tooltip)
+            .gap(5)
+            .class(ContainerType::Tooltip)
     }
 
     pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
@@ -950,7 +951,7 @@ impl DomainManager {
         })
     }
 
-    fn init_mock_data(&mut self) {
+    fn init(&mut self) {
         // 初始化提供程序列表
         let providers = vec![
             DnsProvider::CloudFlare,
@@ -964,6 +965,31 @@ impl DomainManager {
         for x in providers {
             if !self.providers.contains(&x) {
                 self.providers.push(x);
+            }
+        }
+
+        match &self.connection {
+            None => {}
+            Some(connection) => {
+                dbg!("连接信息异常");
+                let accounts_result = list_accounts(connection);
+                dbg!("查询到数据：「{}」",&accounts_result);
+                match accounts_result {
+                    Ok(accounts) => {
+
+                        for account in accounts {
+                            self.domain_providers.push(DomainProvider {
+                                provider_name: account.username,
+                                provider: DnsProvider::Aliyun,
+                                credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                                    username: "".to_string(),
+                                    password: "".to_string(),
+                                })
+                            });
+                        }
+                    },
+                    Err(_) => {}
+                }
             }
         }
 
@@ -1066,8 +1092,8 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, St
                 &domain.name,
                 if selected { "[☑️]" } else { "" }
             ))
-            .font(font)
-            .width(Length::FillPortion(3)),
+                .font(font)
+                .width(Length::FillPortion(3)),
         )
         .push(Text::new(domain.provider.name()).width(Length::FillPortion(1)))
         .push(status.width(Length::FillPortion(1)))
@@ -1089,30 +1115,6 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, St
         .align_y(Alignment::Center);
 
     button(content).padding(10).width(Length::Fill)
-}
-
-fn init_db_connection() -> Result<Connection, Box<dyn Error>> {
-    let connection = sqlite::open(":memory:")?;
-
-    let query = "
-                          CREATE TABLE users (name TEXT, age INTEGER);
-                          INSERT INTO users VALUES ('Alice', 42);
-                          INSERT INTO users VALUES ('Bob', 69);
-                      ";
-    connection.execute(query).unwrap();
-
-    let query = "SELECT * FROM users WHERE age > 50";
-
-    connection
-        .iterate(query, |pairs| {
-            println!("测试初始化数据读取：查询到「{}」条数据。", pairs.len());
-            for &(name, value) in pairs.iter() {
-                println!("测试初始化数据读取：{} = {}", name, value.unwrap());
-            }
-            true
-        })
-        .unwrap();
-    Ok(connection)
 }
 
 fn init_dns_client(config: &Config) -> Result<DnsClient, Box<dyn Error>> {
@@ -1177,7 +1179,7 @@ fn provider_item(provider: &DomainProvider, selected: bool) -> Button<Message, S
                 .width(30)
                 .height(30),
         )
-        .push(Text::new(format!("{}", provider.provider_name,)).width(Length::Fill));
+        .push(Text::new(format!("{}", provider.provider_name, )).width(Length::Fill));
     button(content).padding(10).width(Length::Fill)
     // .style(if selected {
     //     Button::Primary
@@ -1220,7 +1222,6 @@ fn dns_row(record: &DnsRecord, index: usize) -> Row<Message, StyleType> {
 
 #[cfg(test)]
 mod tests {
-    use crate::gui::manager::init_db_connection;
     use crate::utils::i18_utils::get_text;
     use crate::{Config, DomainManager, Message};
     use serial_test::parallel;
@@ -1245,21 +1246,5 @@ mod tests {
     fn test_correctly_update_ip_version() {
         let mut app = DomainManager::default();
         let _ = app.update(Message::AddDnsRecord);
-    }
-
-    #[test]
-    fn test_init_db_connection() {
-        let connection = init_db_connection().expect("TODO: panic message");
-
-        let query = "SELECT * FROM users";
-
-        connection
-            .iterate(query, |line| {
-                for &(name, value) in line.iter() {
-                    println!("读取测试数据：第「{}」列：{} = {}", 1, name, value.unwrap());
-                }
-                true
-            })
-            .unwrap();
     }
 }
