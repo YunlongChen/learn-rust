@@ -28,6 +28,21 @@ impl DnsProvider {
     ];
 }
 
+impl From<String> for DnsProvider {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "Aliyun" => DnsProvider::Aliyun,
+            "TencentCloud" => DnsProvider::TencentCloud,
+            "CloudFlare" => DnsProvider::CloudFlare,
+            "Tomato" => DnsProvider::Tomato,
+            "Google" => DnsProvider::Google,
+            "Aws" => DnsProvider::Aws,
+            "Dnspod" => DnsProvider::Dnspod,
+            _ => panic!("Unknown dns provider: {}", s),
+        }
+    }
+}
+
 impl DnsProvider {
     pub(crate) fn credential(self) -> Credential {
         match self {
@@ -46,6 +61,17 @@ impl DnsProvider {
             }
             Credential::Token(tokenCredential) => Some(Box::new(tokenCredential)),
             Credential::ApiKey(apiKeyCredential) => Some(Box::new(apiKeyCredential)),
+        }
+    }
+    pub fn value(&self) -> &str {
+        match self {
+            DnsProvider::CloudFlare => "CloudFlare",
+            DnsProvider::Aliyun => "Aliyun",
+            DnsProvider::TencentCloud => "TencentCloud",
+            DnsProvider::Dnspod => "Dnspod",
+            DnsProvider::Aws => "Aws",
+            DnsProvider::Google => "Google",
+            DnsProvider::Tomato => "Tomato",
         }
     }
 

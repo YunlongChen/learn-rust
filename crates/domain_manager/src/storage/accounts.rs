@@ -14,11 +14,12 @@ pub fn create_account(
     let transaction = conn.transaction()?;
 
     transaction.execute(
-        "INSERT INTO accounts (username, email, credential_type, credential_data, salt,created_at) 
-         VALUES (?1, ?2, ?3, ?4,?5,?6)",
+        "INSERT INTO accounts (username, email, provider_type, credential_type, credential_data, salt,created_at)
+         VALUES (?1, ?2, ?3, ?4,?5,?6, ?7)",
         params![
             new_account.username,
             new_account.email,
+            new_account.provider.value(),
             new_account.credential.credential_type(),
             new_account.credential.raw_data(),
             "".to_string(),
@@ -57,24 +58,26 @@ pub fn create_account(
         created_at: Utc::now().to_string(),
         last_login: None,
         credential_type: new_account.credential.credential_type(),
+        provider_type: "".to_string(),
     })
 }
 
 /// 查询所有账户
 pub fn list_accounts(conn: &Connection) -> Result<Vec<Account>, Box<dyn Error>> {
     let mut statement =
-        conn.prepare("select id,username, email, credential_type, credential_data, salt, created_at FROM accounts")?;
+        conn.prepare("select id, username, email, provider_type, credential_type, credential_data, salt, created_at FROM accounts")?;
 
     let key_iter = statement.query_map([], |row| {
         Ok(Account {
             id: row.get(0)?,
             username: row.get(1)?,
             email: row.get(2)?,
-            credential_type: row.get(3)?,
-            credential_data: row.get(4)?,
-            salt: row.get(5)?,
+            provider_type: row.get(3)?,
+            credential_type: row.get(4)?,
+            credential_data: row.get(5)?,
+            salt: row.get(6)?,
             api_keys: vec![],
-            created_at: row.get(6)?,
+            created_at: row.get(7)?,
             last_login: None,
         })
     })?;
@@ -124,6 +127,7 @@ pub fn verify_login(
 
                 Ok(Some(Account {
                     id,
+                    provider_type: email.clone(),
                     username: username.to_string(),
                     email,
                     credential_type: "UsernamePassword".to_string(),
@@ -207,6 +211,7 @@ pub fn delete_account(conn: &Connection, account_id: i64) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::storage::init_memory_database;
 
@@ -221,6 +226,7 @@ mod tests {
         let api_key = create_account(
             &mut connection,
             NewAccount {
+                provider: DnsProvider::Aliyun,
                 username: "stanic".to_string(),
                 email: "example@qq.com".to_string(),
                 credential: Credential::UsernamePassword(UsernamePasswordCredential {
@@ -241,14 +247,15 @@ mod tests {
 
         let accounts = accounts_result.unwrap();
 
-        assert_eq!(accounts.len(), 1);
+        assert_eq!(accounts.len(), 2);
 
-        let account = accounts.get(0).take();
+        let account = accounts.get(1).take();
 
         match account {
             None => {}
-            Some(acc) => {
-                let credential: Credential = acc.clone().try_into().unwrap();
+            Some(account) => {
+                let credential: Credential = account.clone().try_into().unwrap();
+                assert_eq!("Aliyun", account.provider_type, "变量名错误");
 
                 if let Credential::UsernamePassword(credential) = credential {
                     assert_eq!("stanic", credential.username, "变量名错误");

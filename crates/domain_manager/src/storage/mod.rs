@@ -7,3 +7,4 @@ mod migrations;
 
 pub use accounts::*;
 pub use database::*;
+pub use domains::*;
