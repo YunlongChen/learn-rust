@@ -1,8 +1,10 @@
 use crate::gui::components::credential_form::CredentialForm;
 use crate::gui::model::domain::DnsProvider;
 use crate::gui::types::message::Message;
+use crate::models::account::Account;
 use crate::StyleType;
 use iced::Element;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 // 凭证类型枚举
@@ -27,23 +29,61 @@ impl Credential {
     pub fn validate(dns_provider: &DnsProvider) -> Result<bool, Box<dyn Error>> {
         Ok(false)
     }
+
+    pub fn credential_type(&self) -> String {
+        match self {
+            Credential::UsernamePassword(_) => "UsernamePassword".into(),
+            Credential::Token(_) => "Token".into(),
+            Credential::ApiKey(_) => "ApiKey".into(),
+        }
+    }
+
+    pub fn raw_data(&self) -> String {
+        match self {
+            Credential::UsernamePassword(credential) => serde_json::to_string(credential).unwrap(),
+            Credential::Token(credential) => serde_json::to_string(credential).unwrap(),
+            Credential::ApiKey(credential) => serde_json::to_string(credential).unwrap(),
+        }
+    }
+}
+
+impl TryFrom<Account> for Credential {
+    type Error = anyhow::Error; // 或者你的自定义错误类型
+
+    fn try_from(value: Account) -> Result<Self, Self::Error> {
+        match value.credential_type.as_str() {
+            "UsernamePassword" => {
+                let username_password = serde_json::from_str(&value.credential_data)?;
+                Ok(Credential::UsernamePassword(username_password))
+            }
+            "Token" => {
+                let token = serde_json::from_str(&value.credential_data)?;
+                Ok(Credential::Token(token))
+            }
+            "ApiKey" => {
+                let api_key = serde_json::from_str(&value.credential_data)?;
+                Ok(Credential::ApiKey(api_key))
+            }
+            _ => anyhow::bail!("Unknown credential type: {}", value.credential_type),
+        }
+    }
 }
 
 // 用户名密码凭证
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub struct UsernamePasswordCredential {
     pub username: String,
     pub password: String,
 }
 
 // API令牌凭证
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub struct TokenCredential {
     pub token: String,
 }
 
 // API密钥凭证
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub struct ApiKeyCredential {
     pub api_key: String,
     pub api_secret: String,

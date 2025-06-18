@@ -1,11 +1,12 @@
 CREATE TABLE accounts
 (
-    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-    username           TEXT     NOT NULL UNIQUE,
-    email              TEXT     NOT NULL,
-    encrypted_password TEXT     NOT NULL,
-    salt               TEXT     NOT NULL,
-    created_at         DATETIME NOT NULL
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    username        TEXT     NOT NULL UNIQUE,
+    email           TEXT     NOT NULL,
+    credential_type TEXT     NOT NULL,
+    credential_data TEXT     NOT NULL,
+    salt            TEXT     NOT NULL,
+    created_at      DATETIME NOT NULL
 );
 
 CREATE TABLE domains
