@@ -1,5 +1,5 @@
 use crate::models::account::{Account, ApiKey, NewAccount};
-use crate::storage::encryption::{encrypt_data, hash_password, verify_password};
+use crate::storage::encryption::{encrypt_data, verify_password};
 use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension, Result};
 use secrecy::{ExposeSecret, SecretBox, SecretString};
@@ -10,18 +10,18 @@ pub fn create_account(
     conn: &mut Connection,
     new_account: NewAccount,
 ) -> Result<Account, Box<dyn Error>> {
-    let (hashed_password, salt) = hash_password(&new_account.password.clone().into());
-
+    // let (hashed_password, salt) = hash_password(&new_account.password.clone().into());
     let transaction = conn.transaction()?;
 
     transaction.execute(
-        "INSERT INTO accounts (username, email, encrypted_password, salt,created_at) 
-         VALUES (?1, ?2, ?3, ?4,?5)",
+        "INSERT INTO accounts (username, email, credential_type, credential_data, salt,created_at) 
+         VALUES (?1, ?2, ?3, ?4,?5,?6)",
         params![
             new_account.username,
             new_account.email,
-            new_account.password.expose_secret(),
-            salt,
+            new_account.credential.credential_type(),
+            new_account.credential.raw_data(),
+            "".to_string(),
             Utc::now().to_string()
         ],
     )?;
@@ -51,29 +51,30 @@ pub fn create_account(
         id: account_id,
         username: new_account.username,
         email: new_account.email,
-        encrypted_password: hashed_password,
-        salt,
+        credential_data: new_account.credential.raw_data(),
+        salt: "salt".to_string(),
         api_keys,
         created_at: Utc::now().to_string(),
         last_login: None,
+        credential_type: new_account.credential.credential_type(),
     })
 }
 
 /// 查询所有账户
 pub fn list_accounts(conn: &Connection) -> Result<Vec<Account>, Box<dyn Error>> {
-    let mut statement = conn
-        .prepare("select id,username, email, encrypted_password, salt, created_at FROM accounts")?;
+    let mut statement =
+        conn.prepare("select id,username, email, credential_type, credential_data, salt, created_at FROM accounts")?;
 
     let key_iter = statement.query_map([], |row| {
-        let password: String = row.get(3)?;
         Ok(Account {
             id: row.get(0)?,
             username: row.get(1)?,
             email: row.get(2)?,
-            encrypted_password: SecretString::from(password),
-            salt: row.get(4)?,
+            credential_type: row.get(3)?,
+            credential_data: row.get(4)?,
+            salt: row.get(5)?,
             api_keys: vec![],
-            created_at: row.get(5)?,
+            created_at: row.get(6)?,
             last_login: None,
         })
     })?;
@@ -93,7 +94,7 @@ pub fn verify_login(
 ) -> Result<Option<Account>, Box<dyn Error>> {
     let account: Option<(i64, String, String, String, String, Option<String>)> = conn
         .query_row(
-            "SELECT id, email, encrypted_password, salt, created_at, last_login 
+            "SELECT id, email, credential_data, salt, created_at, last_login 
              FROM accounts WHERE username = ?1",
             [username],
             |row| {
@@ -111,9 +112,7 @@ pub fn verify_login(
 
     match account {
         Some((id, email, stored_hash, salt, created_at, last_login)) => {
-            let value: SecretString = stored_hash.into();
-
-            if verify_password(password, &value, &salt) {
+            if verify_password(password, &stored_hash, &salt) {
                 // 加载API密钥
                 let api_keys = get_api_keys(conn, id)?;
 
@@ -127,7 +126,8 @@ pub fn verify_login(
                     id,
                     username: username.to_string(),
                     email,
-                    encrypted_password: value.into(),
+                    credential_type: "UsernamePassword".to_string(),
+                    credential_data: stored_hash.clone(),
                     salt,
                     api_keys,
                     created_at,
@@ -207,13 +207,14 @@ pub fn delete_account(conn: &Connection, account_id: i64) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::storage::init_memory_database;
 
     #[test]
     fn it_works() {
         let mut connection = init_memory_database().unwrap();
 
-        let _vault = "stanic";
+        let _vault = String::from("stanic");
 
         let password: SecretString = SecretString::from("12123");
 
@@ -222,7 +223,10 @@ mod tests {
             NewAccount {
                 username: "stanic".to_string(),
                 email: "example@qq.com".to_string(),
-                password,
+                credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                    username: _vault.clone(),
+                    password: password.expose_secret().to_string(),
+                }),
                 master_key: Default::default(),
                 api_keys: vec![],
                 created_at: Utc::now().to_string(),
@@ -239,8 +243,18 @@ mod tests {
 
         assert_eq!(accounts.len(), 1);
 
-        let account = accounts.get(0).unwrap();
+        let account = accounts.get(0).take();
 
-        assert_eq!(account.encrypted_password.expose_secret(), "12123");
+        match account {
+            None => {}
+            Some(acc) => {
+                let credential: Credential = acc.clone().try_into().unwrap();
+
+                if let Credential::UsernamePassword(credential) = credential {
+                    assert_eq!("stanic", credential.username, "变量名错误");
+                    assert_eq!("12123", credential.password, "变量名错误");
+                }
+            }
+        }
     }
 }

@@ -3,6 +3,7 @@ use rand::RngCore;
 use rusqlite::Error as RusqliteError;
 use secrecy::{ExposeSecret, SecretBox, SecretString};
 use std::error::Error;
+use crate::gui::types::credential::Credential;
 
 /// 密码哈希配置
 // const ARGON2_CONFIG: Config = Config {
@@ -29,7 +30,7 @@ pub fn hash_password(password: &SecretString) -> (SecretString, String) {
 }
 
 /// 验证密码
-pub fn verify_password(password: &SecretString, stored_hash: &SecretString, salt: &String) -> bool {
+pub fn verify_password(password: &SecretString, stored_hash: &String, salt: &String) -> bool {
     // argon2::verify_encoded_ext(
     //     stored_hash.expose_secret(),
     //     password.expose_secret().as_bytes(),

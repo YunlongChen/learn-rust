@@ -23,7 +23,8 @@ use crate::gui::styles::types::gradient_type::GradientType;
 use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
 use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
-use crate::storage::{init_database, list_accounts};
+use crate::models::account::NewAccount;
+use crate::storage::{create_account, init_database, list_accounts};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
@@ -973,21 +974,17 @@ impl DomainManager {
             Some(connection) => {
                 dbg!("连接信息异常");
                 let accounts_result = list_accounts(connection);
-                dbg!("查询到数据：「{}」",&accounts_result);
+                dbg!("查询到数据：「{}」", &accounts_result);
                 match accounts_result {
                     Ok(accounts) => {
-
                         for account in accounts {
                             self.domain_providers.push(DomainProvider {
-                                provider_name: account.username,
+                                provider_name: (&account.username).clone(),
                                 provider: DnsProvider::Aliyun,
-                                credential: Credential::UsernamePassword(UsernamePasswordCredential {
-                                    username: "".to_string(),
-                                    password: "".to_string(),
-                                })
+                                credential: account.try_into().unwrap(),
                             });
                         }
-                    },
+                    }
                     Err(_) => {}
                 }
             }
