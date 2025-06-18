@@ -24,12 +24,13 @@ use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
 use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
 use crate::models::account::NewAccount;
-use crate::storage::{create_account, init_database, list_accounts};
+use crate::storage::{create_account, init_database, list_accounts, list_domains};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
 use crate::utils::types::web_page::WebPage;
 use crate::{get_text, Config, StyleType};
+use chrono::Utc;
 use iced::keyboard::Key;
 use iced::widget::{
     button, container, horizontal_rule, horizontal_space, scrollable, text, text_input, Button,
@@ -460,18 +461,18 @@ impl DomainManager {
                 .align_x(Alignment::Center)
                 .align_y(Alignment::Center),
         )
-            .padding(0)
-            .height(40)
-            .width(60)
-            .on_press(message);
+        .padding(0)
+        .height(40)
+        .width(60)
+        .on_press(message);
 
         Tooltip::new(
             content,
             Text::new(title.clone()).font(font),
             iced::widget::tooltip::Position::Left,
         )
-            .gap(5)
-            .class(ContainerType::Tooltip)
+        .gap(5)
+        .class(ContainerType::Tooltip)
     }
 
     pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
@@ -627,8 +628,60 @@ impl DomainManager {
                 let provider: DomainProvider = self.add_domain_provider_form.clone().into();
                 dbg!("添加域名服务商{}", &provider);
                 // 创建新增域名服务商信息
-                self.domain_providers.push(provider);
-                dbg!("服务商数量{}", self.domain_providers.len());
+
+                match &mut self.connection {
+                    None => {}
+                    Some(connection) => {
+                        let result = create_account(
+                            connection,
+                            NewAccount {
+                                provider: provider.provider,
+                                username: provider.provider_name,
+                                email: "example@qq.com".to_string(),
+                                credential: provider.credential,
+                                master_key: Default::default(),
+                                api_keys: vec![],
+                                created_at: Utc::now().to_string(),
+                            },
+                        );
+                        match result {
+                            Ok(domain) => {
+                                dbg!("账户添加成功:{}", &domain.username);
+                                return self.update(Message::DnsProviderChange);
+                            }
+                            Err(err) => {
+                                dbg!("获取账户信息异常,{}", err);
+                            }
+                        }
+                        dbg!("服务商数量{}", self.domain_providers.len());
+                    }
+                }
+
+                Task::none()
+            }
+            Message::DnsProviderChange => {
+                dbg!("dns服务商信息发生了变化");
+
+                match &self.connection {
+                    None => {}
+                    Some(connection) => {
+                        dbg!("查询服务商信息");
+                        let accounts = list_accounts(connection).unwrap();
+                        self.domain_providers.clear();
+                        for account in accounts {
+                            dbg!("获取服务商信息:{}", &account);
+
+                            let domain_provider = DomainProvider {
+                                credential: account.clone().try_into().unwrap(),
+                                provider_name: account.username,
+                                provider: account.provider_type.into(),
+                            };
+
+                            dbg!("服务商信息：{}", &domain_provider);
+                            self.domain_providers.push(domain_provider);
+                        }
+                    }
+                }
                 Task::none()
             }
             Message::QueryDnsResult(dns_list) => {
@@ -987,49 +1040,21 @@ impl DomainManager {
                     }
                     Err(_) => {}
                 }
+
+                let domain_list = list_domains(connection).expect("TODO: 查询域名信息异常！");
+                for domain in domain_list {
+                    self.domain_names.push(Domain {
+                        name: domain.domain_name,
+                        provider: DnsProvider::Aliyun,
+                        status: DomainStatus::Active,
+                        expiry: "".to_string(),
+                    });
+                }
+                dbg!("初始化域名记录完成：域名数量：{?}", self.domain_names.len());
             }
         }
 
         self.stats.total = self.domain_names.len();
-
-        // 初始化域名列表
-        let domains = vec![
-            Domain {
-                name: "example.com".to_string(),
-                provider: DnsProvider::CloudFlare,
-                status: DomainStatus::Active,
-                expiry: "2025-08-15".to_string(),
-            },
-            Domain {
-                name: "mystore.com".to_string(),
-                provider: DnsProvider::Aliyun,
-                status: DomainStatus::Warning,
-                expiry: "2023-12-01".to_string(),
-            },
-            Domain {
-                name: "blog-site.org".to_string(),
-                provider: DnsProvider::TencentCloud,
-                status: DomainStatus::Active,
-                expiry: "2024-05-22".to_string(),
-            },
-            Domain {
-                name: "api-service.io".to_string(),
-                provider: DnsProvider::Dnspod,
-                status: DomainStatus::Suspended,
-                expiry: "2024-11-30".to_string(),
-            },
-            Domain {
-                name: "company-site.net".to_string(),
-                provider: DnsProvider::Aws,
-                status: DomainStatus::Active,
-                expiry: "2026-02-14".to_string(),
-            },
-        ];
-
-        for domain in domains {
-            self.domain_names.push(domain);
-        }
-        dbg!("初始化域名记录完成：域名数量：{?}", self.domain_names.len());
 
         // 初始化DNS记录
         let dns_records = vec![
@@ -1089,8 +1114,8 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, St
                 &domain.name,
                 if selected { "[☑️]" } else { "" }
             ))
-                .font(font)
-                .width(Length::FillPortion(3)),
+            .font(font)
+            .width(Length::FillPortion(3)),
         )
         .push(Text::new(domain.provider.name()).width(Length::FillPortion(1)))
         .push(status.width(Length::FillPortion(1)))
@@ -1176,7 +1201,7 @@ fn provider_item(provider: &DomainProvider, selected: bool) -> Button<Message, S
                 .width(30)
                 .height(30),
         )
-        .push(Text::new(format!("{}", provider.provider_name, )).width(Length::Fill));
+        .push(Text::new(format!("{}", provider.provider_name,)).width(Length::Fill));
     button(content).padding(10).width(Length::Fill)
     // .style(if selected {
     //     Button::Primary

@@ -30,7 +30,7 @@ impl DomainStatus {
 
 /// 域名模型
 #[derive(Debug, Clone)]
-pub struct Domain {
+pub struct DomainEntity {
     pub id: i64,
     pub account_id: i64,
     pub domain_name: String,

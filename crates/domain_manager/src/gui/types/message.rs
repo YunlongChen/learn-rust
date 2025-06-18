@@ -93,6 +93,7 @@ pub enum Message {
     FeatureClicked(String),
     AddDnsProvider,
     ValidateCredential,
+    DnsProviderChange
 }
 
 #[derive(Debug, Clone)]

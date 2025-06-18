@@ -1,6 +1,6 @@
-use clap::builder::Str;
-use secrecy::SecretString;
+use crate::gui::model::domain::DnsProvider;
 use crate::gui::types::credential::Credential;
+use secrecy::SecretString;
 
 /// 账户模型
 #[derive(Debug, Clone)]
@@ -14,12 +14,14 @@ pub struct Account {
     pub last_login: Option<String>,
     pub credential_type: String,
     pub credential_data: String,
+    pub provider_type: String,
 }
 
 /// 新账户创建模型
 pub struct NewAccount {
     pub username: String,
     pub email: String,
+    pub provider: DnsProvider,
     pub credential: Credential,
     pub master_key: SecretString,
     pub api_keys: Vec<NewApiKey>,
