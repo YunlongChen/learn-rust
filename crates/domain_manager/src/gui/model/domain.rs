@@ -59,8 +59,8 @@ impl DnsProvider {
             Credential::UsernamePassword(username_password_credential) => {
                 Some(Box::new(username_password_credential))
             }
-            Credential::Token(tokenCredential) => Some(Box::new(tokenCredential)),
-            Credential::ApiKey(apiKeyCredential) => Some(Box::new(apiKeyCredential)),
+            Credential::Token(token_credential) => Some(Box::new(token_credential)),
+            Credential::ApiKey(api_key_credential) => Some(Box::new(api_key_credential)),
         }
     }
     pub fn value(&self) -> &str {

@@ -23,7 +23,7 @@ pub use crate::utils::i18_utils::get_text;
 use gui::types::message::Message;
 use iced::window::icon::from_rgba;
 use iced::{application, window, Font, Pixels, Settings, Size, Task};
-use log::error;
+use log::{error, info};
 use rust_i18n::i18n;
 use std::{panic, process};
 
@@ -44,9 +44,11 @@ pub const FONT_CN_FAMILY_NAME: &str = "Maple Mono NF CN";
 i18n!("locales", fallback = "en");
 
 pub fn main() -> iced::Result {
+
+    env_logger::init();
     // 读取配置文件
     let config: Config = Config::new_from_file("config.json");
-    dbg!("配置文件信息：应用名称：{:?}", &config.name);
+    info!("配置文件信息：应用名称：{:?}", &config.name);
 
     // kill the main thread as soon as a secondary thread panics
     let orig_hook = panic::take_hook();
@@ -69,13 +71,13 @@ pub fn main() -> iced::Result {
             match result {
                 Ok(icon) => Some(icon),
                 Err(err) => {
-                    dbg!("加载图标失败：{}", err);
+                    info!("加载图标失败：{}", err);
                     None
                 }
             }
         }
         Err(err) => {
-            dbg!("加载图标文件失败：{}", err);
+            info!("加载图标文件失败：{}", err);
             None
         }
     };

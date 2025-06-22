@@ -20,7 +20,7 @@ use crate::gui::pages::names::{DemoPage, Page};
 use crate::gui::pages::types::settings::SettingsPage;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
-use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
+use crate::gui::types::credential::{Credential};
 use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
 use crate::models::account::NewAccount;
@@ -41,7 +41,7 @@ use iced::{
     keyboard, window, Alignment, Color, Element, Font, Length, Point, Size, Subscription, Task,
     Theme,
 };
-use log::info;
+use log::{error, info};
 use rusqlite::Connection;
 use std::error::Error;
 use std::sync::Mutex;
@@ -171,8 +171,7 @@ impl DomainManager {
         let connection: Connection = init_database().expect("Cannot connect to database.");
 
         let dns_client: DnsClient = init_dns_client(&config).expect("Cannot init dns client.");
-        dbg!("初始化dns客户端成功:{?}", &dns_client);
-
+        info!("初始化dns_client 成功");
         let mut manager = Self {
             current_page: Page::DomainPage,
             theme: Theme::Light,
@@ -194,7 +193,7 @@ impl DomainManager {
 
         // 初始化容器
         manager.init();
-        dbg!("初始化完成");
+        info!("初始化完成");
         manager
     }
 
@@ -209,11 +208,10 @@ impl DomainManager {
             Page::DomainPage => {
                 Container::new(
                     Row::new()
-                        .push(Self::provider_sidebar(self).width(Length::Fixed(240.0))) // 左侧服务商导航
+                        .push(Self::provider_sidebar(self).width(Length::Fixed(240.0))) // 左侧托管商导航
                         .push(self.domain_list().width(Length::FillPortion(5))) // 中间域名列表
                         .push_maybe(match &self.selected_domain {
                             Some(domain) => {
-                                dbg!("当前选择的域名标签：「{?}」", domain);
                                 Some(self.detail_panel().width(Length::FillPortion(2)))
                             }
                             // 右侧详情面板
@@ -253,11 +251,10 @@ impl DomainManager {
             .into()
     }
 
-    // 左侧服务商导航
+    // 左侧托管商导航
     fn provider_sidebar(app: &DomainManager) -> Container<Message, StyleType> {
         let provider_list = Column::new().padding(10).spacing(10).width(Length::Shrink);
-
-        dbg!("服务商数量：「{?}」", app.domain_providers.len());
+        info!("托管商数量：「{}」", app.domain_providers.len());
         let provider_list = app
             .domain_providers
             .iter()
@@ -270,7 +267,7 @@ impl DomainManager {
             });
 
         let sidebar = Column::new()
-            .push(Text::new("域名服务商").size(16))
+            .push(Text::new("域名托管商").size(16))
             .push(provider_list)
             .spacing(15);
 
@@ -322,7 +319,7 @@ impl DomainManager {
                 "30天内到期",
             ))
             .push(stat_card(
-                "服务商".to_string(),
+                "托管商".to_string(),
                 self.stats.providers.to_string(),
                 "全部正常",
             ))
@@ -331,7 +328,7 @@ impl DomainManager {
         // 域名列表
         let domain_list = Column::new().spacing(5).padding(5);
 
-        dbg!("域名数量：「{?}」", self.domain_names.len());
+        info!("域名数量：「{}」", self.domain_names.len());
         let domain_list = self
             .domain_names
             .iter()
@@ -343,7 +340,7 @@ impl DomainManager {
             .fold(domain_list, |column, (index, domain)| {
                 let is_selected = self.selected_domain == Some(domain.clone());
                 let button_event = if let false = is_selected {
-                    dbg!("当前是否添加异常信息");
+                    info!("当前是否添加异常信息");
                     Some(Message::DomainSelected(domain.clone()))
                 } else {
                     None
@@ -371,11 +368,11 @@ impl DomainManager {
     fn detail_panel(&self) -> Container<Message, StyleType> {
         if let Some(index) = &self.selected_domain {
             if let Some(domain) = self.domain_names.get(0) {
-                dbg!("选中了，现在查看详情：当前选中域名：「{:?}」", &domain.name);
+                info!("选中了，现在查看详情：当前选中域名：「{:?}」", &domain.name);
                 return self.domain_detail(domain);
             }
         }
-        dbg!("没选中，查看提示信息");
+        info!("没选中，查看提示信息");
         // 如果没有选择域名，显示空状态
         container(Text::new("选择域名以查看详情"))
             .width(Length::Fixed(240.0))
@@ -398,7 +395,7 @@ impl DomainManager {
             .push(info_row("DNS服务器", &domain.name))
             .push(info_row("域名状态", "").push(status));
 
-        // 服务商特色功能
+        // 托管商特色功能
         let mut features = Row::new().spacing(10);
         for feature in domain.provider.features() {
             features = features
@@ -476,7 +473,7 @@ impl DomainManager {
     }
 
     pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
-        dbg!(
+        info!(
             "是否最小化:{:?},未读通知：{:?}",
             self.thumb_nail,
             self.unread_notifications
@@ -493,7 +490,7 @@ impl DomainManager {
         // 按照每一个事件来处理
         match message {
             Message::Start => {
-                dbg!("应用已启动");
+                info!("应用已启动");
                 self.update(Message::ChangeLocale(Locale::Chinese))
             }
             Message::ChangeLocale(locale) => {
@@ -510,7 +507,7 @@ impl DomainManager {
                 } else {
                     self.theme = Theme::TokyoNightLight
                 }
-                dbg!("修改主题为{}", &self.theme);
+                info!("修改主题为{}", &self.theme);
                 Task::none()
             }
             Message::DomainSelected(domain) => {
@@ -518,7 +515,7 @@ impl DomainManager {
                 Task::none()
             }
             Message::SearchChanged(search_content) => {
-                dbg!("搜索内容:{}", &search_content);
+                info!("搜索内容:{}", &search_content);
                 self.search_query = search_content;
                 Task::none()
             }
@@ -528,7 +525,7 @@ impl DomainManager {
                 Task::none()
             }
             Message::AddProviderFormNameChanged(name) => {
-                dbg!("域名服务商的名称发生了变化：「{}」", &name);
+                info!("域名托管商的名称发生了变化：「{}」", &name);
                 self.add_domain_provider_form.provider_name = name;
                 Task::none()
             }
@@ -545,7 +542,7 @@ impl DomainManager {
                     Task::perform(
                         Self::handle_domain_reload(provider.clone()),
                         |dns_records| {
-                            dbg!("获取dns记录成功:{:?}", &dns_records);
+                            info!("获取dns记录成功:{:?}", &dns_records);
                             Message::QueryDomainResult(dns_records)
                         },
                     )
@@ -626,9 +623,8 @@ impl DomainManager {
             }
             Message::ValidateCredential => {
                 let provider: DomainProvider = self.add_domain_provider_form.clone().into();
-                dbg!("添加域名服务商{}", &provider);
-                // 创建新增域名服务商信息
-
+                info!("添加域名托管商:{},类型：「{}」", &provider.provider_name,&provider.provider.name());
+                // 创建新增域名托管商信息
                 match &mut self.connection {
                     None => {}
                     Some(connection) => {
@@ -646,38 +642,34 @@ impl DomainManager {
                         );
                         match result {
                             Ok(domain) => {
-                                dbg!("账户添加成功:{}", &domain.username);
+                                info!("账户添加成功:{}", &domain.username);
                                 return self.update(Message::DnsProviderChange);
                             }
                             Err(err) => {
-                                dbg!("获取账户信息异常,{}", err);
+                                info!("获取账户信息异常,{}", err);
                             }
                         }
-                        dbg!("服务商数量{}", self.domain_providers.len());
+                        info!("托管商数量{}", self.domain_providers.len());
                     }
                 }
 
                 Task::none()
             }
             Message::DnsProviderChange => {
-                dbg!("dns服务商信息发生了变化");
-
+                info!("dns托管商信息发生了变化,需要查询所有的域名托管商列表");
                 match &self.connection {
                     None => {}
                     Some(connection) => {
-                        dbg!("查询服务商信息");
+
                         let accounts = list_accounts(connection).unwrap();
                         self.domain_providers.clear();
                         for account in accounts {
-                            dbg!("获取服务商信息:{}", &account);
 
                             let domain_provider = DomainProvider {
                                 credential: account.clone().try_into().unwrap(),
                                 provider_name: account.username,
                                 provider: account.provider_type.into(),
                             };
-
-                            dbg!("服务商信息：{}", &domain_provider);
                             self.domain_providers.push(domain_provider);
                         }
                     }
@@ -689,12 +681,12 @@ impl DomainManager {
                 Task::none()
             }
             Message::QueryDnsLogResult(logs) => {
-                dbg!("dns操作日志查询成功");
+                info!("dns操作日志查询成功");
                 self.dns_log_list = logs;
                 Task::none()
             }
             Message::DomainDeleted(domain_name) => {
-                dbg!("删除域名：domain_name", domain_name);
+                info!("删除域名：domain_name:{}", domain_name.name);
                 Task::none()
             }
             Message::AddDomainFormChanged(domain_name) => {
@@ -702,22 +694,20 @@ impl DomainManager {
                 Task::none()
             }
             Message::SubmitDomainForm => {
-                dbg!(
-                    "提交域名表单：添加完毕",
+                info!(
+                    "提交域名表单：添加完毕，域名名称：「{}」,托管商类型：「{}」",
                     &self.add_domain_field.domain_name,
-                    &self.add_domain_field.provider
+                    &match self.add_domain_field.provider {Some(x) => x,None => todo!(),}.name()
                 );
                 self.domain_names
                     .push(self.add_domain_field.domain_name.clone().into());
                 self.update(Message::ChangePage(Page::DomainPage))
             }
             Message::QueryDomainDnsRecord(domain_name) => {
-                dbg!("查询dns记录：domain_name:", &domain_name);
                 self.current_domain_name = Some(domain_name.clone());
                 self.update(Message::ChangePage(Page::DnsRecord))
             }
             Message::DnsProviderSelected(provider) => {
-                dbg!("dns provider selected: ", provider);
                 self.add_domain_field.provider = Some(provider);
                 Task::none()
             }
@@ -738,8 +728,8 @@ impl DomainManager {
                 _ => Task::none(),
             },
             // Message::QueryDomain => {
-            //     dbg!("点击查询域名：当前使用的客户端：{:?}", &self.config);
-            //     dbg!("dns_client 大小: {}", size_of_val(&self.dns_client));
+            //     info!("点击查询域名：当前使用的客户端：{:?}", &self.config);
+            //     info!("dns_client 大小: {}", size_of_val(&self.dns_client));
             //
             //     if !self.in_query {
             //         // self.in_query = true;
@@ -761,7 +751,7 @@ impl DomainManager {
                 self.update(Message::ChangePage(Page::DomainPage))
             }
             Message::DnsDelete(record_id) => {
-                dbg!("删除dns记录:{}", &record_id);
+                info!("删除dns记录:{}", &record_id);
                 Task::perform(Self::handle_dns_record_delete(record_id), |response| {
                     println!("请求接口信息:{:?}", response);
                     match response {
@@ -782,7 +772,7 @@ impl DomainManager {
                 None => Task::none(),
             },
             Message::DnsFormNameChanged(record_name) => {
-                dbg!("添加dns记录表单变化：", &record_name);
+                info!("添加dns记录表单变化：:{}", &record_name);
                 self.add_dns_form = AddDnsField {
                     record_name,
                     ..self.add_dns_form.clone()
@@ -791,7 +781,6 @@ impl DomainManager {
             }
             Message::AddDnsFormSubmit => match self.add_dns_form.validate() {
                 true => {
-                    dbg!("添加dns记录表单提交：", &self.add_dns_form);
                     Task::perform(
                         Self::handle_dns_record_add(AddDnsField {
                             ..self.add_dns_form.clone()
@@ -803,12 +792,11 @@ impl DomainManager {
                     )
                 }
                 false => {
-                    dbg!("添加dns记录表单提交失败：", &self.add_dns_form);
                     Task::none()
                 }
             },
             Message::DnsFormRecordTypeChanged(record_type) => {
-                dbg!("添加dns记录表单变化：", &record_type);
+                // info!("添加dns记录表单变化：", &record_type);
                 self.handle_dns_add(AddDnsField {
                     record_type: Some(record_type),
                     ..self.add_dns_form.clone()
@@ -816,7 +804,7 @@ impl DomainManager {
                 Task::none()
             }
             Message::DnsFormValueChanged(value) => {
-                dbg!("添加dns记录表单变化：", &value);
+                // info!("添加dns记录表单变化：", &value);
                 self.handle_dns_add(AddDnsField {
                     value,
                     ..self.add_dns_form.clone()
@@ -824,7 +812,7 @@ impl DomainManager {
                 Task::none()
             }
             Message::DnsFormTtlChanged(ttl) => {
-                dbg!("添加dns记录表单变化：", ttl);
+                // info!("添加dns记录表单变化：", ttl);
                 // 这里会不会卡呀
                 self.handle_dns_add(AddDnsField {
                     ttl,
@@ -851,25 +839,25 @@ impl DomainManager {
                 Task::none()
             }
             _ => {
-                // dbg!("未处理的消息：{:?}", message);
+                // info!("未处理的消息：{:?}", message);
                 Task::none()
             }
         }
     }
 
     async fn sync_domains(app: DnsClient) -> Vec<Domain> {
-        dbg!("同步域名信息");
+        info!("同步域名信息");
         let domain_name_response = app.get_all_domain_info().await;
         match domain_name_response {
             Ok(domain_names) => {
-                dbg!(
-                    "同步域名信息成功，总共同步了「{?}」条域名记录",
+                info!(
+                    "同步域名信息成功，总共同步了「{}」条域名记录",
                     domain_names.len()
                 );
-                dbg!("清空历史的域名信息", domain_names.len());
+                info!("清空历史的域名信息:{}", domain_names.len());
             }
             Err(err) => {
-                dbg!("获取域名异常", err);
+                error!("获取域名异常:{}",err);
             }
         }
         vec![]
@@ -877,33 +865,28 @@ impl DomainManager {
 
     async fn handle_domain_reload(provider: DomainProvider) -> Vec<Domain> {
         let domains: Vec<Domain> = vec![];
-        dbg!("开始查询列表");
+        info!("开始查询列表");
         match provider.provider {
             DnsProvider::Aliyun => {
                 let credential = &provider.credential;
 
-                dbg!(
-                    "正在查询服务商：「{}」的域名信息,服务商类型：「{}」，credential：「{}」",
+                info!(
+                    "正在查询托管商：「{}」的域名信息,托管商类型：「{}」",
                     &provider.provider_name,
-                    &provider.provider.name(),
-                    &provider.credential
+                    &provider.provider.name()
                 );
                 match credential {
-                    Credential::ApiKey(apikeyCredential) => {
+                    Credential::ApiKey(apikey_credential) => {
                         let aliyun_dns_client = AliyunDnsClient::new(
-                            apikeyCredential.api_key.clone(),
-                            apikeyCredential.api_secret.clone(),
+                            apikey_credential.api_key.clone(),
+                            apikey_credential.api_secret.clone(),
                         );
-                        dbg!("开始查询列表，使用的客户端：{:?}", &aliyun_dns_client);
+                        info!("开始查询列表，使用的客户端：{:?}", &aliyun_dns_client);
 
                         let result = aliyun_dns_client.list_domains(0, 100).await;
                         match result {
                             Ok(domain_names) => {
-                                dbg!(
-                                    "获取到了域名：「{}」，域名数量：「{}」",
-                                    &domain_names,
-                                    domain_names.len()
-                                );
+                                info!("获取到了【{}】条域名记录",domain_names.len()                                );
                                 domain_names
                                     .into_iter()
                                     .map(|domain_name| Domain {
@@ -918,37 +901,37 @@ impl DomainManager {
                         }
                     }
                     _ => {
-                        dbg!("认证方式错误:阿里云的认证方式应该是apiKey");
+                        info!("认证方式错误:阿里云的认证方式应该是apiKey");
                         vec![]
                     }
                 }
             }
             _ => {
-                dbg!("当前认证方式未实现:{}", provider.provider.name());
+                info!("当前认证方式未实现:{}", provider.provider.name());
                 vec![]
             }
         }
     }
 
     async fn handle_dns_reload(domain_name: String) -> Vec<Record> {
-        dbg!("查询域名信息");
+        info!("查询域名信息");
         let domain_list = query_aliyun_dns_list(domain_name);
         domain_list
     }
 
     async fn handle_dns_operate_log_query(domain_name: String) -> Vec<RecordLog> {
-        dbg!("查询域名信息");
+        info!("查询域名信息");
         let dns_operate_logs = query_aliyun_dns_operation_list(domain_name);
         dns_operate_logs
     }
 
     async fn handle_dns_record_add(domain_name: AddDnsField) -> bool {
-        dbg!("添加域名解析记录");
+        info!("添加域名解析记录");
         add_aliyun_dns_record(&domain_name)
     }
 
     async fn handle_dns_record_delete(record_id: String) -> Option<String> {
-        dbg!("删除域名解析记录");
+        info!("删除域名解析记录");
         delete_aliyun_dns(record_id)
     }
 
@@ -980,9 +963,9 @@ impl DomainManager {
 
     // 监听键盘
     pub(crate) fn keyboard_subscription(_: &DomainManager) -> Subscription<Message> {
-        dbg!("创建键盘监听");
+        info!("创建键盘监听");
         let key = keyboard::on_key_press(|key, _| {
-            dbg!("监听到键盘事件：{:?}", &key);
+            info!("监听到键盘事件：{:?}", &key);
             let msg = Message::KeyInput { key };
             Some(msg)
         });
@@ -1025,9 +1008,8 @@ impl DomainManager {
         match &self.connection {
             None => {}
             Some(connection) => {
-                dbg!("连接信息异常");
+                info!("连接信息异常");
                 let accounts_result = list_accounts(connection);
-                dbg!("查询到数据：「{}」", &accounts_result);
                 match accounts_result {
                     Ok(accounts) => {
                         for account in accounts {
@@ -1050,7 +1032,7 @@ impl DomainManager {
                         expiry: "".to_string(),
                     });
                 }
-                dbg!("初始化域名记录完成：域名数量：{?}", self.domain_names.len());
+                info!("初始化域名记录完成：域名数量：{}", self.domain_names.len());
             }
         }
 
@@ -1092,7 +1074,7 @@ impl DomainManager {
         for dns_record in dns_records {
             self.dns_records.push(dns_record);
         }
-        dbg!("初始化DNS记录完成：域名数量：{?}", self.dns_records.len());
+        info!("初始化DNS记录完成：域名数量：{}", self.dns_records.len());
     }
 }
 

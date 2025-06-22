@@ -1,6 +1,7 @@
 //! Module defining the `ConfigSettings` struct, which allows to save and reload
 //! the application default configuration.
 
+use log::info;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
 use serde::{Deserialize, Serialize};
@@ -30,7 +31,7 @@ impl ConfigSettings {
         {
             settings
         } else {
-            dbg!("测试空间：「{}」", DOMAIN_MANAGER_LOWERCASE);
+            info!("测试空间：「{}」", DOMAIN_MANAGER_LOWERCASE);
             // let _ = confy::store(
             //     DOMAIN_MANAGER_LOWERCASE,
             //     Self::FILE_NAME,

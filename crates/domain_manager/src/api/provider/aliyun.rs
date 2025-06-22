@@ -8,6 +8,7 @@ use reqwest::{Client, Method};
 use serde_json::json;
 use std::collections::HashMap;
 use std::error::Error;
+use log::info;
 
 #[derive(Debug, Clone)]
 pub struct AliyunDnsClient {
@@ -44,7 +45,7 @@ impl AliyunDnsClient {
         version: &str,
         body: RequestBody,
     ) -> Result<serde_json::Value, Box<dyn Error>> {
-        dbg!(
+        info!(
             "请求后台接口，当前密钥：「{:?}」，请求参数：「{:?}」",
             &self.access_key_id,
             &body
@@ -62,7 +63,7 @@ impl AliyunDnsClient {
             &self.access_key_secret,
         )
         .await?;
-        dbg!("接口请求结果:{?}", json!(&response));
+        info!("接口请求结果:{}", json!(&response));
         Ok(serde_json::from_str(&response)?)
     }
 }

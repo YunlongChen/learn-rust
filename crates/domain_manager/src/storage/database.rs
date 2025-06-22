@@ -26,15 +26,16 @@ pub fn init_database() -> Result<Connection, Box<dyn Error>> {
     let db_path = get_database_path();
     let db_dir = db_path.parent().expect("数据库路径无效");
 
-    dbg!("初始化数据路径：{}", db_dir);
+    let user_json = serde_json::to_string(&db_dir).unwrap();
+    info!("初始化数据路径：{}", user_json);
 
     // 创建目录（如果不存在）
     if !db_dir.exists() {
-        dbg!("初始化路径不存在：创建路径");
+        info!("初始化路径不存在：创建路径");
         std::fs::create_dir_all(db_dir)?;
     }
 
-    dbg!("数据库初始化成功");
+    info!("数据库初始化成功");
     // 打开数据库连接
     let mut conn = Connection::open(&db_path)?;
 
@@ -55,16 +56,16 @@ pub fn init_database() -> Result<Connection, Box<dyn Error>> {
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .unwrap_or(0);
 
-    dbg!("当前数据库版：「{}」", current_version);
+    info!("当前数据库版：「{}」", current_version);
     info!("当前数据库版本：「{}」", current_version);
 
     // 执行迁移
     if current_version < CURRENT_DB_VERSION {
-        dbg!("本地数据库小于当前版本，开始进行版本迁移");
+        info!("本地数据库小于当前版本，开始进行版本迁移");
         let migrations = crate::storage::migrations::get_migrations();
         migrations.to_version(&mut conn, CURRENT_DB_VERSION as usize)?;
     }
-    dbg!("初始化数据库成功");
+    info!("初始化数据库成功");
     Ok(conn)
 }
 

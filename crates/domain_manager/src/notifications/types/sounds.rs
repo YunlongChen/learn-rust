@@ -6,6 +6,7 @@ use iced::widget::Text;
 use iced::{Alignment, Font, Length};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use log::info;
 
 /// Enum representing the possible notification sounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,7 +58,7 @@ pub fn play(sound: Sound, volume: u8) {
         return;
     }
     let mp3_sound = sound.mp3_sound();
-    dbg!(mp3_sound.len());
+    info!("{}", mp3_sound.len());
 
     // let _ = thread::Builder::new()
     //     .name("thread_play_sound".to_string())

@@ -176,7 +176,7 @@ impl Default for AddDomainProviderForm {
     }
 }
 
-/// 添加域名服务商页面
+/// 添加域名托管商页面
 pub fn add_domain_provider_page(app: &DomainManager) -> Container<Message, StyleType> {
     let state = &app.add_domain_provider_form;
 
@@ -203,7 +203,7 @@ pub fn add_domain_provider_page(app: &DomainManager) -> Container<Message, Style
                 state.provider.clone(),
                 Message::AddProviderFormProviderChanged,
             )
-            .placeholder("选择域名服务商..."),
+            .placeholder("选择域名托管商..."),
         )
         .push_maybe(dyn_form) // 动态添加凭证表单
         .push(
