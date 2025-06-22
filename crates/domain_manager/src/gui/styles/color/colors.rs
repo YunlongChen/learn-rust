@@ -2,7 +2,6 @@
 use iced::Color;
 
 pub fn cyan() -> Color {
-    dbg!("这是cyan方法!");
     Color::from_rgba8(224, 255, 255, 1.0)
 }
 

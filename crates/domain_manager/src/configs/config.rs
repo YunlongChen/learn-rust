@@ -2,7 +2,7 @@ use crate::gui::model::domain::Domain;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
 use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE, VERSION};
-use log::error;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Display;
@@ -93,7 +93,7 @@ impl Config {
     pub fn new_from_file(file_name: &str) -> Self {
         let file = Self::load_file(&file_name);
         if let Some(ref file_content) = file {
-            dbg!("Loading file content: {}", &file_content);
+            info!("从文件加载配置文件：内容: {}", &file_content);
             Self::new_from_string(&file_content).into()
         } else {
             error!("Loading config file failed!");

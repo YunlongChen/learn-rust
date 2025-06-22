@@ -155,6 +155,7 @@ pub fn delete_domain(conn: &Connection, domain_id: i64) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use log::info;
     use super::*;
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
@@ -209,11 +210,9 @@ mod tests {
         assert_eq!(domain_list.len(), 1, "获取账号失败");
 
         let domain_list = get_account_domains(&connection, None).expect("查询账号失败");
-        dbg!(&domain_list);
         assert_eq!(domain_list.len(), 0, "获取账号失败");
 
         let domain_list = list_domains(&connection).expect("查询账号失败");
-        dbg!(&domain_list);
         assert_eq!(domain_list.len(), 3, "获取账号失败");
     }
 }

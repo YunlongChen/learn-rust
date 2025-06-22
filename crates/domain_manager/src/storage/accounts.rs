@@ -4,6 +4,7 @@ use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension, Result};
 use secrecy::{ExposeSecret, SecretBox, SecretString};
 use std::error::Error;
+use log::info;
 
 /// 创建新账户
 pub fn create_account(
@@ -243,7 +244,7 @@ mod tests {
         assert_eq!(api_key.username, "stanic", "变量名错误");
 
         let accounts_result = list_accounts(&connection);
-        dbg!("{?}", &accounts_result);
+        info!(target: "config", "正在加载配置文件:{}","ok");
 
         let accounts = accounts_result.unwrap();
 

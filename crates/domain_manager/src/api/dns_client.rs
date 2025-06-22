@@ -6,6 +6,7 @@ use crate::gui::model::domain::{DnsProvider, Domain, DomainName};
 use crate::model::dns_record_response::Record;
 use reqwest::Client;
 use std::error::Error;
+use log::{error};
 
 /// DNS客户端
 pub trait DnsClientTrait {
@@ -86,14 +87,8 @@ impl DnsClient {
                         Err(_) => {}
                     };
                 }
-                DnsProvider::CloudFlare => {
-                    let client = CloudflareDnsClient::new(
-                        self.access_key_id.clone(),
-                        self.access_key_secret.clone(),
-                    );
-                }
                 _ => {
-                    dbg!("Not support");
+                    error!("不支持的域名托管商：「{}」",dns_provider.name());
                 }
             }
         }
