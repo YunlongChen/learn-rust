@@ -45,7 +45,7 @@ pub struct DomainRecords {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Record {
     #[serde(rename = "Status")]
-    status: Status,
+    pub(crate) status: Status,
 
     #[serde(rename = "RR")]
     pub(crate) rr: String,

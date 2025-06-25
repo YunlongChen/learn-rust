@@ -3,7 +3,6 @@
 #![allow(clippy::module_name_repetitions)]
 
 use iced::border::Radius;
-use iced::widget::button;
 use iced::widget::button::{Catalog, Status, Style};
 use iced::{Background, Border, Color, Shadow, Vector};
 
@@ -36,7 +35,7 @@ impl ButtonType {
     fn active(&self, style: &StyleType) -> Style {
         let colors = style.get_palette();
         let ext = style.get_extension();
-        button::Style {
+        Style {
             background: Some(match self {
                 ButtonType::TabActive | ButtonType::BorderedRoundSelected => {
                     Background::Color(mix_colors(colors.primary, ext.buttons_color))
@@ -114,7 +113,7 @@ impl ButtonType {
     fn hovered(&self, style: &StyleType) -> Style {
         let colors = style.get_palette();
         let ext = style.get_extension();
-        button::Style {
+        Style {
             shadow: match self {
                 ButtonType::Neutral
                 | ButtonType::SortArrows

@@ -1,9 +1,13 @@
 use crate::models::domain::{DomainEntity, DomainStatus, NewDomain};
 use chrono::Utc;
-use rusqlite::{params, Connection, Result, ToSql};
+use rusqlite::{params, Connection, Result};
+use std::error::Error;
 
 /// 添加新域名
-pub fn add_domain(conn: &Connection, new_domain: NewDomain) -> Result<DomainEntity> {
+pub fn add_domain(
+    conn: &Connection,
+    new_domain: NewDomain,
+) -> Result<DomainEntity, Box<dyn Error>> {
     let now = Utc::now().to_string();
 
     conn.execute(
@@ -48,7 +52,10 @@ pub fn update_domain(conn: &Connection, domain: &DomainEntity) -> Result<()> {
 }
 
 /// 获取用户的所有域名
-pub fn get_account_domains(conn: &Connection, account_id: Option<i64>) -> Result<Vec<DomainEntity>> {
+pub fn get_account_domains(
+    conn: &Connection,
+    account_id: Option<i64>,
+) -> Result<Vec<DomainEntity>> {
     let mut stmt = conn.prepare(
         "select id, account_id, domain_name, expire_ad, create_at from domains
          WHERE account_id = ?1",
@@ -155,7 +162,6 @@ pub fn delete_domain(conn: &Connection, domain_id: i64) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use log::info;
     use super::*;
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};

@@ -3,7 +3,6 @@ use rand::RngCore;
 use rusqlite::Error as RusqliteError;
 use secrecy::{ExposeSecret, SecretBox, SecretString};
 use std::error::Error;
-use crate::gui::types::credential::Credential;
 
 /// 密码哈希配置
 // const ARGON2_CONFIG: Config = Config {

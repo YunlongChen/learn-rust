@@ -91,7 +91,7 @@ pub fn domain_page(app: &DomainManager) -> Container<Message, StyleType> {
             )
             .push(
                 // 域名列表
-                scrollable(domain_list_view(&app.domain_names))
+                scrollable(domain_list_view(&app.domain_list))
                     .height(Length::Fill)
                     .width(Length::Fill),
             ),
@@ -203,17 +203,34 @@ pub fn add_domain_provider_page(app: &DomainManager) -> Container<Message, Style
                 state.provider.clone(),
                 Message::AddProviderFormProviderChanged,
             )
+            .width(Length::Fill)
             .placeholder("选择域名托管商..."),
         )
         .push_maybe(dyn_form) // 动态添加凭证表单
         .push(
             Row::new()
                 .push(
-                    Button::new(Text::new(get_text("validate_credential")))
-                        .on_press(Message::SubmitDomainForm),
+                    Button::new(
+                        Text::new(get_text("validate_credential")).align_x(Alignment::Center),
+                    )
+                    .on_press(Message::SubmitDomainForm)
+                    .width(Length::FillPortion(1)),
                 )
-                .push(Button::new(Text::new(get_text("add"))).on_press(Message::ValidateCredential))
-                .push(Button::new(text("返回")).on_press(Message::ChangePage(Page::DomainPage)))
+                .push(
+                    button(Text::new(get_text("validate")).align_x(Alignment::Center))
+                        .on_press(Message::ValidateCredential)
+                        .width(Length::FillPortion(1)),
+                )
+                .push(
+                    Button::new(Text::new(get_text("add")).align_x(Alignment::Center))
+                        .on_press(Message::AddCredential)
+                        .width(Length::FillPortion(1)),
+                )
+                .push(
+                    Button::new(text("返回").align_x(Alignment::Center))
+                        .on_press(Message::ChangePage(Page::DomainPage))
+                        .width(Length::FillPortion(1)),
+                )
                 .spacing(20),
         )
         .spacing(20)

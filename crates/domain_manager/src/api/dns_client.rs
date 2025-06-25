@@ -1,6 +1,5 @@
 use crate::api::model::domain::DomainQueryResponse;
 use crate::api::provider::aliyun::AliyunDnsClient;
-use crate::api::provider::cloudflare_provider::CloudflareDnsClient;
 use crate::gui::model::domain::DnsProvider::Aliyun;
 use crate::gui::model::domain::{DnsProvider, Domain, DomainName};
 use crate::model::dns_record_response::Record;

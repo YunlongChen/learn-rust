@@ -17,7 +17,7 @@ pub enum DnsProvider {
 }
 
 impl DnsProvider {
-    pub(crate) const ALL: [DnsProvider; 7] = [
+    pub const ALL: [DnsProvider; 7] = [
         DnsProvider::Aliyun,
         DnsProvider::TencentCloud,
         DnsProvider::CloudFlare,

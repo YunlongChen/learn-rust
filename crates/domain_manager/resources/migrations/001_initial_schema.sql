@@ -28,10 +28,10 @@ CREATE TABLE domain_records
     account_id  INTEGER,
     domain_id   INTEGER,
     record_name TEXT,
-    record_type TEXT,
-    type        TEXT    NOT NULL,
+    record_type TEXT    NOT NULL,
     value       TEXT    NOT NULL,
     ttl         INTEGER NOT NULL,
+    create_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (domain_id) REFERENCES domains (id) ON DELETE CASCADE
 );
 
@@ -50,7 +50,10 @@ INSERT INTO domains (id, account_id, domain_name, expire_ad, create_at)
 VALUES (2, 2, 'example.xyz', '2025-06-18 00:00:00.000', '2025-06-18 23:25:48.000');
 
 -- 域名记录
-INSERT INTO domain_records (id, account_id, domain_id, record_name, record_type, type, value, ttl)
-VALUES (1, 2, 1, 'www', 'A', 'A', '192.168.0.0', 0);
-INSERT INTO domain_records (id, account_id, domain_id, record_name, record_type, type, value, ttl)
-VALUES (2, 2, 1, '@', '@', '@', '192.168.0.0', 0);
+INSERT INTO domain_records (id, account_id, domain_id, record_name, record_type, value, ttl, create_at)
+VALUES (1, 2, 1, 'www', 'A', '192.168.0.0', 0, current_timestamp);
+INSERT INTO domain_records (id, account_id, domain_id, record_name, record_type, value, ttl, create_at)
+VALUES (2, 2, 1, '@', '@', '192.168.0.0', 0, current_timestamp);
+
+
+select id,id, account_id, domain_id, record_name, record_type, value, ttl, create_at from domain_records;

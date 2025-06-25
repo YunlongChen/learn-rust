@@ -16,14 +16,17 @@ mod utils;
 use crate::configs::config::Config;
 use crate::gui::manager::DomainManager;
 use crate::gui::styles::style_constants::{
-    ICONS_BYTES, MAPLE_MONO_NF_CN_REGULAR, SARASA_MONO_BOLD_BYTES, SARASA_MONO_BYTES,
+    FONT_SIZE_BODY, ICONS_BYTES, MAPLE_MONO_NF_CN_REGULAR, SARASA_MONO_BOLD_BYTES,
+    SARASA_MONO_BYTES,
 };
 pub use crate::gui::styles::types::style_type::StyleType;
+use crate::storage::init_database;
 pub use crate::utils::i18_utils::get_text;
 use gui::types::message::Message;
 use iced::window::icon::from_rgba;
-use iced::{application, window, Font, Pixels, Settings, Size, Task};
+use iced::{application, window, Font, Pixels, Settings, Task};
 use log::{error, info};
+use rusqlite::Connection;
 use rust_i18n::i18n;
 use std::{panic, process};
 
@@ -44,7 +47,6 @@ pub const FONT_CN_FAMILY_NAME: &str = "Maple Mono NF CN";
 i18n!("locales", fallback = "en");
 
 pub fn main() -> iced::Result {
-
     env_logger::init();
     // 读取配置文件
     let config: Config = Config::new_from_file("config.json");
@@ -59,7 +61,7 @@ pub fn main() -> iced::Result {
         orig_hook(panic_info);
         process::exit(1);
     }));
-
+    info!("读取图标！");
     let icon = match image::load_from_memory(include_bytes!("../resources/logos/raw/icon.png")) {
         Ok(buffer) => {
             let buffer = buffer.to_rgba8();
@@ -83,6 +85,7 @@ pub fn main() -> iced::Result {
     };
 
     let settings = Settings {
+        id: Some(String::from(DOMAIN_MANAGER_LOWERCASE)),
         fonts: vec![
             ICONS_BYTES.into(),
             MAPLE_MONO_NF_CN_REGULAR.into(),
@@ -90,18 +93,28 @@ pub fn main() -> iced::Result {
             SARASA_MONO_BOLD_BYTES.into(),
         ],
         default_font: Font::with_name(FONT_CN_FAMILY_NAME),
-        default_text_size: Pixels::from(14),
+        default_text_size: Pixels::from(FONT_SIZE_BODY),
         ..Default::default()
     };
 
-    let app = application("Domain Manager", DomainManager::update, DomainManager::view)
-        .window(window::Settings {
-            // size: Size::new(1920.0, 1080.0),
-            icon,
-            ..Default::default()
-        })
-        .subscription(DomainManager::keyboard_subscription)
-        .subscription(DomainManager::subscription)
-        .settings(settings);
-    app.run_with(move || (DomainManager::new(config), Task::done(Message::Start)))
+    let app = application(
+        DOMAIN_MANAGER_LOWERCASE,
+        DomainManager::update,
+        DomainManager::view,
+    )
+    .window(window::Settings {
+        // size: Size::new(1920.0, 1080.0),
+        icon,
+        ..Default::default()
+    })
+    .subscription(DomainManager::keyboard_subscription)
+    .subscription(DomainManager::subscription)
+    .settings(settings);
+    app.run_with(move || {
+        let connection: Connection = init_database().expect("Cannot connect to database.");
+        (
+            DomainManager::new(config, connection),
+            Task::done(Message::Start),
+        )
+    })
 }
