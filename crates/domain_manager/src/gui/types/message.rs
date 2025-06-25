@@ -43,6 +43,9 @@ pub enum Message {
     OpenHelp {
         last_page: Option<Page>,
     },
+    Mock,
+    Reload,
+    ReloadComplete,
     QueryDomain,
     QueryDomainResult(Vec<Domain>),
     QueryDnsResult(Vec<Record>),
@@ -93,6 +96,7 @@ pub enum Message {
     FeatureClicked(String),
     AddDnsProvider,
     ValidateCredential,
+    AddCredential,
     DnsProviderChange
 }
 

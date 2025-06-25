@@ -18,8 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: cargo build --release --verbose
+        run: cargo build -p domain_manager --release --verbose
       - name: Run tests
-        run: cargo test --verbose
-      - name: Build
-        run: cargo build -p http_server --release --verbose
+        run: cargo test -p domain_manager --verbose

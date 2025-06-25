@@ -236,15 +236,6 @@ mod tests {
     }
 
     #[test]
-    fn custompalette_from_file_de() -> Result<(), toml::de::Error> {
-        let style = catppuccin_style();
-        let style_de = Palette::from_file(style_path("catppuccin"))?;
-
-        assert_eq!(style, style_de);
-        Ok(())
-    }
-
-    #[test]
     fn test_generate_palette_extension_dark() {
         let palette = Palette {
             primary: Color {

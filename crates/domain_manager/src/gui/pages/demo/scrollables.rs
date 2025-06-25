@@ -228,7 +228,7 @@ pub fn scrollables(app: &DomainManager) -> Container<Message, StyleType> {
         .push(button("I am to the bottom!"))
         .into();
 
-    let domain_names: &[Domain] = &app.domain_names;
+    let domain_names: &[Domain] = &app.domain_list;
 
     let container: Column<Message, StyleType> = domain_list_view(&domain_names);
 

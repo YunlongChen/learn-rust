@@ -46,6 +46,7 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
             .push(logo)
             .push(Space::with_width(20))
             .push(horizontal_space())
+            .push(Row::new().push(Text::new(format!("{}", &app.message))))
             .push_maybe(if app.in_query {
                 Some(get_custom_button(
                     font,

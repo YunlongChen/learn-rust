@@ -1,5 +1,5 @@
 use directories::ProjectDirs;
-use log::{info, log};
+use log::{info};
 use rusqlite::{Connection, Result};
 use std::error::Error;
 use std::path::PathBuf;

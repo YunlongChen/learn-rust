@@ -91,6 +91,7 @@ impl Config {
     /// 加载配置文件
     ///
     pub fn new_from_file(file_name: &str) -> Self {
+        dbg!("运行测试方法");
         let file = Self::load_file(&file_name);
         if let Some(ref file_content) = file {
             info!("从文件加载配置文件：内容: {}", &file_content);

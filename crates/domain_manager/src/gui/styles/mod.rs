@@ -17,3 +17,5 @@ pub mod text;
 pub mod text_input;
 mod toggler;
 pub mod types;
+
+pub use button::ButtonType;
