@@ -35,6 +35,6 @@ jobs:
       - name: CheckOut
         uses: actions/checkout@v4
       - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
-        run: cargo build --profile ${{ matrix.BUILD_TARGET }}
+        run: cargo build -p domain_manager --profile ${{ matrix.BUILD_TARGET }}
       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
-        run: cargo test --profile ${{ matrix.BUILD_TARGET }}
+        run: cargo test -p domain_manager --profile ${{ matrix.BUILD_TARGET }}
