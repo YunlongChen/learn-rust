@@ -186,27 +186,3 @@ impl DnsClientTrait for AliyunDnsClient {
         todo!()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::api::dns_client::DnsClientTrait;
-    use crate::api::provider::aliyun::AliyunDnsClient;
-    use std::env;
-
-    #[tokio::test]
-    pub async fn test_get_text() {
-        let access_key_id =
-            env::var("ALIBABA_CLOUD_ACCESS_KEY_ID").expect("Cannot get access key id.");
-        let access_key_secret =
-            env::var("ALIBABA_CLOUD_ACCESS_KEY_SECRET").expect("Cannot get access key id.");
-
-        let dns_client = AliyunDnsClient::new(access_key_id, access_key_secret);
-
-        let vec = dns_client
-            .list_dns_records(String::from("chenyunlong.cn"))
-            .await
-            .expect("获取域名记录失败！");
-
-        println!("{:?}", vec);
-    }
-}

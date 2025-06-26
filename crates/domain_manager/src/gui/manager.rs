@@ -34,8 +34,8 @@ use crate::{get_text, Config, StyleType};
 use chrono::Utc;
 use iced::keyboard::Key;
 use iced::widget::{
-    button, container, horizontal_rule, horizontal_space, scrollable, Button, Column,
-    Container, Row, Text, Tooltip,
+    button, container, horizontal_rule, horizontal_space, scrollable, Button, Column, Container,
+    Row, Text, Tooltip,
 };
 use iced::Event::Window;
 use iced::{
@@ -1150,7 +1150,12 @@ fn init_dns_client(config: &Config) -> Result<DnsClient, Box<dyn Error>> {
             vec![],
         ))
     } else {
-        panic!("初始化客户端失败");
+        Ok(DnsClient::new(
+            config.ali_access_key_id.clone().unwrap(),
+            config.ali_access_key_secret.clone().unwrap(),
+            "cn".to_string(),
+            vec![],
+        ))
     }
 }
 ///
@@ -1250,7 +1255,14 @@ mod tests {
     // tests using this will require the  annotation
     fn new_instance() -> DomainManager {
         let connection = init_memory_database().expect("创建数据库失败");
-        DomainManager::new(Config::default(), connection)
+        DomainManager::new(
+            Config {
+                ali_access_key_id: Some("12123".to_string()),
+                ali_access_key_secret: Some("12123".to_string()),
+                ..Default::default()
+            },
+            connection,
+        )
     }
 
     #[test]
@@ -1286,6 +1298,7 @@ mod tests {
     fn query_condition_changed() {
         let mut domain_manager = new_instance();
         let _ = domain_manager.update(Message::Reload);
+        // TODO 这里需要首先执行为中文
         assert_eq!(domain_manager.locale, Locale::English);
     }
 }
