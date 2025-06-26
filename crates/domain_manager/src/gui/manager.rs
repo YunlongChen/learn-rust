@@ -498,13 +498,14 @@ impl DomainManager {
         // 按照每一个事件来处理
         match message {
             Message::Mock => {
-                self.filter.reset();
-                self.domain_list.clear();
-                self.domain_providers.clear();
+                self.handle_reset();
                 self.mock_data();
                 Task::none()
             }
-            Message::Reset => self.handle_reset(),
+            Message::Reset => {
+                self.handle_reset();
+                self.update(Message::Reload)
+            }
             Message::Reload => {
                 info!("界面刷新,当前选择的域名托管商");
                 // 更新数据 TODO 这里可能会影响界面刷新，需要在异步线程里面完成
@@ -1003,11 +1004,10 @@ impl DomainManager {
         }
     }
 
-    fn handle_reset(&mut self) -> Task<Message> {
+    fn handle_reset(&mut self) {
         self.filter.reset();
         self.domain_list.clear();
         self.domain_providers.clear();
-        self.update(Message::Reload)
     }
 
     fn handle_export(&self) -> Task<Message> {
@@ -1292,13 +1292,8 @@ mod tests {
         let mut domain_manager = new_instance();
         let _ = domain_manager.update(Message::Start);
         assert_eq!(domain_manager.locale, Locale::Chinese);
-    }
 
-    #[test]
-    fn query_condition_changed() {
-        let mut domain_manager = new_instance();
-        let _ = domain_manager.update(Message::Reload);
-        // TODO 这里需要首先执行为中文
-        assert_eq!(domain_manager.locale, Locale::English);
+        let _ = domain_manager.update(Message::Reset);
+        assert_eq!(domain_manager.domain_list.len(), 2);
     }
 }
