@@ -25,7 +25,7 @@ use crate::gui::types::credential::Credential;
 use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
 use crate::models::account::NewAccount;
-use crate::storage::{create_account, init_database, list_accounts, list_domains};
+use crate::storage::{create_account, list_accounts, list_domains};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
@@ -34,7 +34,7 @@ use crate::{get_text, Config, StyleType};
 use chrono::Utc;
 use iced::keyboard::Key;
 use iced::widget::{
-    button, container, horizontal_rule, horizontal_space, scrollable, text_input, Button, Column,
+    button, container, horizontal_rule, horizontal_space, scrollable, Button, Column,
     Container, Row, Text, Tooltip,
 };
 use iced::Event::Window;
