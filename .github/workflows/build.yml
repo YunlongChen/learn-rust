@@ -11,14 +11,30 @@ env:
 
 jobs:
   build-and-test:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ windows-latest ]
+        BUILD_TARGET: [ release ]
+    outputs:
+      release_built: ${{ steps.set-output.outputs.release_built }}
+    runs-on: ${{ matrix.os }}
     steps:
+      - name: Temporarily modify the rust toolchain version
+        run: rustup override set stable
+      - name: Output rust version for educational purposes
+        run: rustup --version
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: CheckOut
         uses: actions/checkout@v4
-      - name: Run unit tests
-        run: cargo test -p domain_manager --verbose
-      - name: Build
-        run: cargo build -p domain_manager --release --verbose
+      - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo build --profile ${{ matrix.BUILD_TARGET }}
+      - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo test --profile ${{ matrix.BUILD_TARGET }}
