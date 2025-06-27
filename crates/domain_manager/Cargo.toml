@@ -22,7 +22,7 @@ reqwest = { version = "0.12.12", features = ["json"] }
 rodio = { version = "0.20.1", default-features = false, features = ["mp3"] }
 tokio = { version = "1", features = ["full"] }
 toml = { version = "0.8.22" }
-chrono = { version = "0.4.39" }
+chrono = { version = "0.4.41" }
 confy = { version = "1.0.0" }
 cloudflare = { version = "0.14.0" }
 clap = { version = "4.5.39", features = ["derive"] }
