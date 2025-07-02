@@ -21,7 +21,7 @@ serde_json = { version = "1.0" }
 reqwest = { version = "0.12.12", features = ["json"] }
 rodio = { version = "0.20.1", default-features = false, features = ["mp3"] }
 tokio = { version = "1", features = ["full"] }
-toml = { version = "0.8.22" }
+toml = { version = "0.8.23" }
 chrono = { version = "0.4.39" }
 confy = { version = "1.0.0" }
 cloudflare = { version = "0.14.0" }
