@@ -15,7 +15,7 @@ iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image", "to
 image = { version = "0.25.6" }
 maxminddb = { version = "0.26.0" }
 plotters = { version = "0.3.7", default-features = false, features = ["area_series", "line_series"] }
-rust-i18n = { version = "3.1.2" }
+rust-i18n = { version = "3.1.5" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 reqwest = { version = "0.12.12", features = ["json"] }
