@@ -1,14 +1,12 @@
-use crate::configs::server::ServerConfig;
+use crate::config::database::DatabaseConfig;
+use crate::config::server::ServerConfig;
 use anyhow::{anyhow, Context};
-use ::config::{Config, FileFormat};
+use config::{Config, FileFormat};
 use serde::Deserialize;
 use std::sync::LazyLock;
 use tracing::info;
 
-pub mod config_settings;
-pub mod config_window;
 pub mod database;
-pub mod gui_config;
 pub mod server;
 
 static CONFIG: LazyLock<AppConfig> = LazyLock::new(|| {

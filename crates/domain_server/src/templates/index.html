@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Providers</h5>
+            </div>
+            <div class="card-body">
+                <p>Total providers: {{ providers | length }}</p>
+                <a href="/providers" class="btn btn-primary">Manage Providers</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Domains</h5>
+            </div>
+            <div class="card-body">
+                <p>Total domains: {{ domains | length }}</p>
+                <a href="/domains" class="btn btn-primary">Manage Domains</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">DNS Records</h5>
+            </div>
+            <div class="card-body">
+                <p>Total records: {{ dns_records | length }}</p>
+                <a href="/dns_records" class="btn btn-primary">Manage DNS Records</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

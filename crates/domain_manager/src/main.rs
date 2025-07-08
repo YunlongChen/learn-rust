@@ -13,7 +13,8 @@ pub mod storage;
 mod translations;
 mod utils;
 
-use crate::configs::config::Config;
+use crate::configs::gui_config;
+use crate::configs::gui_config::Config;
 use crate::gui::manager::DomainManager;
 use crate::gui::styles::style_constants::{
     FONT_SIZE_BODY, ICONS_BYTES, MAPLE_MONO_NF_CN_REGULAR, SARASA_MONO_BOLD_BYTES,
@@ -26,8 +27,8 @@ use gui::types::message::Message;
 use iced::window::icon::from_rgba;
 use iced::{application, window, Font, Pixels, Settings, Task};
 use log::{error, info};
-use rusqlite::Connection;
 use rust_i18n::i18n;
+use sea_orm::DatabaseConnection;
 use std::{panic, process};
 
 const TITLE_SIZE: u16 = 36;
@@ -46,7 +47,8 @@ pub const FONT_CN_FAMILY_NAME: &str = "Maple Mono NF CN";
 
 i18n!("locales", fallback = "en");
 
-pub fn main() -> iced::Result {
+#[tokio::main]
+pub async fn main() -> iced::Result {
     env_logger::init();
     // 读取配置文件
     let config: Config = Config::new_from_file("config.json");
@@ -55,12 +57,15 @@ pub fn main() -> iced::Result {
     // kill the main thread as soon as a secondary thread panics
     let orig_hook = panic::take_hook();
 
+    let database_config = &configs::get().database;
+
     panic::set_hook(Box::new(move |panic_info| {
         // invoke the default handler and exit the process
         error!("程序崩溃了，退出程序！");
         orig_hook(panic_info);
         process::exit(1);
     }));
+    
     info!("读取图标！");
     let icon = match image::load_from_memory(include_bytes!("../resources/logos/raw/icon.png")) {
         Ok(buffer) => {
@@ -83,6 +88,10 @@ pub fn main() -> iced::Result {
             None
         }
     };
+
+    let connection: DatabaseConnection = init_database(database_config)
+        .await
+        .expect("Cannot connect to database.");
 
     let settings = Settings {
         id: Some(String::from(DOMAIN_MANAGER_LOWERCASE)),
@@ -111,7 +120,6 @@ pub fn main() -> iced::Result {
     .subscription(DomainManager::subscription)
     .settings(settings);
     app.run_with(move || {
-        let connection: Connection = init_database().expect("Cannot connect to database.");
         (
             DomainManager::new(config, connection),
             Task::done(Message::Start),
