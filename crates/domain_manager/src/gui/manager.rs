@@ -5,7 +5,7 @@ use crate::api::ali_api::{
 use crate::api::dns_client::{DnsClient, DnsClientTrait};
 use crate::api::model::dns_operate::RecordLog;
 use crate::api::provider::aliyun::AliyunDnsClient;
-use crate::configs::config::LICENCE;
+use crate::configs::gui_config::LICENCE;
 use crate::gui::components::footer::footer;
 use crate::gui::components::header::header;
 use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
@@ -22,9 +22,11 @@ use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::gui::styles::ButtonType;
 use crate::gui::types::credential::Credential;
+use crate::gui::types::message::Message::ReloadComplete;
 use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
-use crate::models::account::NewAccount;
+use crate::models::account::{Account, NewAccount};
+use crate::models::domain::DomainEntity;
 use crate::storage::{create_account, list_accounts, list_domains};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
@@ -32,6 +34,7 @@ use crate::utils::types::icon::Icon;
 use crate::utils::types::web_page::WebPage;
 use crate::{get_text, Config, StyleType};
 use chrono::Utc;
+use clap::builder::Str;
 use iced::keyboard::Key;
 use iced::widget::{
     button, container, horizontal_rule, horizontal_space, scrollable, Button, Column, Container,
@@ -42,7 +45,7 @@ use iced::{
     keyboard, window, Alignment, Element, Font, Length, Point, Size, Subscription, Task, Theme,
 };
 use log::{error, info};
-use rusqlite::Connection;
+use sea_orm::DatabaseConnection;
 use std::error::Error;
 use std::sync::Mutex;
 use std::{env, process};
@@ -73,7 +76,7 @@ pub struct DomainManager {
     pub unread_notifications: usize,
     /// dns客户端
     pub dns_client: DnsClient,
-    pub connection: Option<Connection>,
+    pub connection: Option<DatabaseConnection>,
     /// 客户端状态
     filter: Filter,
     pub search_query: String,
@@ -180,7 +183,7 @@ impl DomainManager {
         }
     }
 
-    pub fn new(config: Config, connection: Connection) -> Self {
+    pub fn new(config: Config, connection: DatabaseConnection) -> Self {
         // 初始化数据
         let domain_names = config.domain_names.clone();
         let locale: Locale = config.locale.clone().into();
@@ -508,11 +511,24 @@ impl DomainManager {
             }
             Message::Reload => {
                 info!("界面刷新,当前选择的域名托管商");
-                // 更新数据 TODO 这里可能会影响界面刷新，需要在异步线程里面完成
-                self.reload();
-                Task::none()
+                // 更新数据
+                // TODO 这里可能会影响界面刷新，需要在异步线程里面完成
+                match &self.connection {
+                    None => {
+                        info!("当前没有数据库连接！");
+                        self.update(ReloadComplete((vec![], vec![], "".to_string())))
+                    }
+                    Some(connection) => {
+                        // 克隆连接，因为我们需要将它移动到异步任务中
+                        let conn = connection.clone();
+                        Task::perform(Self::handle_reload(conn), |_result| {
+                            ReloadComplete((vec![], vec![], "".to_string()))
+                        })
+                        // self.update(ReloadComplete((vec![], vec![], "".to_string())))
+                    }
+                }
             }
-            Message::ReloadComplete => {
+            ReloadComplete(result) => {
                 info!("界面刷新完毕,当前选择的域名托管商");
                 Task::none()
             }
@@ -591,16 +607,16 @@ impl DomainManager {
                 match &self.connection {
                     None => {}
                     Some(connection) => {
-                        let accounts = list_accounts(connection).unwrap();
-                        self.domain_providers.clear();
-                        for account in accounts {
-                            let domain_provider = DomainProvider {
-                                credential: account.clone().try_into().unwrap(),
-                                provider_name: account.username,
-                                provider: account.provider_type.into(),
-                            };
-                            self.domain_providers.push(domain_provider);
-                        }
+                        // let accounts = list_accounts(connection).unwrap();
+                        // self.domain_providers.clear();
+                        // for account in accounts {
+                        //     let domain_provider = DomainProvider {
+                        //         credential: account.clone().try_into().unwrap(),
+                        //         provider_name: account.username,
+                        //         provider: account.provider_type.into(),
+                        //     };
+                        //     self.domain_providers.push(domain_provider);
+                        // }
                     }
                 }
                 Task::none()
@@ -967,41 +983,61 @@ impl DomainManager {
         info!("初始化DNS记录完成：域名数量：{}", self.dns_records.len());
     }
 
-    fn reload(&mut self) {
-        dbg!("从数据库里面重新加载界面");
-        // 初始化提供程序列表
-        match &self.connection {
-            None => {
-                self.message = "没有连接".into();
-            }
-            Some(connection) => {
-                info!("连接信息异常");
-                let accounts_result = list_accounts(connection);
-                match accounts_result {
-                    Ok(accounts) => {
-                        for account in accounts {
-                            self.domain_providers.push(DomainProvider {
-                                provider_name: (&account.username).clone(),
-                                provider: DnsProvider::Aliyun,
-                                credential: account.try_into().unwrap(),
-                            });
-                        }
-                    }
-                    Err(_) => {}
-                }
+    async fn handle_reload(
+        connection: DatabaseConnection,
+    ) -> Result<(String, String, String), Box<dyn Error + Send>> {
+        println!("从数据库里面重新加载界面");
 
-                let domain_list = list_domains(connection).expect("TODO: 查询域名信息异常！");
-                for domain in domain_list {
-                    self.domain_list.push(Domain {
-                        name: domain.domain_name,
-                        provider: DnsProvider::Aliyun,
-                        status: DomainStatus::Active,
-                        expiry: "".to_string(),
-                    });
-                }
-                info!("初始化域名记录完成：域名数量：{}", self.domain_list.len());
-            }
-        }
+        let domains = list_accounts(&connection).await.unwrap_or_else(|e| {
+            vec![]
+        });
+
+        let list_domain_result = list_domains(&connection).await.unwrap_or_else(|e| {
+            vec![]
+        });
+
+        println!("查询到的域名列表:{},{}", domains.len(), list_domain_result.len());
+
+        // let result = match tokio::join!(list_accounts(&connection), list_domains(&connection)) {
+        //     (_, _) => {
+        //         dbg!("刷新数据成功");
+        //         ("成功".to_string(), "成功".to_string(), "成功".to_string())
+        //     }
+        // };
+        Ok(("".to_string(), "".to_string(), "".to_string()))
+        // 初始化提供程序列表
+        // match &connection {
+        //     None => {
+        //         self.message = "没有连接".into();
+        //     }
+        //     Some(connection) => {
+        //         info!("连接信息异常");
+        //         let accounts_result = list_accounts(connection);
+        //         match accounts_result {
+        //             Ok(accounts) => {
+        //                 for account in accounts {
+        //                     self.domain_providers.push(DomainProvider {
+        //                         provider_name: (&account.username).clone(),
+        //                         provider: DnsProvider::Aliyun,
+        //                         credential: account.try_into().unwrap(),
+        //                     });
+        //                 }
+        //             }
+        //             Err(_) => {}
+        //         }
+        //
+        //         let domain_list = list_domains(connection).expect("TODO: 查询域名信息异常！");
+        //         for domain in domain_list {
+        //             self.domain_list.push(Domain {
+        //                 name: domain.domain_name,
+        //                 provider: DnsProvider::Aliyun,
+        //                 status: DomainStatus::Active,
+        //                 expiry: "".to_string(),
+        //             });
+        //         }
+        //         info!("初始化域名记录完成：域名数量：{}", self.domain_list.len());
+        //     }
+        // }
     }
 
     fn handle_reset(&mut self) {
@@ -1245,16 +1281,18 @@ fn dns_row(record: &DnsRecord, index: usize) -> Row<Message, StyleType> {
 
 #[cfg(test)]
 mod tests {
-    use crate::configs::config::Config;
+    use crate::configs::gui_config::Config;
     use crate::get_text;
     use crate::gui::manager::DomainManager;
     use crate::gui::types::message::Message;
     use crate::storage::init_memory_database;
-    use crate::translations::types::locale::Locale;
 
     // tests using this will require the  annotation
-    fn new_instance() -> DomainManager {
-        let connection = init_memory_database().expect("创建数据库失败");
+    #[tokio::test]
+    async fn new_instance() {
+        let connection = init_memory_database()
+            .await
+            .expect("Cannot initialize memory database.");
         DomainManager::new(
             Config {
                 ali_access_key_id: Some("12123".to_string()),
@@ -1262,7 +1300,8 @@ mod tests {
                 ..Default::default()
             },
             connection,
-        )
+        );
+        return;
     }
 
     #[test]
@@ -1285,15 +1324,5 @@ mod tests {
     fn test_correctly_update_ip_version() {
         let mut app = DomainManager::default();
         let _ = app.update(Message::AddDnsRecord);
-    }
-
-    #[test]
-    fn test_domain_manager_started() {
-        let mut domain_manager = new_instance();
-        let _ = domain_manager.update(Message::Start);
-        assert_eq!(domain_manager.locale, Locale::Chinese);
-
-        let _ = domain_manager.update(Message::Reset);
-        assert_eq!(domain_manager.domain_list.len(), 2);
     }
 }

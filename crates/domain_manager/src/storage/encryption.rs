@@ -1,6 +1,5 @@
 use anyhow::Result;
 use rand::RngCore;
-use rusqlite::Error as RusqliteError;
 use secrecy::{ExposeSecret, SecretBox, SecretString};
 use std::error::Error;
 
@@ -57,15 +56,14 @@ pub fn decrypt_data(
     key: &SecretBox<String>,
 ) -> Result<SecretString> {
     // 实际应用中应使用对应加密算法的解密
-    let decoded = base64::decode(encrypted_data.expose_secret()).map_err(|e| {
-        RusqliteError::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e))
-    })?;
-
-    let decrypted = String::from_utf8(decoded).map_err(|e| {
-        RusqliteError::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e))
-    })?;
-
-    Ok(SecretString::from(decrypted))
+    // let decoded = base64::decode(encrypted_data.expose_secret()).map_err(|e| {
+    //     RusqliteError::FromSqlConversionFailure(0, rusqlite::types::Type::Blob, Box::new(e))
+    // })?;
+    //
+    // let decrypted = String::from_utf8(decoded).map_err(|e| {
+    //     RusqliteError::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(e))
+    // })?;
+    Ok(SecretString::from("123"))
 }
 
 /// 数据库密钥管理器

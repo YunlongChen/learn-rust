@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Domains</h1>
+
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Add New Domain</h5>
+    </div>
+    <div class="card-body">
+        <form action="/domains" method="post">
+            <div class="mb-3">
+                <label for="name" class="form-label">Domain Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="example.com" required>
+            </div>
+            <div class="mb-3">
+                <label for="provider_id" class="form-label">Provider</label>
+                <select class="form-select" id="provider_id" name="provider_id" required>
+                    <option value="">Select a provider</option>
+                    {% for provider in providers %}
+                    <option value="{{ provider.id }}">{{ provider.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-info">Add Domain</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Existing Domains</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th>Domain</th>
+                    <th>Provider</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for domain in domains %}
+                <tr>
+                    <td>{{ domain.name }}</td>
+                    <td>
+                        {% for provider in providers %}
+                        {% if provider.id == domain.provider_id %}
+                        {{ provider.name }}
+                        {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                            <span class="badge bg-{% if domain.status == 'active' %}success{% else %}warning{% endif %}">
+                                {{ domain.status | capitalize }}
+                            </span>
+                    </td>
+                    <td>{{ domain.created_at | date(format="%Y-%m-%d") }}</td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-info">Edit</a>
+                        <a href="#" class="btn btn-sm btn-danger">Delete</a>
+                        <a href="/dns_records?domain_id={{ domain.id }}" class="btn btn-sm btn-primary">Manage DNS</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

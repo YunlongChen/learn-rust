@@ -3,8 +3,11 @@ pub mod encryption;
 
 mod accounts;
 mod domains;
-mod migrations;
+pub mod entities;
+// mod migrations;
 pub mod records;
+
+pub use entities::*;
 
 pub use accounts::*;
 pub use database::*;

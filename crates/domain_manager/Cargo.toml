@@ -19,7 +19,6 @@ rust-i18n = { version = "3.1.2" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 reqwest = { version = "0.12.12", features = ["json"] }
-rodio = { version = "0.20.1", default-features = false, features = ["mp3"] }
 tokio = { version = "1", features = ["full"] }
 toml = { version = "0.8.23" }
 chrono = { version = "0.4.39" }
@@ -28,13 +27,20 @@ cloudflare = { version = "0.14.0" }
 clap = { version = "4.5.40", features = ["derive"] }
 rand = { version = "0.9.1" }
 secrecy = { version = "0.10.3" }
-rusqlite = { version = "0.36.0", features = ["bundled"] }
 directories = { version = "6.0.0" }
-rusqlite_migration = { version = "2.2.0" }
 anyhow = { version = "1.0.98" }
 base64 = { version = "0.22.1" }
 env_logger = { version = "0.11.8" }
 mockall = "0.13.1"
+sea-orm = { version = "1.1.12", features = ["sqlx-postgres", "sqlx-sqlite", "macros", "with-uuid", "with-chrono", "runtime-tokio", "debug-print", "with-json", "with-rust_decimal", "runtime-tokio-native-tls"] }
+sea-orm-migration = "1.1.12"
+tracing = { version = "0.1.41", features = ["async-await"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono"] }
+percent-encoding = "2.3.1"
+config = { version = "0.15.11", features = ["yaml"] }
+num_cpus = "1.17.0"
+uuid = { version = "1.16.0", features = ["v4"] }
+
 
 [dev-dependencies]
 serde_test = "1.0.177"

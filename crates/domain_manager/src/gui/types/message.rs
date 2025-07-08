@@ -1,3 +1,4 @@
+use std::error::Error;
 use crate::api::model::dns_operate::RecordLog;
 use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::pages::domain::DomainProvider;
@@ -13,6 +14,8 @@ use crate::utils::types::web_page::WebPage;
 use iced::keyboard::Key;
 use iced::window;
 use std::fmt::Display;
+use crate::models::account::Account;
+use crate::models::domain::DomainEntity;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -45,7 +48,7 @@ pub enum Message {
     },
     Mock,
     Reload,
-    ReloadComplete,
+    ReloadComplete((Vec<Account>, Vec<Domain>, String)),
     QueryDomain,
     QueryDomainResult(Vec<Domain>),
     QueryDnsResult(Vec<Record>),

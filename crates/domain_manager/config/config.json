@@ -12,5 +12,7 @@
     "style": "Day"
   },
   "language": "ZH",
-  "color_gradient": "Mild"
+  "color_gradient": "Mild",
+  "ali_access_key_id": "23",
+  "ali_access_key_secret": "23"
 }

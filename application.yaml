@@ -1,0 +1,9 @@
+## 定义数据库连接
+server:
+  port: 8080
+database:
+  user: postgres
+  password: StrongPassword123!
+  port: 5432
+  host: 127.0.0.1
+  schema: domain

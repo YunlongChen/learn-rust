@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Domain Providers</h1>
+
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Add New Provider</h5>
+    </div>
+    <div class="card-body">
+        <form action="/providers" method="post">
+            <div class="mb-3">
+                <label for="name" class="form-label">Provider Name</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="api_key" class="form-label">API Key</label>
+                <input type="text" class="form-control" id="api_key" name="api_key" required>
+            </div>
+            <div class="mb-3">
+                <label for="api_secret" class="form-label">API Secret</label>
+                <input type="password" class="form-control" id="api_secret" name="api_secret" required>
+            </div>
+            <div class="mb-3">
+                <label for="extra_config" class="form-label">Extra Config (JSON)</label>
+                <textarea class="form-control" id="extra_config" name="extra_config" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-success">Add Provider</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Existing Providers</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>API Key</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for provider in providers %}
+                <tr>
+                    <td>{{ provider.name }}</td>
+                    <td>{{ provider.api_key | truncate(length=8) }}...</td>
+                    <td>{{ provider.created_at | date(format="%Y-%m-%d") }}</td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-info">Edit</a>
+                        <a href="#" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
