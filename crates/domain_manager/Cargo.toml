@@ -37,7 +37,7 @@ sea-orm-migration = "1.1.12"
 tracing = { version = "0.1.41", features = ["async-await"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono"] }
 percent-encoding = "2.3.1"
-config = { version = "0.15.11", features = ["yaml"] }
+config = { version = "0.15.12", features = ["yaml"] }
 num_cpus = "1.17.0"
 uuid = { version = "1.16.0", features = ["v4"] }
 
