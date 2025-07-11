@@ -1,9 +1,11 @@
 use crate::configs::database::DatabaseConfig;
+use crate::storage::migration::migration::Migrator;
 use anyhow::Context;
 use directories::ProjectDirs;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use sea_orm::entity::prelude::*;
-use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Schema};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, Schema};
+use sea_orm_migration::MigratorTrait;
 use std::cmp::min;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -64,7 +66,17 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
         .await
         .with_context(|| anyhow::anyhow!("初始化数据库连接失败!"));
     dbg!("连接成功");
-    result
+
+    match result {
+        Ok(connection) => {
+            dbg!("连接创建成功");
+            Migrator::up(&connection, None)
+                .await
+                .expect("TODO: panic message");
+            Ok(connection)
+        }
+        Err(err) => Err(err),
+    }
 }
 //
 // /// 初始化数据库连接
@@ -128,7 +140,11 @@ pub async fn init_memory_database() -> anyhow::Result<DatabaseConnection> {
         Ok(connection) => {
             dbg!("获取数据库连接成功");
             let builder = connection.get_database_backend();
-            let schema = Schema::new(builder);
+            let _schema = Schema::new(builder);
+
+            Migrator::up(&connection, None)
+                .await
+                .expect("移植数据库发生了异常！");
 
             let model = super::domain::ActiveModel {
                 id: Default::default(),

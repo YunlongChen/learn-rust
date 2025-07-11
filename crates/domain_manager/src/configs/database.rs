@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct DatabaseConfig {
+    db_type: Option<String>,
     host: Option<String>,
     port: Option<u16>,
     user: Option<String>,
@@ -11,6 +12,10 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
+    pub fn db_type(&self) -> &str {
+        self.db_type.as_deref().unwrap_or("sqlite")
+    }
+
     pub fn host(&self) -> &str {
         self.host.as_deref().unwrap_or("localhost")
     }

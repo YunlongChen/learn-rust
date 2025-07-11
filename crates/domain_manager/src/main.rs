@@ -13,7 +13,6 @@ pub mod storage;
 mod translations;
 mod utils;
 
-use crate::configs::gui_config;
 use crate::configs::gui_config::Config;
 use crate::gui::manager::DomainManager;
 use crate::gui::styles::style_constants::{
@@ -65,7 +64,7 @@ pub async fn main() -> iced::Result {
         orig_hook(panic_info);
         process::exit(1);
     }));
-    
+
     info!("读取图标！");
     let icon = match image::load_from_memory(include_bytes!("../resources/logos/raw/icon.png")) {
         Ok(buffer) => {
