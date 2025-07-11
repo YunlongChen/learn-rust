@@ -14,8 +14,8 @@ pub struct Model {
     pub ttl: i32,
     #[sea_orm(nullable)]
     pub priority: Option<i32>,
-    pub created_at: DateTimeWithTimeZone,
-    pub updated_at: DateTimeWithTimeZone,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

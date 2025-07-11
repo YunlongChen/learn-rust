@@ -15,13 +15,13 @@ iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image", "to
 image = { version = "0.25.6" }
 maxminddb = { version = "0.26.0" }
 plotters = { version = "0.3.7", default-features = false, features = ["area_series", "line_series"] }
-rust-i18n = { version = "3.1.2" }
+rust-i18n = { version = "3.1.5" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
-reqwest = { version = "0.12.12", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
-toml = { version = "0.8.23" }
-chrono = { version = "0.4.39" }
+reqwest = { version = "0.12.22", features = ["json"] }
+tokio = { version = "1.46.1", features = ["full"] }
+toml = { version = "0.9.1" }
+chrono = { version = "0.4.41" }
 confy = { version = "1.0.0" }
 cloudflare = { version = "0.14.0" }
 clap = { version = "4.5.41", features = ["derive"] }
@@ -32,14 +32,14 @@ anyhow = { version = "1.0.98" }
 base64 = { version = "0.22.1" }
 env_logger = { version = "0.11.8" }
 mockall = "0.13.1"
-sea-orm = { version = "1.1.12", features = ["sqlx-postgres", "sqlx-sqlite", "macros", "with-uuid", "with-chrono", "runtime-tokio", "debug-print", "with-json", "with-rust_decimal", "runtime-tokio-native-tls"] }
-sea-orm-migration = "1.1.12"
+sea-orm = { version = "2.0.0-rc.1", features = ["sqlx-postgres", "sqlx-sqlite", "macros", "with-uuid", "with-chrono", "runtime-tokio", "debug-print", "with-json", "with-rust_decimal", "runtime-tokio-native-tls"] }
+sea-orm-migration = "2.0.0-rc.1"
 tracing = { version = "0.1.41", features = ["async-await"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono"] }
 percent-encoding = "2.3.1"
 config = { version = "0.15.13", features = ["yaml"] }
 num_cpus = "1.17.0"
-uuid = { version = "1.16.0", features = ["v4"] }
+uuid = { version = "1.17.0", features = ["v4"] }
 
 
 [dev-dependencies]
