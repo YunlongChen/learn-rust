@@ -20,7 +20,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 reqwest = { version = "0.12.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
-toml = { version = "0.8.23" }
+toml = { version = "0.9.0" }
 chrono = { version = "0.4.39" }
 confy = { version = "1.0.0" }
 cloudflare = { version = "0.14.0" }
