@@ -8,10 +8,11 @@ use reqwest::{Client, Method};
 use serde_json::json;
 use std::collections::{HashMap, TryReserveError};
 use std::env;
+use tracing::info;
 
 #[tokio::main]
 pub async fn query_aliyun_domain_list() -> Vec<DomainName> {
-    println!("query_aliyun_domain_list");
+    info!("query_aliyun_domain_list");
     // 创建 HTTP 客户端
     let client = Client::new();
     // env::var()表示通过环境变量获取Access Key ID和Access Key Secret
@@ -115,24 +116,24 @@ pub async fn query_aliyun_domain_list() -> Vec<DomainName> {
     .await
     {
         Ok(response) => {
-            println!("响应信息: {}", response);
+            info!("响应信息: {}", response);
             // 处理响应数据
             let result: Result<DomainQueryResponse, _> = response.try_into();
             match result {
                 Ok(data) => {
                     let domain_list = data.data.domain;
-                    println!("查询结果：{:?}", domain_list);
+                    info!("查询结果：{:?}", domain_list);
                     // Pre-reserve the memory, exiting if we can't
                     process_domain_data(&domain_list).unwrap_or_else(|_| vec![])
                 }
                 Err(_) => {
-                    println!("查询结果为空");
+                    info!("查询结果为空");
                     vec![]
                 }
             }
         }
         Err(error) => {
-            eprintln!("查询异常: {}", error);
+            info!("查询异常: {}", error);
             vec![]
         }
     }
@@ -153,7 +154,7 @@ pub fn process_domain_data(data: &Vec<Domain>) -> Result<Vec<DomainName>, TryRes
 
 #[tokio::main]
 pub async fn query_aliyun_dns_list(domain_name: String) -> Vec<Record> {
-    println!("查询dns解析");
+    info!("查询dns解析");
     // 创建 HTTP 客户端
     let client = Client::new();
     // env::var()表示通过环境变量获取Access Key ID和Access Key Secret
@@ -257,11 +258,11 @@ pub async fn query_aliyun_dns_list(domain_name: String) -> Vec<Record> {
     .await
     {
         Ok(response) => {
-            println!("响应信息: {}", response);
+            info!("响应信息: {}", response);
             // 处理响应数据
             let domain_query_response: DnsRecordResponse = response.into();
             let record_list = domain_query_response.domain_records.record;
-            println!("查询结果：{:?}", record_list);
+            info!("查询结果：{:?}", record_list);
             let mut output: Vec<Record> = Vec::new();
             // Pre-reserve the memory, exiting if we can't
             output.try_reserve(record_list.len()).unwrap();
@@ -270,7 +271,7 @@ pub async fn query_aliyun_dns_list(domain_name: String) -> Vec<Record> {
             output
         }
         Err(error) => {
-            eprintln!("查询异常: {}", error);
+            info!("查询异常: {}", error);
             vec![]
         }
     }
@@ -278,7 +279,7 @@ pub async fn query_aliyun_dns_list(domain_name: String) -> Vec<Record> {
 
 #[tokio::main]
 pub async fn add_aliyun_dns_record(add_dns_field: &AddDnsField) -> bool {
-    println!("查询dns解析");
+    info!("查询dns解析");
     // 创建 HTTP 客户端
     let client = Client::new();
     // env::var()表示通过环境变量获取Access Key ID和Access Key Secret
@@ -395,12 +396,12 @@ pub async fn add_aliyun_dns_record(add_dns_field: &AddDnsField) -> bool {
     .await
     {
         Ok(response) => {
-            println!("响应信息: {}", response);
+            info!("响应信息: {}", response);
             // 处理响应数据
             false
         }
         Err(error) => {
-            eprintln!("查询异常: {}", error);
+            info!("查询异常: {}", error);
             true
         }
     }
@@ -408,7 +409,7 @@ pub async fn add_aliyun_dns_record(add_dns_field: &AddDnsField) -> bool {
 
 #[tokio::main]
 pub async fn query_aliyun_dns_operation_list(domain_name: String) -> Vec<RecordLog> {
-    println!("查询dns解析");
+    info!("查询dns解析");
     // 创建 HTTP 客户端
     let client = Client::new();
     // env::var()表示通过环境变量获取Access Key ID和Access Key Secret
@@ -512,11 +513,11 @@ pub async fn query_aliyun_dns_operation_list(domain_name: String) -> Vec<RecordL
     .await
     {
         Ok(response) => {
-            println!("响应信息: {}", response);
+            info!("响应信息: {}", response);
             // 处理响应数据
             let domain_query_response: DnsOperateResponse = response.into();
             let record_list: Vec<RecordLog> = domain_query_response.record_logs.record_log;
-            println!("查询结果：{:?}", record_list);
+            info!("查询结果：{:?}", record_list);
             let mut output: Vec<RecordLog> = Vec::new();
             // Pre-reserve the memory, exiting if we can't
             output.try_reserve(record_list.len()).unwrap();
@@ -525,7 +526,7 @@ pub async fn query_aliyun_dns_operation_list(domain_name: String) -> Vec<RecordL
             output
         }
         Err(error) => {
-            eprintln!("查询异常: {}", error);
+            info!("查询异常: {}", error);
             vec![]
         }
     }
@@ -533,7 +534,7 @@ pub async fn query_aliyun_dns_operation_list(domain_name: String) -> Vec<RecordL
 
 #[tokio::main]
 pub async fn delete_aliyun_dns(record_id: String) -> Option<String> {
-    println!("删除dns解析记录");
+    info!("删除dns解析记录");
     // 创建 HTTP 客户端
     let client = Client::new();
     // env::var()表示通过环境变量获取Access Key ID和Access Key Secret
@@ -633,13 +634,13 @@ pub async fn delete_aliyun_dns(record_id: String) -> Option<String> {
     .await
     {
         Ok(response) => {
-            println!("响应信息: {}", response);
+            info!("响应信息: {}", response);
             // 处理响应数据
             let response: DnsRecordDeleteResponse = response.into();
             response.record_id
         }
         Err(error) => {
-            eprintln!("查询异常: {}", error);
+            info!("查询异常: {}", error);
             None
         }
     }

@@ -7,10 +7,10 @@ use std::fmt::{Display, Formatter};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DnsRecordResponse {
     #[serde(rename = "TotalCount")]
-    total_count: i64,
+    total_count: i32,
 
     #[serde(rename = "PageSize")]
-    page_size: i64,
+    page_size: i32,
 
     #[serde(rename = "RequestId")]
     request_id: String,
@@ -19,7 +19,7 @@ pub struct DnsRecordResponse {
     pub(crate) domain_records: DomainRecords,
 
     #[serde(rename = "PageNumber")]
-    page_number: i64,
+    page_number: i32,
 }
 
 impl TryFrom<Value> for DnsRecordResponse {
@@ -69,13 +69,13 @@ pub struct Record {
     update_timestamp: Option<i64>,
 
     #[serde(rename = "TTL")]
-    ttl: i64,
+    ttl: i32,
 
     #[serde(rename = "CreateTimestamp")]
     create_timestamp: i64,
 
     #[serde(rename = "Weight")]
-    weight: Option<i64>,
+    weight: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -148,6 +148,7 @@ pub enum TimeUnit {
 
 #[cfg(test)]
 mod tests {
+    use tracing::info;
     use crate::model::dns_record_response::{DnsRecordResponse, Status};
 
     #[tokio::test]
@@ -454,7 +455,7 @@ mod tests {
         }"#;
 
         let u: DnsRecordResponse = serde_json::from_str(json_str).unwrap();
-        println!("{:#?}", u);
+        info!("{:#?}", u);
         assert_eq!(u.domain_records.record[0].rr, "fnos");
         assert_eq!(u.domain_records.record[0].value, "192.168.9.103");
         assert_eq!(u.domain_records.record[0].status, Status::Enable);

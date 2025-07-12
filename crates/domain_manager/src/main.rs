@@ -4,6 +4,7 @@ mod api;
 mod cli;
 mod configs;
 mod countries;
+mod dm_logger;
 mod gui;
 mod mmdb;
 mod model;
@@ -25,10 +26,12 @@ pub use crate::utils::i18_utils::get_text;
 use gui::types::message::Message;
 use iced::window::icon::from_rgba;
 use iced::{application, window, Font, Pixels, Settings, Task};
-use log::{error, info};
 use rust_i18n::i18n;
 use sea_orm::DatabaseConnection;
 use std::{panic, process};
+
+use crate::dm_logger::init_logging;
+use tracing::{error, info};
 
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;
@@ -48,7 +51,10 @@ i18n!("locales", fallback = "en");
 
 #[tokio::main]
 pub async fn main() -> iced::Result {
-    env_logger::init();
+    init_logging();
+    // 开始记录日志
+    info!("Application Starting...");
+
     // 读取配置文件
     let config: Config = Config::new_from_file("config.json");
     info!("配置文件信息：应用名称：{:?}", &config.name);
@@ -121,7 +127,7 @@ pub async fn main() -> iced::Result {
     app.run_with(move || {
         (
             DomainManager::new(config, connection),
-            Task::done(Message::Start),
+            Task::done(Message::Started),
         )
     })
 }

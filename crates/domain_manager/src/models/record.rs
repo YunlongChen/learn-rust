@@ -31,21 +31,21 @@ impl DomainStatus {
 /// 域名模型
 #[derive(Debug, Clone)]
 pub struct RecordEntity {
-    pub id: i64,
-    pub account_id: i64,
-    pub domain_id: i64,
+    pub id: i32,
+    pub account_id: i32,
+    pub domain_id: i32,
     pub record_name: String,
     pub record_type: String,
     pub record_value: String,
-    pub ttl: i64,
+    pub ttl: i32,
 }
 
 /// 新域名创建模型
 pub struct NewRecord {
-    pub account_id: i64,
-    pub domain_id: i64,
+    pub account_id: i32,
+    pub domain_id: i32,
     pub record_name: String,
     pub record_type: String,
     pub record_value: String,
-    pub ttl: i64,
+    pub ttl: i32,
 }

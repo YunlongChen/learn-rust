@@ -1,6 +1,5 @@
-use std::error::Error;
 use crate::api::model::dns_operate::RecordLog;
-use crate::gui::model::domain::{DnsProvider, Domain};
+use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain};
 use crate::gui::pages::domain::DomainProvider;
 use crate::gui::pages::names::Page;
 use crate::gui::pages::types::running::RunningPage;
@@ -14,8 +13,6 @@ use crate::utils::types::web_page::WebPage;
 use iced::keyboard::Key;
 use iced::window;
 use std::fmt::Display;
-use crate::models::account::Account;
-use crate::models::domain::DomainEntity;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -48,7 +45,7 @@ pub enum Message {
     },
     Mock,
     Reload,
-    ReloadComplete((Vec<Account>, Vec<Domain>, String)),
+    ReloadComplete((Vec<DomainProvider>, Vec<Domain>, Vec<DnsRecord>, String)),
     QueryDomain,
     QueryDomainResult(Vec<Domain>),
     QueryDnsResult(Vec<Record>),
@@ -79,7 +76,7 @@ pub enum Message {
     HideModal,
     OpenFile(String, FileInfo, fn(String) -> Message),
     OpenWebPage(WebPage),
-    Start,
+    Started,
     Reset,
     Quit,
     CloseSettings,
@@ -100,7 +97,7 @@ pub enum Message {
     AddDnsProvider,
     ValidateCredential,
     AddCredential,
-    DnsProviderChange
+    DnsProviderChange,
 }
 
 #[derive(Debug, Clone)]

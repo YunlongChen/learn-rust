@@ -10,7 +10,6 @@ repository.workspace = true
 [dependencies]
 domain_client = { path = "../domain_client" }
 
-log = { version = "0.4.22" }
 iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image", "tokio"] }
 image = { version = "0.25.6" }
 maxminddb = { version = "0.26.0" }
@@ -19,7 +18,7 @@ rust-i18n = { version = "3.1.5" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 reqwest = { version = "0.12.22", features = ["json"] }
-tokio = { version = "1.46.1", features = ["full"] }
+tokio = { version = "1.46.1", features = ["default"] }
 toml = { version = "0.9.1" }
 chrono = { version = "0.4.41" }
 confy = { version = "1.0.0" }
@@ -30,7 +29,6 @@ secrecy = { version = "0.10.3" }
 directories = { version = "6.0.0" }
 anyhow = { version = "1.0.98" }
 base64 = { version = "0.22.1" }
-env_logger = { version = "0.11.8" }
 mockall = "0.13.1"
 sea-orm = { version = "2.0.0-rc.1", features = ["sqlx-postgres", "sqlx-sqlite", "macros", "with-uuid", "with-chrono", "runtime-tokio", "debug-print", "with-json", "with-rust_decimal", "runtime-tokio-native-tls"] }
 sea-orm-migration = "2.0.0-rc.1"
@@ -40,6 +38,7 @@ percent-encoding = "2.3.1"
 config = { version = "0.15.13", features = ["yaml"] }
 num_cpus = "1.17.0"
 uuid = { version = "1.17.0", features = ["v4"] }
+log = "0.4.22"
 
 
 [dev-dependencies]

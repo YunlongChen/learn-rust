@@ -6,16 +6,16 @@ use std::fmt::Display;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DnsOperateResponse {
     #[serde(rename = "TotalCount")]
-    total_count: i64,
+    total_count: i32,
 
     #[serde(rename = "PageSize")]
-    page_size: i64,
+    page_size: i32,
 
     #[serde(rename = "RequestId")]
     request_id: String,
 
     #[serde(rename = "PageNumber")]
-    page_number: i64,
+    page_number: i32,
 
     #[serde(rename = "RecordLogs")]
     pub record_logs: RecordLogs,
@@ -45,7 +45,7 @@ pub struct RecordLog {
     pub message: String,
 
     #[serde(rename = "ActionTimestamp")]
-    pub action_timestamp: i64,
+    pub action_timestamp: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

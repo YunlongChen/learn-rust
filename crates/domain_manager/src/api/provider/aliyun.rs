@@ -8,7 +8,7 @@ use reqwest::{Client, Method};
 use serde_json::json;
 use std::collections::HashMap;
 use std::error::Error;
-use log::info;
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct AliyunDnsClient {
@@ -97,12 +97,12 @@ impl DnsClientTrait for AliyunDnsClient {
             )
             .await?;
 
-        println!("调用结果：{:?}", response);
+        info!("调用结果：{:?}", response);
         let result: Result<DomainQueryResponse, serde_json::Error> = response.try_into();
         match result {
             Ok(response) => {
                 let domain_list = response.data.domain;
-                println!("查询结果：{:?}", domain_list);
+                info!("查询结果：{:?}", domain_list);
 
                 let mut output = Vec::new();
                 // Pre-reserve the memory, exiting if we can't
@@ -117,7 +117,7 @@ impl DnsClientTrait for AliyunDnsClient {
                 Ok(output)
             }
             Err(err) => {
-                println!("解析结果异常：{:?}", err);
+                info!("解析结果异常：{:?}", err);
                 Ok(vec![])
             }
         }
@@ -150,13 +150,13 @@ impl DnsClientTrait for AliyunDnsClient {
             )
             .await?;
 
-        println!("调用结果：{:?}", response);
+        info!("调用结果：{:?}", response);
 
         let result: Result<DnsRecordResponse, serde_json::Error> = response.try_into();
         match result {
             Ok(result) => Ok(result.domain_records.record),
             Err(err) => {
-                println!("调用失败：{:?}", err);
+                info!("调用失败：{:?}", err);
                 Err(err.into())
             }
         }

@@ -1,4 +1,5 @@
 use sea_orm_migration::{prelude::*, schema::*};
+use tracing::info;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -21,7 +22,7 @@ enum DnsRecord {
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Replace the sample below with your own migration2 scripts
-        println!("迁移 dns_record 数据库。。。");
+        info!("迁移 dns_record 数据库。。。");
         manager
             .create_table(
                 Table::create()
@@ -36,12 +37,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(DnsRecord::Value).string().not_null())
                     .col(ColumnDef::new(DnsRecord::Ttl).integer().not_null())
                     .col(ColumnDef::new(DnsRecord::Priority).integer().null())
-                    .index(
-                        Index::create()
-                            .unique()
-                            .name("idx-name-id")
-                            .col(DnsRecord::Name),
-                    )
                     .to_owned(),
             )
             .await

@@ -1,3 +1,6 @@
+use sea_orm::prelude::DateTime;
+use crate::models::account::Account;
+
 /// 域名状态
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DomainStatus {
@@ -31,23 +34,23 @@ impl DomainStatus {
 /// 域名模型
 #[derive(Debug, Clone)]
 pub struct DomainEntity {
-    pub id: i64,
-    pub account_id: i64,
+    pub id: i32,
+    pub account_id: i32,
     pub domain_name: String,
     pub registration_date: Option<String>,
     pub expiration_date: Option<String>,
     pub registrar: Option<String>,
     pub status: DomainStatus,
     pub created_at: String,
-    pub updated_at: String,
+    pub updated_at: Option<DateTime>,
 }
 
 /// 新域名创建模型
 pub struct NewDomain {
-    pub account_id: i64,
     pub domain_name: String,
     pub registration_date: Option<String>,
     pub expiration_date: Option<String>,
     pub registrar: Option<String>,
     pub status: DomainStatus,
+    pub account: Account
 }
