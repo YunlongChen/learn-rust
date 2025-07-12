@@ -52,7 +52,7 @@ pub fn update_domain(
 /// 获取用户的所有域名
 pub fn get_account_domains(
     conn: &DatabaseConnection,
-    domain_id: Option<i64>,
+    domain_id: Option<i32>,
 ) -> Result<Vec<RecordEntity>, Box<dyn Error>> {
     // let mut stmt = conn.prepare(
     //     "select id, account_id, domain_id, record_name, record_type, value, ttl, create_at from domain_records where domain_id = ?1;",
@@ -69,7 +69,7 @@ pub fn get_account_domains(
     //         ttl: row.get(6)?,
     //     })
     // })?;
-    // 
+    //
     // let mut records: Vec<RecordEntity> = Vec::new();
     // for domain in domain_iter {
     //     records.push(domain?);
@@ -78,7 +78,7 @@ pub fn get_account_domains(
 }
 
 /// 删除域名
-pub fn delete_domain(conn: &DatabaseConnection, domain_id: i64) -> Result<(), Box<dyn Error>> {
+pub fn delete_domain(conn: &DatabaseConnection, domain_id: i32) -> Result<(), Box<dyn Error>> {
     // conn.execute("DELETE FROM domains WHERE id = ?1", [domain_id])?;
     Ok(())
 }

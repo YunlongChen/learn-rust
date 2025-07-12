@@ -6,12 +6,13 @@ use iced::widget::text::LineHeight;
 use iced::widget::{button, column, row, scrollable, text, Column, Container, Row, Text};
 use iced::{alignment, Alignment, Length, Pixels};
 use rust_i18n::t;
+use tracing::info;
 
 /// 域名管理界面
 pub fn scrollables(app: &DomainManager) -> Container<Message, StyleType> {
     // let element = domain_list_view(&app.domain_names);
     // let scrollable = optimized_list(&app.domain_names);
-    println!("yyy{:?}", &app.current_domain_name);
+    info!("yyy{:?}", &app.current_domain_name);
 
     // 生成一个列表
     let column: Column<Message, StyleType> = column![button("I am to the top!")]

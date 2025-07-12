@@ -1,4 +1,5 @@
-mod m20220101_000001_create_table;
 mod m20250712_000001_create_account_table;
 mod m20250712_000001_create_dns_record_table;
+mod m20250712_000001_create_domain_table;
+mod m20250712_000001_create_provider_table;
 pub mod migration;

@@ -9,6 +9,8 @@ use sea_orm_migration::MigratorTrait;
 use std::cmp::min;
 use std::path::PathBuf;
 use std::time::Duration;
+use tracing::info;
+use tracing::log::LevelFilter::{Info, Trace};
 
 // 数据库配置
 const DB_FILE_NAME: &str = "domain_manager.db";
@@ -60,19 +62,19 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
         .acquire_timeout(Duration::from_secs(5))
         .idle_timeout(Duration::from_secs(60))
         .max_lifetime(Duration::from_secs(300))
-        .sqlx_logging_level(log::LevelFilter::Trace);
+        .sqlx_logging_level(Info);
 
     let result = Database::connect(options)
         .await
         .with_context(|| anyhow::anyhow!("初始化数据库连接失败!"));
-    dbg!("连接成功");
+    info!("连接成功");
 
     match result {
         Ok(connection) => {
             dbg!("连接创建成功");
             Migrator::up(&connection, None)
                 .await
-                .expect("TODO: panic message");
+                .expect("迁移数据库发生了异常！");
             Ok(connection)
         }
         Err(err) => Err(err),
@@ -146,21 +148,11 @@ pub async fn init_memory_database() -> anyhow::Result<DatabaseConnection> {
                 .await
                 .expect("移植数据库发生了异常！");
 
-            let model = super::domain::ActiveModel {
-                id: Default::default(),
-                name: Default::default(),
-                provider_id: Default::default(),
-                status: Default::default(),
-                created_at: Default::default(),
-                updated_at: Default::default(),
-            };
-
-            //
-            // // 创建所有实体对应的表
-            // for entity in get_all_entities() {
-            //     let stmt = builder.build(&schema.create_table_from_entity(entity));
-            //     connection.execute(stmt).await?;
-            // }
+            dbg!("连接创建成功");
+            Migrator::up(&connection, None)
+                .await
+                .expect("迁移数据库发生了异常！");
+            connection.ping().await.expect("数据库连通性检查失败");
             Ok(connection)
         }
         Err(err) => {

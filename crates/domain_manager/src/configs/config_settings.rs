@@ -1,11 +1,10 @@
 //! Module defining the `ConfigSettings` struct, which allows to save and reload
 //! the application default configuration.
 
-use log::info;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
 use serde::{Deserialize, Serialize};
-
+use tracing::info;
 use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]

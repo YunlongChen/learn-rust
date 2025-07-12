@@ -6,7 +6,7 @@ use iced::widget::Text;
 use iced::{Alignment, Font, Length};
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use log::info;
+use tracing::info;
 
 /// Enum representing the possible notification sounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

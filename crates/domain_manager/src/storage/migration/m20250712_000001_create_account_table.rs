@@ -1,36 +1,56 @@
+use super::m20250712_000001_create_provider_table;
+use crate::storage::migration::m20250712_000001_create_provider_table::Providers;
+use config::ConfigError::Foreign;
 use sea_orm_migration::{prelude::*, schema::*};
+use tracing::info;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
+#[derive(DeriveIden)]
+enum Accounts {
+    Table,
+    Id,
+    Name,
+    Salt,
+    LastLogin,
+    ApiSecret,
+    ExtraConfig,
+    CreatedAt,
+    UpdatedAt,
+    CredentialType,
+    CredentialData,
+    ProviderType,
+}
+
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // Replace the sample below with your own migration2 scripts
-        println!("迁移accounts数据库。。。");
+        info!("迁移accounts数据库。。。");
         manager
             .create_table(
                 Table::create()
                     .table(Accounts::Table)
                     .if_not_exists()
-                    .col(pk_auto(Accounts::Id).integer())
+                    .col(pk_auto(Accounts::Id).big_integer())
                     .col(string(Accounts::Name))
-                    .col(string(Accounts::ApiKey))
-                    .col(ColumnDef::new(Accounts::ApiSecret).string().null())
-                    .col(ColumnDef::new(Accounts::ExtraConfig).json().null())
-                    .col(ColumnDef::new(Accounts::CreatedAt).date_time().not_null())
-                    .col(ColumnDef::new(Accounts::UpdatedAt).date_time().not_null())
-                    .col(ColumnDef::new(Accounts::Username).string().not_null())
-                    .col(ColumnDef::new(Accounts::Email).string().not_null())
-                    .col(ColumnDef::new(Accounts::Salt).string().null())
+                    .col(string(Accounts::Salt).not_null())
                     .col(ColumnDef::new(Accounts::LastLogin).date_time().null())
+                    .col(ColumnDef::new(Accounts::ExtraConfig).json().null())
+                    .col(ColumnDef::new(Accounts::ProviderType).string().not_null())
                     .col(ColumnDef::new(Accounts::CredentialType).string().null())
                     .col(ColumnDef::new(Accounts::CredentialData).string().null())
-                    .col(ColumnDef::new(Accounts::ProviderType).string().null())
+                    .col(
+                        ColumnDef::new(Accounts::CreatedAt)
+                            .date_time()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(ColumnDef::new(Accounts::UpdatedAt).date_time().null())
                     .index(
                         Index::create()
                             .unique()
-                            .name("idx-name-id")
+                            .name("idx_accounts_name")
                             .col(Accounts::Name),
                     )
                     .to_owned(),
@@ -44,39 +64,4 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(Accounts::Table).to_owned())
             .await
     }
-}
-
-//    pub id: Uuid,
-//     pub name: String,
-//     pub api_key: String,
-//     pub api_secret: String,
-//     #[sea_orm(column_type = "JsonBinary", nullable)]
-//     pub extra_config: Option<serde_json::Value>,
-//     pub created_at: DateTimeWithTimeZone,
-//     pub updated_at: DateTimeWithTimeZone,
-//
-//     pub username: String,
-//     pub email: String,
-//     pub salt: String,
-//     pub last_login: Option<String>,
-//     pub credential_type: String,
-//     pub credential_data: String,
-//     pub provider_type: String,
-#[derive(DeriveIden)]
-enum Accounts {
-    Table,
-    Id,
-    Name,
-    ApiKey,
-    ApiSecret,
-    ExtraConfig,
-    CreatedAt,
-    UpdatedAt,
-    Username,
-    Email,
-    Salt,
-    LastLogin,
-    CredentialType,
-    CredentialData,
-    ProviderType,
 }

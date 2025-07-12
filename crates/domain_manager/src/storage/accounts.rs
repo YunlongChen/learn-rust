@@ -2,85 +2,84 @@ use crate::models::account::{Account, ApiKey, NewAccount};
 use crate::storage::encryption::encrypt_data;
 use crate::storage::entities;
 use crate::storage::entities::account::Entity as AccountEntity;
-use chrono::Utc;
 use iced::futures::TryFutureExt;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryOrder};
+use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait, QueryOrder};
 use secrecy::SecretString;
 use std::error::Error;
+use tracing::{error, info};
 
 /// 创建新账户
-pub fn create_account(
-    conn: &mut DatabaseConnection,
+pub async fn create_account(
+    conn: DatabaseConnection,
     new_account: NewAccount,
-) -> Result<Account, Box<dyn Error>> {
-    // // let (hashed_password, salt) = hash_password(&new_account.password.clone().into());
-    // let transaction = conn.transaction()?;
-    //
-    // transaction.execute(
-    //     "INSERT INTO accounts (username, email, provider_type, credential_type, credential_data, salt,created_at)
-    //      VALUES (?1, ?2, ?3, ?4,?5,?6, ?7)",
-    //     params![
-    //         new_account.username,
-    //         new_account.email,
-    //         new_account.provider.value(),
-    //         new_account.credential.credential_type(),
-    //         new_account.credential.raw_data(),
-    //         "".to_string(),
-    //         Utc::now().to_string()
-    //     ],
-    // )?;
-    //
-    // let account_id = transaction.last_insert_rowid();
-    //
-    // // 创建API密钥（如果提供）
-    // let mut api_keys = Vec::new();
-    // for key in new_account.api_keys {
-    //     let encrypted_key = encrypt_data(&key.key, &new_account.master_key)?;
-    //     transaction.execute(
-    //         "INSERT INTO api_keys (account_id, key_name, encrypted_key)
-    //          VALUES (?1, ?2, ?3)",
-    //         params![account_id, key.key_name, encrypted_key.expose_secret()],
-    //     )?;
-    //
-    //     api_keys.push(ApiKey {
-    //         id: transaction.last_insert_rowid(),
-    //         key_name: key.key_name,
-    //         key: key.key,
-    //     });
-    // }
-    //
-    // transaction.commit()?;
+) -> Result<Account, String> {
+    let active_model = entities::account::ActiveModel {
+        id: Default::default(),
+        name: ActiveValue::Set(new_account.username),
+        salt: ActiveValue::Set("123123".into()),
+        last_login: Default::default(),
+        credential_type: ActiveValue::Set(new_account.credential.credential_type()),
+        credential_data: ActiveValue::Set(new_account.credential.raw_data().into()),
+        provider_type: ActiveValue::Set(new_account.provider.value().into()),
+        created_at: Default::default(),
+        updated_at: Default::default(),
+    };
 
-    Ok(Account {
-        // id: account_id,
-        id: 0,
-        username: new_account.username,
-        email: new_account.email,
-        credential_data: new_account.credential.raw_data(),
-        salt: "salt".to_string(),
-        // api_keys,
-        api_keys: vec![],
-        created_at: Utc::now().to_string(),
-        last_login: None,
-        credential_type: new_account.credential.credential_type(),
-        provider_type: "".to_string(),
-    })
+    let result = active_model.insert(&conn).await;
+
+    match result {
+        Ok(model) => Ok(Account {
+            id: model.id,
+            username: model.name.clone(),
+            email: model.name.clone(),
+            credential_data: model.credential_data,
+            salt: "salt".to_string(),
+            api_keys: vec![],
+            created_at: model.created_at.to_string(),
+            last_login: None,
+            credential_type: new_account.credential.credential_type(),
+            provider_type: "".to_string(),
+        }),
+        Err(err) => {
+            dbg!("创建账号发生了异常");
+            error!("创建账号发生了异常！:{}", err.to_string());
+            Err(format!("查询数据库异常:{}", err.to_string()))
+        }
+    }
 }
 
 /// 查询所有账户
 pub async fn list_accounts(
-    conn: &DatabaseConnection,
+    conn: DatabaseConnection,
 ) -> Result<Vec<Account>, Box<dyn Error + Send>> {
-    let domains = AccountEntity::find()
+    let accounts = AccountEntity::find()
         .order_by_asc(entities::account::Column::Name)
-        .all(conn)
+        .all(&conn)
         .map_err(|e| {
-            println!("查询数据库报错了{}", e);
+            error!("查询数据库报错了:异常：{}", e);
             Box::new(e) as Box<dyn Error + Send>
         })
         .await?;
 
-    println!("查询到的域名列表:{}", domains.len());
+    info!("查询到的账号列表:{}", &accounts.len());
+
+    let domain_list: Vec<Account> = accounts
+        .into_iter()
+        .map(|domain| Account {
+            id: domain.id,
+            username: "".to_string(),
+            email: "".to_string(),
+            salt: "".to_string(),
+            api_keys: vec![],
+            created_at: "".to_string(),
+            last_login: None,
+            credential_type: "".to_string(),
+            credential_data: "".to_string(),
+            provider_type: "".to_string(),
+        })
+        .collect();
+
+    Ok(domain_list)
 
     // let mut statement =
     //     conn.prepare("select id, username, email, provider_type, credential_type, credential_data, salt, created_at FROM accounts")?;
@@ -105,7 +104,7 @@ pub async fn list_accounts(
     //     api_keys.push(key?);
     // }
     // Ok(api_keys)
-    Ok(vec![])
+    // Ok(vec![])
 }
 
 /// 验证用户登录
@@ -114,7 +113,7 @@ pub fn verify_login(
     username: &str,
     password: &SecretString,
 ) -> Result<Option<Account>, Box<dyn Error>> {
-    // let account: Option<(i64, String, String, String, String, Option<String>)> = conn
+    // let account: Option<(i32, String, String, String, String, Option<String>)> = conn
     //     .query_row(
     //         "SELECT id, email, credential_data, salt, created_at, last_login
     //          FROM accounts WHERE username = ?1",
@@ -166,7 +165,7 @@ pub fn verify_login(
 }
 
 /// 获取账户的API密钥
-fn get_api_keys(conn: &DatabaseConnection, account_id: i64) -> Result<Vec<ApiKey>, Box<dyn Error>> {
+fn get_api_keys(conn: &DatabaseConnection, account_id: i32) -> Result<Vec<ApiKey>, Box<dyn Error>> {
     // let mut stmt =
     //     conn.prepare("SELECT id, key_name, encrypted_key FROM api_keys WHERE account_id = ?1")?;
     //
@@ -202,7 +201,7 @@ pub fn update_account(conn: &DatabaseConnection, account: &Account) -> Result<()
 /// 添加API密钥
 pub fn add_api_key(
     conn: &DatabaseConnection,
-    account_id: i64,
+    account_id: i32,
     key_name: &str,
     key_value: &SecretString,
     master_key: &SecretString,
@@ -231,7 +230,7 @@ pub fn add_api_key(
 }
 
 /// 删除账户
-pub fn delete_account(conn: &DatabaseConnection, account_id: i64) -> Result<(), Box<dyn Error>> {
+pub fn delete_account(conn: &DatabaseConnection, account_id: i32) -> Result<(), Box<dyn Error>> {
     // 外键设置为CASCADE，会自动删除关联域名和API密钥
     // conn.execute("DELETE FROM accounts WHERE id = ?1", [account_id])?;
     Ok(())

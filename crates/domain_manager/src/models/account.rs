@@ -5,7 +5,7 @@ use secrecy::SecretString;
 /// 账户模型
 #[derive(Debug, Clone)]
 pub struct Account {
-    pub id: i64,
+    pub id: i32,
     pub username: String,
     pub email: String,
     pub salt: String,
@@ -23,15 +23,12 @@ pub struct NewAccount {
     pub email: String,
     pub provider: DnsProvider,
     pub credential: Credential,
-    pub master_key: SecretString,
-    pub api_keys: Vec<NewApiKey>,
-    pub created_at: String,
 }
 
 /// API密钥模型
 #[derive(Debug, Clone)]
 pub struct ApiKey {
-    pub id: i64,
+    pub id: i32,
     pub key_name: String,
     pub key: SecretString,
 }

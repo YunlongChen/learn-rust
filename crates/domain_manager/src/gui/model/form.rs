@@ -1,3 +1,4 @@
+use tracing::info;
 use crate::gui::model::domain::DnsProvider;
 use crate::model::dns_record_response::Type;
 
@@ -18,7 +19,7 @@ impl AddDnsField {
     }
 
     pub(crate) fn validate(&self) -> bool {
-        println!("验证输入是否合法！{:?}", &self);
+        info!("验证输入是否合法！{:?}", &self);
         true
     }
 }

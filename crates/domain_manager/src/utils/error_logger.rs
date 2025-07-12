@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use tracing::info;
 
 /// Trait for logging errors in a unified way
 pub trait ErrorLogger<T, E> {
@@ -12,7 +13,7 @@ impl<T, E: Display> ErrorLogger<T, E> for Result<T, E> {
         if let Err(e) = &self {
             let file = location.file;
             let line = location.line;
-            eprintln!("Sniffnet error at [{file}:{line}]: {e}");
+            info!("Sniffnet error at [{file}:{line}]: {e}");
             // in debug mode, panic on error
             assert!(!cfg!(debug_assertions));
         }

@@ -21,12 +21,11 @@ use crate::gui::pages::types::settings::SettingsPage;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::gui::styles::ButtonType;
-use crate::gui::types::credential::Credential;
+use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
 use crate::gui::types::message::Message::ReloadComplete;
 use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
 use crate::models::account::{Account, NewAccount};
-use crate::models::domain::DomainEntity;
 use crate::storage::{create_account, list_accounts, list_domains};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
@@ -34,7 +33,7 @@ use crate::utils::types::icon::Icon;
 use crate::utils::types::web_page::WebPage;
 use crate::{get_text, Config, StyleType};
 use chrono::Utc;
-use clap::builder::Str;
+use iced::futures::future::err;
 use iced::keyboard::Key;
 use iced::widget::{
     button, container, horizontal_rule, horizontal_space, scrollable, Button, Column, Container,
@@ -44,11 +43,12 @@ use iced::Event::Window;
 use iced::{
     keyboard, window, Alignment, Element, Font, Length, Point, Size, Subscription, Task, Theme,
 };
-use log::{error, info};
+use mockall::mock;
 use sea_orm::DatabaseConnection;
 use std::error::Error;
 use std::sync::Mutex;
 use std::{env, process};
+use tracing::{debug, error, info};
 
 pub struct DomainManager {
     /// 应用程序的配置：设置、窗口属性、应用程序名称
@@ -269,7 +269,7 @@ impl DomainManager {
     // 左侧托管商导航
     fn provider_sidebar(app: &DomainManager) -> Container<Message, StyleType> {
         let provider_list = Column::new().padding(10).spacing(10).width(Length::Shrink);
-        info!("托管商数量：「{}」", app.domain_providers.len());
+        debug!("托管商数量：「{}」", app.domain_providers.len());
         let provider_list = app
             .domain_providers
             .iter()
@@ -343,7 +343,7 @@ impl DomainManager {
         // 域名列表
         let domain_list = Column::new().spacing(5).padding(5);
 
-        info!("域名数量：「{}」", self.domain_list.len());
+        debug!("域名数量：「{}」", self.domain_list.len());
         let domain_list = self
             .domain_list
             .iter()
@@ -355,7 +355,7 @@ impl DomainManager {
             .fold(domain_list, |column, (index, domain)| {
                 let is_selected = self.filter.selected_domain == Some(domain.clone());
                 let button_event = if let false = is_selected {
-                    info!("当前是否添加异常信息");
+                    debug!("当前是否添加异常信息");
                     Some(Message::DomainSelected(domain.clone()))
                 } else {
                     None
@@ -485,7 +485,7 @@ impl DomainManager {
     }
 
     pub(crate) fn update(&mut self, message: Message) -> Task<Message> {
-        info!(
+        debug!(
             "是否最小化:{:?},未读通知：{:?}",
             self.thumb_nail, self.unread_notifications
         );
@@ -502,38 +502,55 @@ impl DomainManager {
         match message {
             Message::Mock => {
                 self.handle_reset();
-                self.mock_data();
-                Task::none()
+                let mock_data = self.mock_data();
+                let (providers, domains, records) = mock_data;
+                self.update(ReloadComplete((
+                    providers,
+                    domains,
+                    records,
+                    "创建模拟数据成功".into(),
+                )))
             }
+
             Message::Reset => {
                 self.handle_reset();
                 self.update(Message::Reload)
             }
             Message::Reload => {
-                info!("界面刷新,当前选择的域名托管商");
+                debug!("界面刷新,当前选择的域名托管商");
                 // 更新数据
                 // TODO 这里可能会影响界面刷新，需要在异步线程里面完成
                 match &self.connection {
                     None => {
-                        info!("当前没有数据库连接！");
-                        self.update(ReloadComplete((vec![], vec![], "".to_string())))
+                        error!("当前没有数据库连接！");
+                        self.update(ReloadComplete((vec![], vec![], vec![], "".to_string())))
                     }
                     Some(connection) => {
                         // 克隆连接，因为我们需要将它移动到异步任务中
                         let conn = connection.clone();
-                        Task::perform(Self::handle_reload(conn), |_result| {
-                            ReloadComplete((vec![], vec![], "".to_string()))
+                        Task::perform(Self::handle_reload(conn), |result| {
+                            match result {
+                                Ok(result) => {
+                                    return ReloadComplete((vec![], vec![], vec![], "".to_string()))
+                                }
+                                Err(_) => {}
+                            }
+                            ReloadComplete((vec![], vec![], vec![], "".to_string()))
                         })
-                        // self.update(ReloadComplete((vec![], vec![], "".to_string())))
                     }
                 }
             }
             ReloadComplete(result) => {
-                info!("界面刷新完毕,当前选择的域名托管商");
+                info!("数据重新加载完成！，当前加载数据类型：「所有」");
+                let (providers, domain, record, message) = result;
+                self.domain_providers = providers;
+                self.domain_list = domain;
+                self.dns_records = record;
+                self.stats.total = 100;
                 Task::none()
             }
-            Message::Start => {
-                info!("应用已启动");
+            Message::Started => {
+                info!("Application Started!");
                 let _ = self.update(Message::ChangeLocale(Locale::Chinese));
                 self.update(Message::Reload)
             }
@@ -602,25 +619,7 @@ impl DomainManager {
                 Task::none()
             }
             Message::AddCredential => self.add_credential(),
-            Message::DnsProviderChange => {
-                info!("dns托管商信息发生了变化,需要查询所有的域名托管商列表");
-                match &self.connection {
-                    None => {}
-                    Some(connection) => {
-                        // let accounts = list_accounts(connection).unwrap();
-                        // self.domain_providers.clear();
-                        // for account in accounts {
-                        //     let domain_provider = DomainProvider {
-                        //         credential: account.clone().try_into().unwrap(),
-                        //         provider_name: account.username,
-                        //         provider: account.provider_type.into(),
-                        //     };
-                        //     self.domain_providers.push(domain_provider);
-                        // }
-                    }
-                }
-                Task::none()
-            }
+            Message::DnsProviderChange => self.update(Message::Reload),
             Message::QueryDnsResult(dns_list) => {
                 self.dns_list = dns_list;
                 Task::none()
@@ -684,7 +683,7 @@ impl DomainManager {
             Message::DnsDelete(record_id) => {
                 info!("删除dns记录:{}", &record_id);
                 Task::perform(Self::handle_dns_record_delete(record_id), |response| {
-                    println!("请求接口信息:{:?}", response);
+                    info!("请求接口信息:{:?}", response);
                     match response {
                         None => Message::ChangePage(Page::DnsRecord),
                         Some(record_id) => Message::DnsRecordDeleted(record_id.clone()),
@@ -716,7 +715,7 @@ impl DomainManager {
                         ..self.add_dns_form.clone()
                     }),
                     |domain_names| {
-                        println!("请求接口信息:{:?}", domain_names);
+                        info!("请求接口信息:{:?}", domain_names);
                         Message::ChangePage(Page::AddRecord)
                     },
                 ),
@@ -766,7 +765,7 @@ impl DomainManager {
                 Task::none()
             }
             _ => {
-                info!("未处理的消息：{:?}", message);
+                debug!("未处理的消息：{:?}", message);
                 Task::none()
             }
         }
@@ -915,13 +914,21 @@ impl DomainManager {
         })
     }
 
-    fn mock_data(&mut self) {
+    fn mock_data(&mut self) -> (Vec<DomainProvider>, Vec<Domain>, Vec<DnsRecord>) {
         info!("从数据库里面重新加载界面");
         // 初始化提供程序列表
-        self.stats.total = self.domain_list.len();
+
+        let dns_provider_list = vec![DomainProvider {
+            provider_name: "".to_string(),
+            provider: DnsProvider::Aliyun,
+            credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                username: "测试账号".to_string(),
+                password: "测试密码".to_string(),
+            }),
+        }];
 
         // 初始化DNS记录
-        self.domain_list = vec![
+        let domain_list = vec![
             Domain {
                 name: "example.com".to_string(),
                 provider: DnsProvider::Aliyun,
@@ -948,7 +955,7 @@ impl DomainManager {
             },
         ];
 
-        self.dns_records = vec![
+        let dns_records = vec![
             DnsRecord {
                 record_type: "A".to_string(),
                 name: "@".to_string(),
@@ -981,63 +988,41 @@ impl DomainManager {
             },
         ];
         info!("初始化DNS记录完成：域名数量：{}", self.dns_records.len());
+
+        (dns_provider_list, domain_list, dns_records)
     }
 
     async fn handle_reload(
         connection: DatabaseConnection,
-    ) -> Result<(String, String, String), Box<dyn Error + Send>> {
-        println!("从数据库里面重新加载界面");
-
-        let domains = list_accounts(&connection).await.unwrap_or_else(|e| {
+    ) -> Result<(Vec<Account>, Vec<Domain>, String), Box<dyn Error + Send>> {
+        info!("从数据库里面重新加载界面");
+        let list_accounts_result = list_accounts(connection.clone()).await.unwrap_or_else(|e| {
+            error!("查询账号列表发生了异常！{}", e);
             vec![]
         });
 
-        let list_domain_result = list_domains(&connection).await.unwrap_or_else(|e| {
+        let list_domain_result = list_domains(connection).await.unwrap_or_else(|e| {
+            error!("查询域名列表发生了异常！:{}", e);
             vec![]
         });
 
-        println!("查询到的域名列表:{},{}", domains.len(), list_domain_result.len());
+        info!(
+            "查询到的账号列表数量:{},域名列表数量：「{}」",
+            list_accounts_result.len(),
+            list_domain_result.len()
+        );
 
-        // let result = match tokio::join!(list_accounts(&connection), list_domains(&connection)) {
-        //     (_, _) => {
-        //         dbg!("刷新数据成功");
-        //         ("成功".to_string(), "成功".to_string(), "成功".to_string())
-        //     }
-        // };
-        Ok(("".to_string(), "".to_string(), "".to_string()))
-        // 初始化提供程序列表
-        // match &connection {
-        //     None => {
-        //         self.message = "没有连接".into();
-        //     }
-        //     Some(connection) => {
-        //         info!("连接信息异常");
-        //         let accounts_result = list_accounts(connection);
-        //         match accounts_result {
-        //             Ok(accounts) => {
-        //                 for account in accounts {
-        //                     self.domain_providers.push(DomainProvider {
-        //                         provider_name: (&account.username).clone(),
-        //                         provider: DnsProvider::Aliyun,
-        //                         credential: account.try_into().unwrap(),
-        //                     });
-        //                 }
-        //             }
-        //             Err(_) => {}
-        //         }
-        //
-        //         let domain_list = list_domains(connection).expect("TODO: 查询域名信息异常！");
-        //         for domain in domain_list {
-        //             self.domain_list.push(Domain {
-        //                 name: domain.domain_name,
-        //                 provider: DnsProvider::Aliyun,
-        //                 status: DomainStatus::Active,
-        //                 expiry: "".to_string(),
-        //             });
-        //         }
-        //         info!("初始化域名记录完成：域名数量：{}", self.domain_list.len());
-        //     }
-        // }
+        let domain_list = list_domain_result
+            .into_iter()
+            .map(|domain| Domain {
+                name: domain.domain_name,
+                provider: DnsProvider::Aliyun,
+                status: DomainStatus::Active,
+                expiry: "".to_string(),
+            })
+            .collect();
+
+        Ok((list_accounts_result, domain_list, "".to_string()))
     }
 
     fn handle_reset(&mut self) {
@@ -1055,7 +1040,7 @@ impl DomainManager {
         self.is_syncing = true;
         // 同步域名信息
         Task::perform(Self::sync_domains(self.dns_client.clone()), |dns_records| {
-            println!("获取dns记录成功:{:?}", dns_records);
+            info!("获取dns记录成功:{:?}", dns_records);
             Message::SyncAllDomainsComplete(SyncResult::Success)
         })
     }
@@ -1098,33 +1083,24 @@ impl DomainManager {
         match &mut self.connection {
             None => {
                 self.message = "数据库连接未初始化".into();
+                Task::none()
             }
             Some(connection) => {
-                let result = create_account(
-                    connection,
-                    NewAccount {
-                        provider: provider.provider,
-                        username: provider.provider_name,
-                        email: "example@qq.com".to_string(),
-                        credential: provider.credential,
-                        master_key: Default::default(),
-                        api_keys: vec![],
-                        created_at: Utc::now().to_string(),
-                    },
-                );
-                match result {
-                    Ok(domain) => {
-                        info!("账户添加成功:{}", &domain.username);
-                        return self.update(Message::DnsProviderChange);
-                    }
-                    Err(err) => {
-                        info!("获取账户信息异常,{}", err);
-                    }
-                }
-                info!("托管商数量{}", self.domain_providers.len());
+                let conn_clone = connection.clone();
+                Task::perform(
+                    create_account(
+                        conn_clone,
+                        NewAccount {
+                            provider: provider.provider,
+                            username: provider.provider_name,
+                            email: "example@qq.com".to_string(),
+                            credential: provider.credential,
+                        },
+                    ),
+                    |_response| Message::Reload,
+                )
             }
         }
-        Task::none()
     }
 }
 
@@ -1178,7 +1154,7 @@ fn init_dns_client(config: &Config) -> Result<DnsClient, Box<dyn Error>> {
             env::var("ALIBABA_CLOUD_ACCESS_KEY_ID").expect("Cannot get access key id.");
         let access_key_secret =
             env::var("ALIBABA_CLOUD_ACCESS_KEY_SECRET").expect("Cannot get access key id.");
-        println!("初始化客户端成功");
+        info!("初始化客户端成功");
         Ok(DnsClient::new(
             access_key_id,
             access_key_secret,
@@ -1284,6 +1260,9 @@ mod tests {
     use crate::configs::gui_config::Config;
     use crate::get_text;
     use crate::gui::manager::DomainManager;
+    use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
+    use crate::gui::pages::domain::DomainProvider;
+    use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::gui::types::message::Message;
     use crate::storage::init_memory_database;
 
@@ -1324,5 +1303,51 @@ mod tests {
     fn test_correctly_update_ip_version() {
         let mut app = DomainManager::default();
         let _ = app.update(Message::AddDnsRecord);
+    }
+
+    #[test]
+    // needed to not collide with other tests generating configs files
+    fn test_correctly_reload_complete() {
+        let mut app = DomainManager::default();
+        let _ = app.update(Message::ReloadComplete((
+            vec![DomainProvider {
+                provider_name: "test".to_string(),
+                provider: DnsProvider::Aliyun,
+                credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                    username: "test".to_string(),
+                    password: "pass".to_string(),
+                }),
+            }],
+            vec![Domain {
+                name: "test_domain".to_string(),
+                provider: DnsProvider::Aliyun,
+                status: DomainStatus::Active,
+                expiry: "2023-12-12".to_string(),
+            }],
+            vec![DnsRecord {
+                name: "www".to_string(),
+                record_type: "A".to_string(),
+                value: "127.0.0.1".to_string(),
+                ttl: "6000".to_string(),
+            }],
+            "".into(),
+        )));
+        assert_eq!(app.domain_providers.len(), 1);
+        let provider = app.domain_providers.get(0);
+        assert_eq!(provider.unwrap().provider_name, "test");
+
+        assert_eq!(app.domain_list.len(), 1);
+        let provider = app.domain_list.get(0);
+        let domain = provider.unwrap();
+        assert_eq!(domain.name, "test_domain");
+        assert_eq!(domain.provider, DnsProvider::Aliyun);
+        assert_eq!(domain.status, DomainStatus::Active);
+
+        assert_eq!(app.dns_records.len(), 1);
+        let record = app.dns_records.get(0);
+        let record = record.unwrap();
+        assert_eq!(record.name, "www");
+        assert_eq!(record.record_type, "A");
+        assert_eq!(record.value, "127.0.0.1");
     }
 }

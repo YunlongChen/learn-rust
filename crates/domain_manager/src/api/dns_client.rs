@@ -5,7 +5,7 @@ use crate::gui::model::domain::{DnsProvider, Domain, DomainName};
 use crate::model::dns_record_response::Record;
 use reqwest::Client;
 use std::error::Error;
-use log::{error};
+use tracing::error;
 
 /// DNS客户端
 pub trait DnsClientTrait {
@@ -87,7 +87,7 @@ impl DnsClient {
                     };
                 }
                 _ => {
-                    error!("不支持的域名托管商：「{}」",dns_provider.name());
+                    error!("不支持的域名托管商：「{}」", dns_provider.name());
                 }
             }
         }
