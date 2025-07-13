@@ -43,10 +43,10 @@ pub struct Domain {
     registration_date: String,
 
     #[serde(rename = "ExpirationCurrDateDiff")]
-    expiration_curr_date_diff: i32,
+    expiration_curr_date_diff: i64,
 
     #[serde(rename = "RegistrationDateLong")]
-    registration_date_long: i32,
+    registration_date_long: i64,
 
     #[serde(rename = "ResourceGroupId")]
     resource_group_id: String,
@@ -70,7 +70,7 @@ pub struct Domain {
     ccompany: String,
 
     #[serde(rename = "ExpirationDateLong")]
-    expiration_date_long: i32,
+    expiration_date_long: i64,
 
     #[serde(rename = "ExpirationDateStatus")]
     expiration_date_status: String,

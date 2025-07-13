@@ -8,6 +8,7 @@ use reqwest::{
     Client, Method, Response, StatusCode,
 };
 use serde_json::{json, Value};
+use sha2::digest::KeyInit;
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
@@ -38,7 +39,7 @@ pub fn percent_code(encode_str: &str) -> Cow<'_, str> {
 pub fn sha256_hex(message: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(message);
-    format!("{:x}", hasher.finalize()).to_lowercase()
+    hex::encode(hasher.finalize()).to_lowercase()
 }
 
 /// HMAC SHA256

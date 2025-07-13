@@ -47,7 +47,7 @@ pub enum Message {
     Reload,
     ReloadComplete((Vec<DomainProvider>, Vec<Domain>, Vec<DnsRecord>, String)),
     QueryDomain,
-    QueryDomainResult(Vec<Domain>),
+    QueryDomainResult(Vec<Domain>, DomainProvider),
     QueryDnsResult(Vec<Record>),
     QueryDnsLogResult(Vec<RecordLog>),
     DnsDelete(String),
