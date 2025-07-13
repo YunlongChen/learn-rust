@@ -63,23 +63,23 @@ pub async fn list_accounts(
 
     info!("查询到的账号列表:{}", &accounts.len());
 
-    let domain_list: Vec<Account> = accounts
+    let account_list: Vec<Account> = accounts
         .into_iter()
-        .map(|domain| Account {
-            id: domain.id,
-            username: "".to_string(),
+        .map(|account| Account {
+            id: account.id,
+            username: account.name,
             email: "".to_string(),
             salt: "".to_string(),
             api_keys: vec![],
             created_at: "".to_string(),
-            last_login: None,
-            credential_type: "".to_string(),
-            credential_data: "".to_string(),
-            provider_type: "".to_string(),
+            last_login: account.last_login.map(|date| date.to_string()),
+            credential_type: account.credential_type,
+            credential_data: account.credential_data,
+            provider_type: account.provider_type,
         })
         .collect();
 
-    Ok(domain_list)
+    Ok(account_list)
 
     // let mut statement =
     //     conn.prepare("select id, username, email, provider_type, credential_type, credential_data, salt, created_at FROM accounts")?;
@@ -235,61 +235,63 @@ pub fn delete_account(conn: &DatabaseConnection, account_id: i32) -> Result<(), 
     // conn.execute("DELETE FROM accounts WHERE id = ?1", [account_id])?;
     Ok(())
 }
-//
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::gui::model::domain::DnsProvider;
-//     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
-//     use crate::storage::init_memory_database;
-//
-//     #[test]
-//     async fn it_works() {
-//         let mut connection = init_memory_database().await.unwrap();
-//
-//         let _vault = String::from("stanic");
-//
-//         let password: SecretString = SecretString::from("12123");
-//
-//         let api_key = create_account(
-//             &mut connection,
-//             NewAccount {
-//                 provider: DnsProvider::Aliyun,
-//                 username: "stanic".to_string(),
-//                 email: "example@qq.com".to_string(),
-//                 credential: Credential::UsernamePassword(UsernamePasswordCredential {
-//                     username: _vault.clone(),
-//                     password: password.expose_secret().to_string(),
-//                 }),
-//                 master_key: Default::default(),
-//                 api_keys: vec![],
-//                 created_at: Utc::now().to_string(),
-//             },
-//         )
-//         .expect("创建连接失败！");
-//
-//         assert_eq!(api_key.username, "stanic", "变量名错误");
-//
-//         let accounts_result = list_accounts(&connection);
-//         info!(target: "config", "正在加载配置文件:{}","ok");
-//
-//         let accounts = accounts_result.unwrap();
-//
-//         assert_eq!(accounts.len(), 2);
-//
-//         let account = accounts.get(1).take();
-//
-//         match account {
-//             None => {}
-//             Some(account) => {
-//                 let credential: Credential = account.clone().try_into().unwrap();
-//                 assert_eq!("Aliyun", account.provider_type, "变量名错误");
-//
-//                 if let Credential::UsernamePassword(credential) = credential {
-//                     assert_eq!("stanic", credential.username, "变量名错误");
-//                     assert_eq!("12123", credential.password, "变量名错误");
-//                 }
-//             }
-//         }
-//     }
-// }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dm_logger::init_logging;
+    use crate::gui::model::domain::DnsProvider;
+    use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
+    use crate::storage::init_memory_database;
+    use secrecy::ExposeSecret;
+    use tracing_test::traced_test;
+
+    #[traced_test]
+    #[tokio::test]
+    async fn it_works() {
+        let connection = init_memory_database().await.unwrap();
+        connection.ping().await.unwrap();
+
+        let _vault = String::from("stanic");
+
+        let password: SecretString = SecretString::from("12123");
+
+        let account = create_account(
+            connection.clone(),
+            NewAccount {
+                provider: DnsProvider::Aliyun,
+                username: "stanic".to_string(),
+                email: "example@qq.com".to_string(),
+                credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                    username: _vault.clone(),
+                    password: password.expose_secret().to_string(),
+                }),
+            },
+        )
+        .await
+        .expect("查询数据库发生了异常".into());
+
+        assert_eq!(account.username, "stanic", "变量名错误");
+        let _vault = String::from("stanic");
+
+        let _password: SecretString = SecretString::from("12123");
+
+        let accounts_result = list_accounts(connection.clone());
+        info!(target: "config", "正在加载配置文件:{}","ok");
+
+        let accounts = accounts_result.await.unwrap();
+
+        assert_eq!(accounts.len(), 1);
+
+        let account = accounts.get(0).take().unwrap();
+
+        let credential: Credential = account.clone().try_into().unwrap();
+        assert_eq!("Aliyun", account.provider_type);
+        assert_eq!("stanic", account.username);
+
+        if let Credential::UsernamePassword(credential) = credential {
+            assert_eq!("stanic", credential.username, "变量名错误");
+            assert_eq!("12123", credential.password, "变量名错误");
+        }
+    }
+}

@@ -9,8 +9,8 @@ use sea_orm_migration::MigratorTrait;
 use std::cmp::min;
 use std::path::PathBuf;
 use std::time::Duration;
-use tracing::info;
-use tracing::log::LevelFilter::{Info, Trace};
+use tracing::log::LevelFilter::Info;
+use tracing::{debug, info};
 
 // 数据库配置
 const DB_FILE_NAME: &str = "domain_manager.db";
@@ -30,7 +30,7 @@ pub fn get_database_path() -> PathBuf {
 }
 
 pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<DatabaseConnection> {
-    dbg!("建立数据库连接");
+    debug!("建立数据库连接");
 
     let encoded_password = utf8_percent_encode(database_config.password(), NON_ALPHANUMERIC);
 
@@ -47,12 +47,12 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
     // 使用sqlite数据库
     // sqlite://path/to/db.sqlite?mode=rwc
 
-    dbg!("建立数据库连接，地址：「{}」", &string);
+    debug!("建立数据库连接，地址：「{}」", &string);
 
     let mut options = ConnectOptions::new(string);
 
     let cpus = num_cpus::get() as u32;
-    dbg!("当前系统cpu数量:{}", cpus);
+    debug!("当前系统cpu数量:{}", cpus);
 
     options
         .max_connections(10)
@@ -71,7 +71,7 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
 
     match result {
         Ok(connection) => {
-            dbg!("连接创建成功");
+            debug!("连接创建成功");
             Migrator::up(&connection, None)
                 .await
                 .expect("迁移数据库发生了异常！");
@@ -135,12 +135,12 @@ pub async fn init_memory_database() -> anyhow::Result<DatabaseConnection> {
     let result = Database::connect("sqlite::memory:")
         .await
         .with_context(|| anyhow::anyhow!("初始化数据库连接失败!"));
-    dbg!("连接成功");
+    debug!("连接成功");
 
     // 获取数据库后端类型
     match result {
         Ok(connection) => {
-            dbg!("获取数据库连接成功");
+            debug!("获取数据库连接成功");
             let builder = connection.get_database_backend();
             let _schema = Schema::new(builder);
 
@@ -148,7 +148,7 @@ pub async fn init_memory_database() -> anyhow::Result<DatabaseConnection> {
                 .await
                 .expect("移植数据库发生了异常！");
 
-            dbg!("连接创建成功");
+            debug!("连接创建成功");
             Migrator::up(&connection, None)
                 .await
                 .expect("迁移数据库发生了异常！");
@@ -156,8 +156,7 @@ pub async fn init_memory_database() -> anyhow::Result<DatabaseConnection> {
             Ok(connection)
         }
         Err(err) => {
-            dbg!("获取数据库连接失败！");
-            dbg!("{?}", &err);
+            debug!("获取数据库连接失败！{}", err);
             Err(err)
         }
     }

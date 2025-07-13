@@ -4,6 +4,7 @@ use crate::gui::model::form::AddDomainField;
 use crate::gui::pages::names::Page;
 use crate::gui::types::credential::Credential;
 use crate::gui::types::message::Message;
+use crate::models::account::Account;
 use crate::utils::i18_utils::get_text;
 use crate::StyleType;
 use iced::widget::text::LineHeight;
@@ -134,19 +135,20 @@ pub fn add_domain_page<'a>(app: &DomainManager) -> Container<'a, Message, StyleT
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct DomainProvider {
+    pub account_id: Option<i32>,
     pub provider_name: String,
     pub provider: DnsProvider,
     pub credential: Credential,
 }
 
-impl From<AddDomainProviderForm> for DomainProvider {
-    fn from(value: AddDomainProviderForm) -> Self {
-        let dns_provider = value.provider.unwrap().clone();
-
+impl From<Account> for DomainProvider {
+    fn from(input_account: Account) -> Self {
         DomainProvider {
-            provider_name: value.provider_name,
-            provider: dns_provider.clone(),
-            credential: value.credential.unwrap(),
+            provider_name: input_account.username.clone(),
+            provider: input_account.provider_type.clone().into(),
+            // todo 这里有可能报错
+            account_id: Some(input_account.id),
+            credential: input_account.try_into().unwrap(),
         }
     }
 }

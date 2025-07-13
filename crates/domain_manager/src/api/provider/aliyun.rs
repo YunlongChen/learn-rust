@@ -8,7 +8,7 @@ use reqwest::{Client, Method};
 use serde_json::json;
 use std::collections::HashMap;
 use std::error::Error;
-use tracing::info;
+use tracing::{error, info};
 
 #[derive(Debug, Clone)]
 pub struct AliyunDnsClient {
@@ -47,8 +47,7 @@ impl AliyunDnsClient {
     ) -> Result<serde_json::Value, Box<dyn Error>> {
         info!(
             "请求后台接口，当前密钥：「{:?}」，请求参数：「{:?}」",
-            &self.access_key_id,
-            &body
+            &self.access_key_id, &body
         );
         let response = domain_client::call_api(
             self.client.clone(),
@@ -97,7 +96,7 @@ impl DnsClientTrait for AliyunDnsClient {
             )
             .await?;
 
-        info!("调用结果：{:?}", response);
+        info!("调用结果：{:?}", serde_json::to_string(&response));
         let result: Result<DomainQueryResponse, serde_json::Error> = response.try_into();
         match result {
             Ok(response) => {
@@ -117,7 +116,7 @@ impl DnsClientTrait for AliyunDnsClient {
                 Ok(output)
             }
             Err(err) => {
-                info!("解析结果异常：{:?}", err);
+                error!("解析结果异常：{:?}", err);
                 Ok(vec![])
             }
         }

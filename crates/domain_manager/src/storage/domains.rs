@@ -200,24 +200,34 @@ pub fn delete_domain(conn: &DatabaseConnection, domain_id: i32) -> Result<(), Bo
     Ok(())
 }
 
+/// 根据账号删除域名
+pub async fn delete_domain_by_account(
+    conn: &DatabaseConnection,
+    account_id: i32,
+) -> Result<(), Box<dyn Error + Send>> {
+    DomainDbEntity::delete_many()
+        .filter(domain::Column::ProviderId.eq(account_id))
+        .exec(conn)
+        .await
+        .expect("更新发生了异常！");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dm_logger::init_logging;
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::models::account::NewAccount;
     use crate::storage::{create_account, init_memory_database};
     use chrono::Utc;
     use secrecy::{ExposeSecret, SecretString};
+    use tracing_test::traced_test;
 
+    #[traced_test]
     #[tokio::test]
     async fn it_works() {
-        init_logging();
-
         let connection = init_memory_database().await.unwrap();
-
-        dbg!("初始化数据库成功");
 
         let _vault = String::from("stanic");
 

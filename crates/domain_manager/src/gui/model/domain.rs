@@ -4,6 +4,7 @@ use crate::gui::types::credential::{
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use tracing::debug;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Deserialize, Serialize)]
 pub enum DnsProvider {
