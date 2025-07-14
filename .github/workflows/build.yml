@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 1
 
 jobs:
   build-and-test:
@@ -23,20 +24,18 @@ jobs:
         run: rustup override set stable
       - name: Output rust version for educational purposes
         run: rustup --version
-
       - name: Cache
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
+            target/debug
+            target/release
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: CheckOut
         uses: actions/checkout@v4
-      #      - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
-      #        run: cargo build -p domain_manager --profile ${{ matrix.BUILD_TARGET }}
-      - name: Run check in "${{ matrix.BUILD_TARGET }}" mode
-        run: cargo check -p domain_manager
-      - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
+      - name: Build binaries
+        run: cargo build -p domain_manager
+      - name: Run tests
         run: cargo test -p domain_manager
