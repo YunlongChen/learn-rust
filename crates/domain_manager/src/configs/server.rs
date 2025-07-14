@@ -10,3 +10,9 @@ impl ServerConfig {
         self.port.unwrap_or(8080)
     }
 }
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        ServerConfig { port: Some(8080) }
+    }
+}

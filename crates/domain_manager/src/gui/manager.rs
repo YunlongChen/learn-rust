@@ -28,16 +28,14 @@ use crate::model::dns_record_response::Record;
 use crate::models::account::{Account, NewAccount};
 use crate::models::domain::NewDomain;
 use crate::storage::{
-    add_domain, add_domain_many, count_all_domains, create_account, delete_domain,
-    delete_domain_by_account, get_account_domains, list_accounts, list_domains,
+    add_domain_many, count_all_domains, create_account, delete_domain, delete_domain_by_account,
+    get_account_domains, list_accounts, list_domains,
 };
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
 use crate::utils::types::web_page::WebPage;
 use crate::{get_text, Config, StyleType};
-use chrono::Utc;
-use iced::futures::future::err;
 use iced::keyboard::Key;
 use iced::widget::{
     button, container, horizontal_rule, horizontal_space, scrollable, Button, Column, Container,
@@ -608,7 +606,7 @@ impl DomainManager {
                 Task::none()
             }
             Message::AddProviderFormNameChanged(name) => {
-                info!("域名托管商的名称发生了变化：「{}」", &name);
+                debug!("域名托管商的名称发生了变化：「{}」", &name);
                 self.add_domain_provider_form.provider_name = name;
                 Task::none()
             }
@@ -1178,13 +1176,14 @@ impl DomainManager {
             }
             Some(connection) => {
                 let conn_clone = connection.clone();
-                Task::perform(async move {
-                    let cnn = conn_clone.clone();
-                    let account = create_account(cnn, domain_provider);
-                    account
-                }, |_response| {
-                    Message::Reload
-                })
+                Task::perform(
+                    async move {
+                        let cnn = conn_clone.clone();
+                        let account = create_account(cnn, domain_provider).await;
+                        account
+                    },
+                    |_response| Message::Reload,
+                )
             }
         }
     }

@@ -25,25 +25,30 @@ pub async fn create_account(
         updated_at: Default::default(),
     };
 
-    let result = active_model.insert(&conn).await;
+    let result = active_model
+        .insert(&conn)
+        .await
+        .map_err(|err| error!("添加账号发生了异常:{:?}", err));
 
     match result {
-        Ok(model) => Ok(Account {
-            id: model.id,
-            username: model.name.clone(),
-            email: model.name.clone(),
-            credential_data: model.credential_data,
-            salt: "salt".to_string(),
-            api_keys: vec![],
-            created_at: model.created_at.to_string(),
-            last_login: None,
-            credential_type: new_account.credential.credential_type(),
-            provider_type: "".to_string(),
-        }),
+        Ok(model) => {
+            info!("添加账号成功");
+            Ok(Account {
+                id: model.id,
+                username: model.name.clone(),
+                email: model.name.clone(),
+                credential_data: model.credential_data,
+                salt: "salt".to_string(),
+                api_keys: vec![],
+                created_at: model.created_at.to_string(),
+                last_login: None,
+                credential_type: new_account.credential.credential_type(),
+                provider_type: "".to_string(),
+            })
+        }
         Err(err) => {
-            dbg!("创建账号发生了异常");
-            error!("创建账号发生了异常！:{}", err.to_string());
-            Err(format!("查询数据库异常:{}", err.to_string()))
+            error!("创建账号发生了异常,{:?}", err);
+            Err(format!("查询数据库异常:{:?}", err))
         }
     }
 }
@@ -239,7 +244,6 @@ pub fn delete_account(conn: &DatabaseConnection, account_id: i32) -> Result<(), 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dm_logger::init_logging;
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::storage::init_memory_database;

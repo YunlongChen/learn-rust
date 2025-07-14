@@ -1,4 +1,5 @@
 use crate::configs::database::DatabaseConfig;
+use crate::configs::get_database_path;
 use crate::storage::migration::migration::Migrator;
 use anyhow::Context;
 use directories::ProjectDirs;
@@ -14,52 +15,13 @@ use tracing::log::LevelFilter::Info;
 use tracing::{debug, info};
 
 // 数据库配置
-const DB_FILE_NAME: &str = "domain_manager.db";
+pub(crate) const DB_FILE_NAME: &str = "domain_manager.db";
 const CURRENT_DB_VERSION: u32 = 1;
-
-/// 获取数据库路径
-pub fn get_database_path() -> PathBuf {
-    if let Some(proj_dirs) = ProjectDirs::from("xyz", "stanic", "DomainManager") {
-        let mut path = proj_dirs.data_dir().to_path_buf();
-        path.push("database");
-        path.push(DB_FILE_NAME);
-        return path;
-    }
-
-    // 后备方案：当前目录
-    PathBuf::from(DB_FILE_NAME)
-}
 
 pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<DatabaseConnection> {
     debug!("建立数据库连接");
-
-    let encoded_password = utf8_percent_encode(database_config.password(), NON_ALPHANUMERIC);
-
     // postgres
-    let string = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        database_config.user(),
-        encoded_password,
-        database_config.host(),
-        database_config.port(),
-        database_config.schema()
-    );
-
-    let db_path = get_database_path();
-    info!("路径地址：{:?}", db_path);
-
-    if let Some(parent) = db_path.parent() {
-        // 如果目录不存在，则递归创建
-        if !parent.exists() {
-            fs::create_dir_all(parent)?;
-        }
-    }
-
-    // 使用sqlite数据库
-    let string = format!(
-        "sqlite://{}?mode=rwc",
-        get_database_path().to_str().unwrap()
-    );
+    let string: String = database_config.into();
     debug!("建立数据库连接，地址：「{}」", &string);
 
     let mut options = ConnectOptions::new(string);
