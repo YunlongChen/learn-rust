@@ -13,7 +13,10 @@ pub struct DatabaseConfig {
 
 impl DatabaseConfig {
     pub fn db_type(&self) -> &str {
-        self.db_type.as_deref().unwrap_or("sqlite")
+        match &self.db_type {
+            None => "sqlite",
+            Some(db) => db.as_str(),
+        }
     }
 
     pub fn host(&self) -> &str {
@@ -33,5 +36,19 @@ impl DatabaseConfig {
 
     pub fn password(&self) -> &str {
         self.password.as_deref().unwrap_or("postgres")
+    }
+}
+
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        DatabaseConfig {
+            db_type: None,
+            host: None,
+            port: None,
+            user: None,
+            password: None,
+            database: None,
+            schema: None,
+        }
     }
 }
