@@ -1,35 +1,32 @@
-use crate::models::account::Account;
 use crate::models::domain::{DomainEntity, DomainStatus, NewDomain};
-use crate::storage::domain::Model;
 use crate::storage::entities::domain;
-use crate::storage::{entities, DomainDbEntity, DomainModel};
+use crate::storage::{entities, DomainDbEntity};
 use anyhow::Context;
 use entities::dns_record::Entity as DnsRecord;
 use iced::futures::TryFutureExt;
-use log::info;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder,
-    Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Set,
 };
 use std::error::Error;
-use tracing::error;
+use tracing::{error, info};
 
 /// 添加新域名
 pub async fn add_domain(
-    conn: DatabaseConnection,
+    conn: &DatabaseConnection,
     new_domain: NewDomain,
 ) -> Result<DomainEntity, anyhow::Error> {
     let new_domain = domain::ActiveModel {
         id: Default::default(),
         name: Set(new_domain.domain_name),
-        provider_id: Set(new_domain.account.id),
+        provider_id: Set(new_domain.account_id),
         status: Set("active".to_string()),
         created_at: Default::default(),
         updated_at: Default::default(),
     };
 
     Ok(new_domain
-        .insert(&conn)
+        .insert(conn)
         .await
         .map_err(|err| {
             // 记录原始错误到日志
@@ -54,6 +51,43 @@ pub async fn add_domain(
             }
         })
         .context("新增域名操作失败")?)
+}
+
+/// 添加新域名
+pub async fn add_domain_many(
+    conn: &DatabaseConnection,
+    new_domain_list: Vec<NewDomain>,
+) -> Result<(), anyhow::Error> {
+    // 处理空列表情况
+    if new_domain_list.is_empty() {
+        return Ok(());
+    }
+
+    let domain_entity_list: Vec<domain::ActiveModel> = new_domain_list
+        .into_iter()
+        .map(|domain| domain::ActiveModel {
+            id: Default::default(),
+            name: Set(domain.domain_name),
+            provider_id: Set(domain.account_id),
+            status: Set(String::from(domain.status.to_string())),
+            created_at: Default::default(),
+            updated_at: Default::default(),
+        })
+        .collect();
+
+    let result = domain::Entity::insert_many(domain_entity_list)
+        .exec(conn)
+        .await
+        .map_err(|err| {
+            // 记录原始错误到日志
+            error!("数据库添加域名信息发生了异常!: {:?}", err);
+            // 然后，我们返回一个不带原始错误的错误？或者保留？
+            // 但是，我们仍然希望给上层提供完整的错误信息，所以不应该丢弃。
+            // 所以，我们返回一个同样的错误，但是后面会添加上下文。
+            err
+        })
+        .context("批量添加域名失败")?;
+    Ok(())
 }
 
 /// 更新域名信息
@@ -92,13 +126,57 @@ pub async fn update_domain(
 
 /// 获取用户的所有域名
 pub async fn get_account_domains(
-    conn: DatabaseConnection,
-    account_id: Option<i32>,
+    conn: &DatabaseConnection,
+    account_id: Option<i64>,
 ) -> Result<Vec<DomainEntity>, Box<dyn Error>> {
+    let account_log_info = match account_id {
+        None => "",
+        Some(account) => &account.to_string(),
+    };
+    let select = DomainDbEntity::find().order_by_asc(domain::Column::Name);
+    let select = match account_id {
+        None => {
+            info!("查询所有域名列表！");
+            select
+        }
+        Some(account) => {
+            info!("根据账号查询域名列表，账号标识：「{}」", account);
+            select.filter(domain::Column::ProviderId.eq(account))
+        }
+    };
+    let domain_list: Vec<DomainEntity> = select
+        .all(conn)
+        .map_err(|e| {
+            error!("查询数据库报错了:异常：{}", e);
+            e
+        })
+        .await?
+        .into_iter()
+        .map(|domain| DomainEntity {
+            id: domain.id,
+            account_id: domain.provider_id,
+            domain_name: domain.name,
+            registration_date: None,
+            expiration_date: None,
+            registrar: None,
+            status: DomainStatus::Active,
+            created_at: domain.created_at.to_string(),
+            updated_at: domain.updated_at,
+        })
+        .collect();
+    info!(
+        "查询域名信息成功，账号表示：「{}」，查询结果数量：「{}」",
+        account_log_info,
+        &domain_list.len()
+    );
+    Ok(domain_list)
+}
+
+/// 获取用户的所有域名
+pub async fn list_domains(conn: &DatabaseConnection) -> Result<Vec<DomainEntity>, Box<dyn Error>> {
     let domain_list = DomainDbEntity::find()
         .order_by_asc(domain::Column::Name)
-        .filter(domain::Column::ProviderId.eq(account_id))
-        .all(&conn)
+        .all(conn)
         .map_err(|e| {
             error!("查询数据库报错了:异常：{}", e);
             e
@@ -121,29 +199,15 @@ pub async fn get_account_domains(
 }
 
 /// 获取用户的所有域名
-pub async fn list_domains(conn: DatabaseConnection) -> Result<Vec<DomainEntity>, Box<dyn Error>> {
-    let domain_list = DomainDbEntity::find()
-        .order_by_asc(domain::Column::Name)
-        .all(&conn)
+pub async fn count_all_domains(conn: &DatabaseConnection) -> Result<u64, Box<dyn Error>> {
+    let count_result = DomainDbEntity::find()
+        .count(conn)
         .map_err(|e| {
-            error!("查询数据库报错了:异常：{}", e);
+            error!("查询所有域名数量发生了异常：{:?}", e);
             e
         })
-        .await?
-        .into_iter()
-        .map(|domain| DomainEntity {
-            id: domain.id,
-            account_id: domain.provider_id,
-            domain_name: domain.name,
-            registration_date: None,
-            expiration_date: None,
-            registrar: None,
-            status: DomainStatus::Active,
-            created_at: domain.created_at.to_string(),
-            updated_at: domain.updated_at,
-        })
-        .collect();
-    Ok(domain_list)
+        .await?;
+    Ok(count_result)
 }
 
 /// 获取即将过期的域名
@@ -203,7 +267,7 @@ pub fn delete_domain(conn: &DatabaseConnection, domain_id: i32) -> Result<(), Bo
 /// 根据账号删除域名
 pub async fn delete_domain_by_account(
     conn: &DatabaseConnection,
-    account_id: i32,
+    account_id: i64,
 ) -> Result<(), Box<dyn Error + Send>> {
     DomainDbEntity::delete_many()
         .filter(domain::Column::ProviderId.eq(account_id))
@@ -226,7 +290,7 @@ mod tests {
 
     #[traced_test]
     #[tokio::test]
-    async fn it_works() {
+    pub async fn it_works() {
         let connection = init_memory_database().await.unwrap();
 
         let _vault = String::from("stanic");
@@ -253,14 +317,14 @@ mod tests {
         let new_account = account.clone();
 
         let domain = add_domain(
-            connection.clone(),
+            &connection,
             NewDomain {
                 domain_name: String::from("chenyunlong.cn"),
                 registration_date: Some(Utc::now().to_string()),
                 expiration_date: None,
                 registrar: None,
                 status: DomainStatus::Active,
-                account: new_account,
+                account_id: new_account.id,
             },
         )
         .await
@@ -270,19 +334,46 @@ mod tests {
         assert_eq!(domain.account_id, account.id, "保存用户名异常");
         assert_eq!(domain.updated_at, None);
 
-        let domain_list = get_account_domains(connection.clone(), Some(account.id))
+        let domain_list = get_account_domains(&connection, Some(account.id))
             .await
             .expect("查询账号失败");
         assert_eq!(domain_list.len(), 1, "获取账号失败");
 
-        let domain_list = get_account_domains(connection.clone(), None)
-            .await
-            .expect("查询账号失败");
-        assert_eq!(domain_list.len(), 0, "获取账号失败");
-
-        let domain_list = list_domains(connection.clone())
+        let domain_list = get_account_domains(&connection, None)
             .await
             .expect("查询账号失败");
         assert_eq!(domain_list.len(), 1, "获取账号失败");
+
+        let domain_list = list_domains(&connection).await.expect("查询账号失败");
+        assert_eq!(domain_list.len(), 1, "获取账号失败");
+
+        add_domain_many(
+            &connection,
+            vec![NewDomain {
+                domain_name: String::from("stanic.xyz"),
+                registration_date: Some(Utc::now().to_string()),
+                expiration_date: None,
+                registrar: None,
+                status: DomainStatus::Active,
+                account_id: new_account.id,
+            }],
+        )
+        .await
+        .unwrap();
+
+        let domain_list = get_account_domains(&connection, Some(account.id))
+            .await
+            .expect("查询域名失败");
+        assert_eq!(domain_list.len(), 2, "获取账号失败");
+
+        let result = domain_list
+            .iter()
+            .find(|domain| domain.domain_name == "stanic.xyz")
+            .unwrap();
+        assert_eq!(result.status, DomainStatus::Active);
+        assert_eq!(result.account_id, account.id);
+
+        let domains_count = count_all_domains(&connection).await.unwrap();
+        assert_eq!(domains_count, 2, "查询域名数量异常，数量对不上！");
     }
 }

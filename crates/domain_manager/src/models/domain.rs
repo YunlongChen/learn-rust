@@ -34,8 +34,8 @@ impl DomainStatus {
 /// 域名模型
 #[derive(Debug, Clone)]
 pub struct DomainEntity {
-    pub id: i32,
-    pub account_id: i32,
+    pub id: i64,
+    pub account_id: i64,
     pub domain_name: String,
     pub registration_date: Option<String>,
     pub expiration_date: Option<String>,
@@ -52,5 +52,5 @@ pub struct NewDomain {
     pub expiration_date: Option<String>,
     pub registrar: Option<String>,
     pub status: DomainStatus,
-    pub account: Account
+    pub account_id: i64
 }

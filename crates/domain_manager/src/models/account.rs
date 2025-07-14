@@ -5,7 +5,7 @@ use secrecy::SecretString;
 /// 账户模型
 #[derive(Debug, Clone)]
 pub struct Account {
-    pub id: i32,
+    pub id: i64,
     pub username: String,
     pub email: String,
     pub salt: String,

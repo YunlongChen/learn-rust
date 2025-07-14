@@ -33,7 +33,7 @@ impl DomainStatus {
 pub struct RecordEntity {
     pub id: i32,
     pub account_id: i32,
-    pub domain_id: i32,
+    pub domain_id: i64,
     pub record_name: String,
     pub record_type: String,
     pub record_value: String,

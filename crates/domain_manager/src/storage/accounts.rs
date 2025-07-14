@@ -50,11 +50,11 @@ pub async fn create_account(
 
 /// 查询所有账户
 pub async fn list_accounts(
-    conn: DatabaseConnection,
+    conn: &DatabaseConnection,
 ) -> Result<Vec<Account>, Box<dyn Error + Send>> {
     let accounts = AccountEntity::find()
         .order_by_asc(entities::account::Column::Name)
-        .all(&conn)
+        .all(conn)
         .map_err(|e| {
             error!("查询数据库报错了:异常：{}", e);
             Box::new(e) as Box<dyn Error + Send>
@@ -276,7 +276,7 @@ mod tests {
 
         let _password: SecretString = SecretString::from("12123");
 
-        let accounts_result = list_accounts(connection.clone());
+        let accounts_result = list_accounts(&connection);
         info!(target: "config", "正在加载配置文件:{}","ok");
 
         let accounts = accounts_result.await.unwrap();

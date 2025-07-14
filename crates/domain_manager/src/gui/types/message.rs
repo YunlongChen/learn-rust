@@ -45,7 +45,15 @@ pub enum Message {
     },
     Mock,
     Reload,
-    ReloadComplete((Vec<DomainProvider>, Vec<Domain>, Vec<DnsRecord>, String)),
+    ReloadComplete(
+        (
+            Vec<DomainProvider>,
+            Vec<Domain>,
+            Vec<DnsRecord>,
+            u64,
+            String,
+        ),
+    ),
     QueryDomain,
     QueryDomainResult(Vec<Domain>, DomainProvider),
     QueryDnsResult(Vec<Record>),
@@ -82,7 +90,6 @@ pub enum Message {
     CloseSettings,
     WindowId(Option<window::Id>),
 
-    /// 试验品
     ProviderSelected(DomainProvider),
     DomainSelected(Domain),
     SearchChanged(String),
