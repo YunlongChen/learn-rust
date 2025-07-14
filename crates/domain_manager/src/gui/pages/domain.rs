@@ -135,7 +135,7 @@ pub fn add_domain_page<'a>(app: &DomainManager) -> Container<'a, Message, StyleT
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct DomainProvider {
-    pub account_id: Option<i32>,
+    pub account_id: i64,
     pub provider_name: String,
     pub provider: DnsProvider,
     pub credential: Credential,
@@ -147,7 +147,7 @@ impl From<Account> for DomainProvider {
             provider_name: input_account.username.clone(),
             provider: input_account.provider_type.clone().into(),
             // todo 这里有可能报错
-            account_id: Some(input_account.id),
+            account_id: input_account.id,
             credential: input_account.try_into().unwrap(),
         }
     }
