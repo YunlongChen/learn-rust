@@ -7,6 +7,7 @@ use sea_orm::entity::prelude::*;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, Schema};
 use sea_orm_migration::MigratorTrait;
 use std::cmp::min;
+use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
 use tracing::log::LevelFilter::Info;
@@ -44,9 +45,21 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
         database_config.schema()
     );
 
-    // 使用sqlite数据库
-    // sqlite://path/to/db.sqlite?mode=rwc
+    let db_path = get_database_path();
+    info!("路径地址：{:?}", db_path);
 
+    if let Some(parent) = db_path.parent() {
+        // 如果目录不存在，则递归创建
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+
+    // 使用sqlite数据库
+    let string = format!(
+        "sqlite://{}?mode=rwc",
+        get_database_path().to_str().unwrap()
+    );
     debug!("建立数据库连接，地址：「{}」", &string);
 
     let mut options = ConnectOptions::new(string);
