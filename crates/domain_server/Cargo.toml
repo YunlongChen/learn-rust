@@ -16,7 +16,7 @@ uuid = { version = "1.1", features = ["v4"] }
 async-trait = "0.1.88"
 serde_json = "1.0.134"
 sea-orm = { version = "1.1.12", features = ["sqlx-postgres", "macros", "with-uuid", "with-chrono", "runtime-tokio", "debug-print", "with-json", "with-rust_decimal"] }
-sea-orm-migration = "1.1.12"
+sea-orm-migration = "2.0.0-rc"
 anyhow = "1.0.98"
 config = { version = "0.15.13", features = ["yaml"] }
 tracing = { version = "0.1.41", features = ["async-await"] }
