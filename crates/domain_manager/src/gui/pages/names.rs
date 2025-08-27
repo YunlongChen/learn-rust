@@ -12,6 +12,7 @@ pub enum Page {
     Help,
     Settings(SettingsPage),
     Demo(DemoPage),
+    Console,
 }
 
 impl Display for Page {
@@ -25,6 +26,7 @@ impl Display for Page {
             Page::Help => write!(f, "Help"),
             Page::Settings(settings_page) => write!(f, "Settings: {:?}", settings_page),
             Page::Demo(demo) => write!(f, "Demo:{:?}", demo),
+            Page::Console => write!(f, "控制台"),
         }
     }
 }

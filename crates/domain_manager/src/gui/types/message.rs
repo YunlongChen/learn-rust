@@ -11,6 +11,7 @@ use crate::translations::types::locale::Locale;
 use crate::utils::types::file_info::FileInfo;
 use crate::utils::types::web_page::WebPage;
 use crate::configs::gui_config::BackgroundType;
+use crate::gui::components::console::ConsoleTab;
 use iced::keyboard::Key;
 use iced::window;
 use std::fmt::Display;
@@ -114,6 +115,10 @@ pub enum Message {
     ShowToast(String),
     /// 隐藏Toast通知
     HideToast,
+    /// 切换控制台标签页
+    ChangeConsoleTab(ConsoleTab),
+    /// 清空控制台日志
+    ClearConsoleLogs,
 }
 
 #[derive(Debug, Clone)]

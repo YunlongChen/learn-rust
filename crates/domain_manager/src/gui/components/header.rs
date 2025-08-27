@@ -90,6 +90,14 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     font,
                     config.language,
                     SettingsPage::Appearance,
+                    Some(Message::ChangePage(Page::Console)),
+                    Icon::Terminal,
+                    "控制台",
+                ))
+                .push(get_custom_button(
+                    font,
+                    config.language,
+                    SettingsPage::Appearance,
                     Some(Message::OpenSettings(SettingsPage::Appearance)),
                     Icon::Generals,
                     get_text("settings"),

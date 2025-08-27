@@ -52,3 +52,9 @@ settings:
 notifications_under_development: Notifications settings under development...
 general_settings_under_development: General settings under development...
 feature_under_development: This feature is under development
+console:
+  title: Console
+  api_requests: API Requests
+  database_queries: Database Queries
+  clear_logs: Clear Logs
+  logs_cleared: Logs cleared
