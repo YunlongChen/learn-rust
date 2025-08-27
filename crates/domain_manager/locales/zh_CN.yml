@@ -30,3 +30,28 @@ maximize: 最大化
 provider:
   add: 添加服务商
 validate_credential: 验证凭据
+settings:
+  title: 设置
+  appearance: 外观
+  notifications: 通知
+  general: 常规
+  background_type: 背景类型
+  background_opacity: 背景透明度
+  theme: 主题
+  language: 语言
+  none: 无
+  gradient: 渐变
+  image: 图片
+  light: 浅色
+  dark: 深色
+  chinese: 中文
+  english: 英文
+  enable_notifications: 启用通知
+  auto_sync: 自动同步
+  sync_interval: 同步间隔
+  minutes: 分钟
+  china_red: 中国红
+  qipao_girl: 旗袍少女
+  toggle_theme: 切换主题
+notifications_under_development: 通知设置功能开发中...
+general_settings_under_development: 常规设置功能开发中...

@@ -10,6 +10,7 @@ use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::file_info::FileInfo;
 use crate::utils::types::web_page::WebPage;
+use crate::configs::gui_config::BackgroundType;
 use iced::keyboard::Key;
 use iced::window;
 use std::fmt::Display;
@@ -105,6 +106,10 @@ pub enum Message {
     WindowMinimize,
     /// 最大化/还原窗口
     WindowMaximize,
+    /// 切换背景类型
+    ChangeBackground(BackgroundType),
+    /// 背景透明度改变
+    BackgroundOpacityChanged(f32),
 }
 
 #[derive(Debug, Clone)]

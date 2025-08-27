@@ -1,4 +1,5 @@
 use crate::utils::i18_utils::get_text;
+use crate::gui::pages::types::settings::SettingsPage;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
@@ -9,6 +10,7 @@ pub enum Page {
     DnsRecord,
     AddRecord,
     Help,
+    Settings(SettingsPage),
     Demo(DemoPage),
 }
 
@@ -21,6 +23,7 @@ impl Display for Page {
             Page::DnsRecord => write!(f, "DnsRecord"),
             Page::AddRecord => write!(f, "{}", get_text("add_record")),
             Page::Help => write!(f, "Help"),
+            Page::Settings(settings_page) => write!(f, "Settings: {:?}", settings_page),
             Page::Demo(demo) => write!(f, "Demo:{:?}", demo),
         }
     }

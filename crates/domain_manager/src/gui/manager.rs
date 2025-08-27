@@ -5,7 +5,8 @@ use crate::api::ali_api::{
 use crate::api::dns_client::{DnsClient, DnsClientTrait};
 use crate::api::model::dns_operate::RecordLog;
 use crate::api::provider::aliyun::AliyunDnsClient;
-use crate::configs::gui_config::{LICENCE, WindowState};
+use crate::configs::gui_config::{BackgroundConfig, LICENCE, WindowState};
+use crate::gui::components::background::Background;
 use crate::gui::components::footer::footer;
 use crate::gui::components::header::header;
 use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
@@ -40,7 +41,7 @@ use crate::{get_text, Config, StyleType};
 use iced::keyboard::Key;
 use iced::widget::{
     button, center, container, horizontal_rule, horizontal_space, mouse_area, scrollable, text,
-    Button, Column, Container, MouseArea, Row, Text, Tooltip,
+    Button, Column, Container, MouseArea, Row, Stack, Text, Tooltip,
 };
 use iced::Event::Window;
 use iced::{
@@ -145,6 +146,7 @@ impl Default for DomainManager {
             ali_access_key_id: None,
             ali_access_key_secret: None,
             window_state: WindowState::default(),
+            background_config: BackgroundConfig::default(),
         };
 
         // 初始化数据
@@ -225,7 +227,7 @@ impl DomainManager {
 
         // 保持锁的有效性
         let config = &self.config;
-        let body = match &self.current_page {
+        let body: Element<Message, StyleType> = match self.current_page {
             Page::DomainPage => {
                 Container::new(
                     Row::new()
@@ -262,13 +264,15 @@ impl DomainManager {
                 )
                 .padding(8) // 添加整体内边距
                 .class(ContainerType::HighlightedOnHeader)
+                .into()
             }
-            Page::AddDomain => add_domain_page(self),
-            Page::DnsRecord => dns_record(self),
-            Page::AddRecord => add_dns_record(self),
-            Page::Help => help(self),
-            Page::AddProvider => add_domain_provider_page(self),
-            _ => help(self),
+            Page::AddDomain => add_domain_page(self).into(),
+            Page::DnsRecord => dns_record(self).into(),
+            Page::AddRecord => add_dns_record(self).into(),
+            Page::Help => help(self).into(),
+            Page::AddProvider => add_domain_provider_page(self).into(),
+            Page::Settings(settings_page) => crate::gui::pages::settings::settings_page(self, settings_page).into(),
+            _ => help(self).into(),
         };
 
         // 底部
@@ -281,12 +285,26 @@ impl DomainManager {
             &Mutex::new(Some(true)),
         );
 
-        // 页头
-        Column::new()
+        // 主要内容
+        let main_content = Column::new()
             .push(header)
-            .push(body.height(Length::Fill))
+            .push(Container::new(body).height(Length::Fill))
             .push(footer)
-            .into()
+            .into();
+
+        // 如果有背景，则创建带背景的容器
+        if self.config.background_config.background_type != crate::configs::gui_config::BackgroundType::None {
+            // 使用Stack来叠加背景和内容
+            iced::widget::Stack::new()
+                .push(Background::new(
+                    self.config.background_config.background_type.clone(),
+                    self.config.background_config.opacity,
+                ).view())
+                .push(main_content)
+                .into()
+        } else {
+            main_content
+        }
     }
 
     // 左侧托管商导航
@@ -1120,6 +1138,33 @@ impl DomainManager {
                         Task::none()
                     }
                 })
+             }
+             Message::ChangeBackground(background_type) => {
+                // 处理背景切换事件
+                info!("切换背景类型: {:?}", background_type);
+                self.config.background_config.background_type = background_type;
+                // 保存配置到文件
+                if let Err(e) = self.config.save_to_file("config.json") {
+                    error!("保存背景配置失败: {}", e);
+                }
+                Task::none()
+             }
+             Message::OpenSettings(settings_page) => {
+                // 处理打开设置页面事件
+                info!("打开设置页面: {:?}", settings_page);
+                self.last_page = Some(self.current_page.clone());
+                self.current_page = Page::Settings(settings_page);
+                Task::none()
+             }
+             Message::BackgroundOpacityChanged(opacity) => {
+                // 处理背景透明度改变事件
+                info!("背景透明度改变: {}", opacity);
+                self.config.background_config.opacity = opacity.clamp(0.0, 1.0);
+                // 保存配置到文件
+                if let Err(e) = self.config.save_to_file("config.json") {
+                    error!("保存背景透明度配置失败: {}", e);
+                }
+                Task::none()
              }
              _ => {
                 debug!("未处理的消息：{:?}", message);

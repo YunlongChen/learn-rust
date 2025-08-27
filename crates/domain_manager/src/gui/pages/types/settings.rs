@@ -6,7 +6,7 @@ use crate::utils::types::icon::Icon;
 use crate::StyleType;
 
 /// This enum defines the current settings page.
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, PartialOrd)]
 pub enum SettingsPage {
     /// Settings Notifications page.
     Notifications,
@@ -23,11 +23,11 @@ impl SettingsPage {
         SettingsPage::General,
     ];
 
-    pub fn get_tab_label(&self, language: Language) -> &str {
+    pub fn get_tab_label(&self, language: Language) -> String {
         match self {
-            SettingsPage::Notifications => notifications_translation(language),
-            SettingsPage::Appearance => style_translation(language),
-            SettingsPage::General => general_translation(language),
+            SettingsPage::Notifications => notifications_translation(language).to_string(),
+            SettingsPage::Appearance => style_translation(language).to_string(),
+            SettingsPage::General => general_translation(language).to_string(),
         }
     }
 

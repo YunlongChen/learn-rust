@@ -20,3 +20,28 @@ minimize: Minimize
 maximize: Maximize
 provider:
   add: Add Domain Provider
+settings:
+  title: Settings
+  appearance: Appearance
+  notifications: Notifications
+  general: General
+  background_type: Background Type
+  background_opacity: Background Opacity
+  theme: Theme
+  language: Language
+  none: None
+  gradient: Gradient
+  image: Image
+  light: Light
+  dark: Dark
+  chinese: Chinese
+  english: English
+  enable_notifications: Enable Notifications
+  auto_sync: Auto Sync
+  sync_interval: Sync Interval
+  minutes: Minutes
+  china_red: China Red
+  qipao_girl: Qipao Girl
+  toggle_theme: Toggle Theme
+notifications_under_development: Notifications settings under development...
+general_settings_under_development: General settings under development...
