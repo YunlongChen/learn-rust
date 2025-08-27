@@ -95,6 +95,8 @@ pub struct DomainManager {
     pub toast_visible: bool,
     /// 控制台状态
     pub console_state: ConsoleState,
+    /// 悬浮窗状态
+    pub floating_window_enabled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -187,6 +189,7 @@ impl Default for DomainManager {
             toast_message: None,
             toast_visible: false,
             console_state: ConsoleState::default(),
+            floating_window_enabled: false,
         }
     }
 }
@@ -1233,6 +1236,52 @@ impl DomainManager {
                     |_| Message::HideToast,
                 )
              }
+             /// 切换悬浮窗模式
+             Message::ToggleFloatingWindow => {
+                self.floating_window_enabled = !self.floating_window_enabled;
+                let message = if self.floating_window_enabled {
+                    get_text("floating_window_enabled")
+                } else {
+                    get_text("floating_window_disabled")
+                };
+                self.toast_message = Some(message);
+                self.toast_visible = true;
+                info!("悬浮窗模式切换为: {}", self.floating_window_enabled);
+                // 3秒后自动隐藏toast
+                Task::perform(
+                    async {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                    },
+                    |_| Message::HideToast,
+                )
+             }
+             /// 创建悬浮窗
+             Message::CreateFloatingWindow => {
+                self.toast_message = Some(get_text("floating_window_created"));
+                self.toast_visible = true;
+                info!("创建悬浮窗请求");
+                // 3秒后自动隐藏toast
+                Task::perform(
+                    async {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                    },
+                    |_| Message::HideToast,
+                )
+             }
+             /// 关闭悬浮窗
+             Message::CloseFloatingWindow => {
+                self.floating_window_enabled = false;
+                self.toast_message = Some(get_text("floating_window_closed"));
+                self.toast_visible = true;
+                info!("关闭悬浮窗");
+                // 3秒后自动隐藏toast
+                Task::perform(
+                    async {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                    },
+                    |_| Message::HideToast,
+                )
+             }
              _ => {
                 debug!("未处理的消息：{:?}", message);
                 Task::none()
@@ -1934,20 +1983,7 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Element<Message, S
         .push(Text::new(domain.provider.name()).width(Length::FillPortion(1)))
         .push(status.width(Length::FillPortion(1)))
         .push(expiry.width(Length::FillPortion(1)))
-        .push(
-            Row::new()
-                .push(
-                    button(Text::new(get_text("modify")))
-                        .width(Length::Fixed(100.0))
-                        .on_press(Message::ShowToast("修改功能暂未实现".to_string())),
-                )
-                .push(
-                    button(Text::new(get_text("delete")))
-                        .width(Length::Fixed(100.0))
-                        .on_press(Message::ShowToast("删除功能暂未实现".to_string())),
-                )
-                .spacing(5),
-        )
+
         .align_y(Alignment::Center);
 
     // 使用Container替代Button

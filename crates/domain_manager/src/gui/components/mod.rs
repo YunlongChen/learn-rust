@@ -1,5 +1,6 @@
 pub mod background;
 pub mod button;
+pub mod console;
 pub mod credential_form;
 pub mod footer;
 pub mod header;

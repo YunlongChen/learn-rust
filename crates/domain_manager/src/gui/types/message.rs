@@ -119,6 +119,12 @@ pub enum Message {
     ChangeConsoleTab(ConsoleTab),
     /// 清空控制台日志
     ClearConsoleLogs,
+    /// 切换悬浮窗模式
+    ToggleFloatingWindow,
+    /// 创建悬浮窗
+    CreateFloatingWindow,
+    /// 关闭悬浮窗
+    CloseFloatingWindow,
 }
 
 #[derive(Debug, Clone)]

@@ -248,7 +248,7 @@ fn get_release_details<'a>(
     });
 
     let tooltip_text = if has_update {
-        new_version_available_translation(language)
+        new_version_available_translation(language).to_string()
     } else {
         "点击检查更新".to_string()
     };
