@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{Display, Formatter};
+use chrono;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DnsRecordResponse {
@@ -69,13 +70,39 @@ pub struct Record {
     update_timestamp: Option<i64>,
 
     #[serde(rename = "TTL")]
-    ttl: i32,
+   pub ttl: i32,
 
     #[serde(rename = "CreateTimestamp")]
     create_timestamp: i64,
 
     #[serde(rename = "Weight")]
     weight: Option<i32>,
+}
+
+impl Record {
+    /// 创建新的DNS记录
+    pub fn new(
+        status: Status,
+        rr: String,
+        record_type: Type,
+        value: String,
+        record_id: String,
+        ttl: i32,
+    ) -> Self {
+        Self {
+            status,
+            rr,
+            line: Line::Default,
+            locked: false,
+            record_type,
+            value,
+            record_id,
+            update_timestamp: None,
+            ttl,
+            create_timestamp: chrono::Utc::now().timestamp(),
+            weight: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

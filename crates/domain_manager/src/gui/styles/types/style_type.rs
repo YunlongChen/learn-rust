@@ -25,7 +25,7 @@ pub enum StyleType {
 
 impl Default for StyleType {
     fn default() -> Self {
-        Self::Custom(ExtraStyles::A11yDark)
+        Self::Custom(ExtraStyles::DraculaDark)
     }
 }
 

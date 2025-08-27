@@ -11,16 +11,17 @@ repository.workspace = true
 domain_client = { path = "../domain_client" }
 
 iced = { version = "0.13.1", features = ["svg", "advanced", "lazy", "image", "tokio"] }
-image = { version = "0.25.6" }
+iced_fontello = { version = "0.13.1" }
+image = { version = "0.25.6", default-features = false, features = ["png", "jpeg"] }
 maxminddb = { version = "0.26.0" }
 plotters = { version = "0.3.7", default-features = false, features = ["area_series", "line_series"] }
 rust-i18n = { version = "3.1.5" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
-reqwest = { version = "0.12.22", features = ["json"] }
-tokio = { version = "1.46.1", features = ["default"] }
-toml = { version = "0.9.1" }
-chrono = { version = "0.4.41" }
+reqwest = { version = "0.12.22", features = ["json", "rustls-tls"], default-features = false }
+tokio = { version = "1.46.1", features = ["rt-multi-thread", "macros", "net", "time"], default-features = false }
+toml = { version = "0.9.1", default-features = false }
+chrono = { version = "0.4.41", default-features = false, features = ["clock", "std"] }
 confy = { version = "1.0.0" }
 cloudflare = { version = "0.14.0" }
 clap = { version = "4.5.41", features = ["derive"] }
@@ -39,8 +40,6 @@ percent-encoding = "2.3.1"
 config = { version = "0.15.13", features = ["yaml"] }
 num_cpus = "1.17.0"
 uuid = { version = "1.17.0", features = ["v4"] }
-log = "0.4.22"
-
 
 [dev-dependencies]
 serde_test = "1.0.177"
@@ -48,7 +47,11 @@ serial_test = { version = "3.2.0", default-features = false }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
-opt-level = 3
+opt-level = "z"  # 优化代码大小
+lto = true       # 启用链接时优化
+codegen-units = 1 # 减少代码生成单元以提高优化效果
+panic = "abort"   # 使用abort而不是unwind来减小二进制大小
+strip = true     # 移除调试符号
 
 [target."cfg(windows)".build-dependencies]
 winres = "0.1.12"
@@ -57,7 +60,11 @@ winres = "0.1.12"
 maintenance = { status = "actively-developed" }
 
 [package.metadata.wix]
-include = [".\\resources\\packaging\\windows\\setup.wxs"]
+upgrade-guid = "12345678-1234-1234-1234-123456789012"
+path-guid = "87654321-4321-4321-4321-210987654321"
+include = ["wix/domain_manager.wxs"]
+license = false
+eula = false
 
 
 [[bin]]

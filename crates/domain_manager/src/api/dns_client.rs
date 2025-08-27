@@ -3,38 +3,19 @@ use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::model::domain::DnsProvider::Aliyun;
 use crate::gui::model::domain::{DnsProvider, Domain, DomainName};
 use crate::model::dns_record_response::Record;
+use anyhow::Result;
 use reqwest::Client;
-use std::error::Error;
 use tracing::error;
 
 /// DNS客户端
 pub trait DnsClientTrait {
-    async fn list_domains(
-        self: &Self,
-        page_num: u32,
-        page_size: u32,
-    ) -> Result<Vec<DomainName>, Box<dyn Error>>;
+    async fn list_domains(self: &Self, page_num: u32, page_size: u32) -> Result<Vec<DomainName>>;
 
-    fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse, Box<dyn Error>>;
-    async fn list_dns_records(
-        self: &Self,
-        domain_name: String,
-    ) -> Result<Vec<Record>, Box<dyn Error>>;
-    fn add_dns_record(
-        &self,
-        domain_name: &DomainName,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error>>;
-    fn delete_dns_record(
-        &self,
-        domain_name: &DomainName,
-        record_id: &str,
-    ) -> Result<(), Box<dyn Error>>;
-    fn update_dns_record(
-        &self,
-        domain_name: &DomainName,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error>>;
+    fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse>;
+    async fn list_dns_records(self: &Self, domain_name: String) -> Result<Vec<Record>>;
+    fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
+    fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()>;
+    fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
 }
 
 #[derive(Debug, Clone)]
@@ -63,7 +44,7 @@ impl DnsClient {
         }
     }
 
-    pub async fn get_all_domain_info(&self) -> Result<Vec<Domain>, Box<dyn Error>> {
+    pub async fn get_all_domain_info(&self) -> Result<Vec<Domain>> {
         let mut domain_name_list: Vec<Domain> = vec![];
 
         for dns_provider in &self.dns_provider {

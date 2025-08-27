@@ -1,13 +1,12 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "dns_records")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub domain_id: Uuid,
+    pub id: i64,
+    pub domain_id: i64,
     pub record_type: String,
     pub name: String,
     pub value: String,
@@ -15,7 +14,7 @@ pub struct Model {
     #[sea_orm(nullable)]
     pub priority: Option<i32>,
     pub created_at: DateTime,
-    pub updated_at: DateTime,
+    pub updated_at: Option<DateTime>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

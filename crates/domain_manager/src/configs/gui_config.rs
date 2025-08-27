@@ -21,6 +21,30 @@ pub enum LICENCE {
 //     "version": "1.0.0",
 //     "author": "Stanic.xyz",
 //     "license": "Mulan PSL v2"
+/// 窗口状态配置
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WindowState {
+    /// 窗口X坐标位置
+    pub x: f32,
+    /// 窗口Y坐标位置
+    pub y: f32,
+    /// 窗口宽度
+    pub width: f32,
+    /// 窗口高度
+    pub height: f32,
+}
+
+impl Default for WindowState {
+    fn default() -> Self {
+        WindowState {
+            x: 100.0,
+            y: 100.0,
+            width: 1200.0,
+            height: 800.0,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub domain_names: Vec<Domain>,
@@ -35,6 +59,9 @@ pub struct Config {
     pub color_gradient: GradientType,
     pub ali_access_key_id: Option<String>,
     pub ali_access_key_secret: Option<String>,
+    /// 窗口状态配置
+    #[serde(default)]
+    pub window_state: WindowState,
 }
 
 impl From<String> for Config {
@@ -52,6 +79,7 @@ impl From<String> for Config {
             color_gradient: GradientType::None,
             ali_access_key_id: None,
             ali_access_key_secret: None,
+            window_state: WindowState::default(),
         }
     }
 }
@@ -76,6 +104,7 @@ impl Default for Config {
             color_gradient: GradientType::None,
             ali_access_key_id: None,
             ali_access_key_secret: None,
+            window_state: WindowState::default(),
         }
     }
 }
@@ -100,6 +129,34 @@ impl Config {
             error!("Loading config file failed!");
             Self::default()
         }
+    }
+
+    /// 保存配置到文件
+    ///
+    pub fn save_to_file(&self, file_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        info!("保存配置到文件: {}", file_name);
+        let default_path = format!("{}\\config\\", env!("CARGO_MANIFEST_DIR"));
+        let public_path = env::var("PUBLIC_PATH").unwrap_or(default_path);
+        let file_path = format!("{}{}", public_path, file_name);
+        
+        // 确保目录存在
+        if let Some(parent) = std::path::Path::new(&file_path).parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        
+        let json_content = serde_json::to_string_pretty(self)?;
+        std::fs::write(&file_path, json_content)?;
+        info!("配置已保存到: {}", file_path);
+        Ok(())
+    }
+    
+    /// 更新窗口状态
+    ///
+    pub fn update_window_state(&mut self, x: f32, y: f32, width: f32, height: f32) {
+        self.window_state.x = x;
+        self.window_state.y = y;
+        self.window_state.width = width;
+        self.window_state.height = height;
     }
 
     ///

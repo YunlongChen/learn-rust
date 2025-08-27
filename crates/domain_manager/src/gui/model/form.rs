@@ -1,6 +1,6 @@
-use tracing::info;
 use crate::gui::model::domain::DnsProvider;
 use crate::model::dns_record_response::Type;
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct AddDnsField {

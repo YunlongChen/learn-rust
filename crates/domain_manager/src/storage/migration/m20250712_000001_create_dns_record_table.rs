@@ -5,7 +5,7 @@ use tracing::info;
 pub struct Migration;
 
 #[derive(DeriveIden)]
-enum DnsRecord {
+enum DnsRecords {
     Table,
     Id,
     DomainId,
@@ -26,17 +26,22 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(DnsRecord::Table)
+                    .table(DnsRecords::Table)
                     .if_not_exists()
-                    .col(pk_auto(DnsRecord::Id).integer())
-                    .col(ColumnDef::new(DnsRecord::Name).string().null())
-                    .col(ColumnDef::new(DnsRecord::DomainId).integer().null())
-                    .col(ColumnDef::new(DnsRecord::RecordType).string().null())
-                    .col(ColumnDef::new(DnsRecord::CreatedAt).date_time().not_null())
-                    .col(ColumnDef::new(DnsRecord::UpdatedAt).date_time().not_null())
-                    .col(ColumnDef::new(DnsRecord::Value).string().not_null())
-                    .col(ColumnDef::new(DnsRecord::Ttl).integer().not_null())
-                    .col(ColumnDef::new(DnsRecord::Priority).integer().null())
+                    .col(pk_auto(DnsRecords::Id).big_integer())
+                    .col(ColumnDef::new(DnsRecords::Name).string().null())
+                    .col(ColumnDef::new(DnsRecords::DomainId).big_integer().null())
+                    .col(ColumnDef::new(DnsRecords::RecordType).string().null())
+                    .col(
+                        ColumnDef::new(DnsRecords::CreatedAt)
+                            .date_time()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(ColumnDef::new(DnsRecords::UpdatedAt).date_time().null())
+                    .col(ColumnDef::new(DnsRecords::Value).string().not_null())
+                    .col(ColumnDef::new(DnsRecords::Ttl).integer().not_null())
+                    .col(ColumnDef::new(DnsRecords::Priority).integer().null())
                     .to_owned(),
             )
             .await
@@ -45,7 +50,7 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Replace the sample below with your own migration2 scripts
         manager
-            .drop_table(Table::drop().table(DnsRecord::Table).to_owned())
+            .drop_table(Table::drop().table(DnsRecords::Table).to_owned())
             .await
     }
 }

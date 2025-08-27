@@ -1,3 +1,3 @@
 pub mod domain;
 pub(crate) mod form;
-mod gui;
+pub mod gui;

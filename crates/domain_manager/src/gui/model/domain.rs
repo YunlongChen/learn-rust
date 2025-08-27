@@ -4,7 +4,6 @@ use crate::gui::types::credential::{
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use tracing::debug;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Deserialize, Serialize)]
 pub enum DnsProvider {
@@ -129,33 +128,37 @@ impl Display for DnsProvider {
 
 #[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Domain {
+    pub id: Option<i64>,
     pub name: String,
     pub provider: DnsProvider,
     pub status: DomainStatus,
     pub expiry: String,
+    pub records: Vec<DnsRecord>,
 }
 
 impl Default for Domain {
     fn default() -> Self {
         Self {
+            id: None,
             name: String::new(),
             provider: DnsProvider::Aliyun,
             status: DomainStatus::Active,
             expiry: String::new(),
+            records: vec![],
         }
     }
 }
 
-impl From<String> for Domain {
-    fn from(value: String) -> Self {
-        Self {
-            name: value,
-            provider: DnsProvider::Tomato,
-            expiry: String::new(),
-            status: DomainStatus::Active,
-        }
-    }
-}
+// impl From<String> for Domain {
+//     fn from(value: String) -> Self {
+//         Self {
+//             name: value,
+//             provider: DnsProvider::Tomato,
+//             expiry: String::new(),
+//             status: DomainStatus::Active,
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Deserialize, Serialize)]
 pub struct DomainName {

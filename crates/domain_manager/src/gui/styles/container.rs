@@ -10,11 +10,33 @@ use crate::gui::styles::style_constants::{BORDER_ROUNDED_RADIUS, BORDER_WIDTH};
 use crate::gui::styles::types::gradient_type::{get_gradient_headers, GradientType};
 use crate::StyleType;
 
+#[derive(Debug, Clone, Copy)]
+pub struct ContainerStyle {
+    pub background: Option<Background>,
+    pub border: Border,
+    pub text_color: Option<Color>,
+    pub shadow: Shadow,
+}
+
+impl Default for ContainerStyle {
+    fn default() -> Self {
+        Self {
+            background: None,
+            border: Border::default(),
+            text_color: None,
+            shadow: Shadow::default(),
+        }
+    }
+}
+
+
 #[derive(Default)]
 pub enum ContainerType {
     #[default]
     Standard,
+    Background,
     BorderedRound,
+    Bordered,
     Tooltip,
     Badge,
     BadgeInfo,
@@ -24,6 +46,8 @@ pub enum ContainerType {
     Highlighted,
     HighlightedOnHeader,
     ModalBackground,
+    Selected,  // 选中状态
+    Hoverable, // 可悬停
 }
 
 impl ContainerType {
@@ -41,10 +65,12 @@ impl ContainerType {
                     Background::Color(colors.secondary)
                 }
                 ContainerType::Tooltip => Background::Color(ext.buttons_color),
-                ContainerType::BorderedRound => Background::Color(Color {
-                    a: ext.alpha_round_containers,
-                    ..ext.buttons_color
-                }),
+                ContainerType::BorderedRound | ContainerType::Bordered => {
+                    Background::Color(Color {
+                        a: ext.alpha_round_containers,
+                        ..ext.buttons_color
+                    })
+                }
                 ContainerType::Badge | ContainerType::BadgeInfo => Background::Color(Color {
                     a: ext.alpha_chart_badge,
                     ..colors.secondary
@@ -58,9 +84,18 @@ impl ContainerType {
                 ContainerType::Standard | ContainerType::Palette => {
                     Background::Color(Color::TRANSPARENT)
                 }
+                ContainerType::Background => Background::Color(ext.buttons_color),
                 ContainerType::ModalBackground => Background::Color(Color {
                     a: 0.9,
                     ..Color::BLACK
+                }),
+                ContainerType::Selected => Background::Color(Color {
+                    a: 0.3,
+                    ..colors.primary
+                }),
+                ContainerType::Hoverable => Background::Color(Color {
+                    a: 0.1,
+                    ..colors.secondary
                 }),
             }),
             border: Border {
@@ -72,6 +107,7 @@ impl ContainerType {
                     | ContainerType::BadgeInfo
                     | ContainerType::Highlighted
                     | ContainerType::HighlightedOnHeader => 100.0.into(),
+                    ContainerType::Bordered => Radius::new(1).bottom(BORDER_ROUNDED_RADIUS),
                     _ => 0.0.into(),
                 },
                 width: match self {

@@ -1,7 +1,9 @@
 pub mod components;
+pub mod icon;
 pub mod manager;
 pub mod model;
 pub mod pages;
+pub mod screen;
 pub mod styles;
 pub mod themes;
 pub mod types;

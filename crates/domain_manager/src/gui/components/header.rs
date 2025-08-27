@@ -18,6 +18,7 @@ use iced::widget::text::LineHeight;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, horizontal_space, Button, Container, Row, Space, Text, Tooltip};
 use iced::{Alignment, Font, Length};
+use iced::widget::MouseArea;
 
 pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
     let is_running = true;
@@ -32,63 +33,66 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
         .size(40);
 
     Container::new(
-        Row::new()
-            .padding([0, 20])
-            .align_y(Alignment::Center)
-            .push(if is_running {
-                Container::new(get_button_reset(&app, font, config.language))
-            } else {
-                Container::new(Space::with_width(60))
-            })
-            .push(horizontal_space())
-            .push(Container::new(Space::with_width(40)))
-            .push(Space::with_width(20))
-            .push(logo)
-            .push(Space::with_width(20))
-            .push(horizontal_space())
-            .push(Row::new().push(Text::new(format!("{}", &app.message))))
-            .push_maybe(if app.in_query {
-                Some(get_custom_button(
+        MouseArea::new(
+            Row::new()
+                .padding([0, 20])
+                .align_y(Alignment::Center)
+                .push(if is_running {
+                    Container::new(get_button_reset(&app, font, config.language))
+                } else {
+                    Container::new(Space::with_width(60))
+                })
+                .push(horizontal_space())
+                .push(Container::new(Space::with_width(40)))
+                .push(Space::with_width(20))
+                .push(logo)
+                .push(Space::with_width(20))
+                .push(horizontal_space())
+                .push(Row::new().push(Text::new(format!("{}", &app.message))))
+                .push_maybe(if app.in_query {
+                    Some(get_custom_button(
+                        font,
+                        config.language,
+                        SettingsPage::Appearance,
+                        None,
+                        Icon::Sync,
+                        get_text("in_query"),
+                    ))
+                } else {
+                    None
+                })
+                .push(get_custom_button(
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    None,
-                    Icon::Sync,
-                    get_text("in_query"),
+                    Some(Message::AddDnsProvider),
+                    Icon::Add,
+                    get_text("provider.add"),
                 ))
-            } else {
-                None
-            })
-            .push(get_custom_button(
-                font,
-                config.language,
-                SettingsPage::Appearance,
-                Some(Message::AddDnsProvider),
-                Icon::Add,
-                get_text("provider.add"),
-            ))
-            .push(get_custom_button(
-                font,
-                config.language,
-                SettingsPage::Appearance,
-                Some(Message::ToggleTheme),
-                Icon::HalfSun,
-                get_text("change_theme"),
-            ))
-            .push(get_custom_button(
-                font,
-                config.language,
-                SettingsPage::Appearance,
-                Some(Message::ChangeLocale(Locale::Chinese)),
-                Icon::Language,
-                get_text("change_locale"),
-            ))
-            .push(get_button_exit(
-                font,
-                config.language,
-                SettingsPage::Appearance,
-            ))
-            .spacing(10),
+                .push(get_custom_button(
+                    font,
+                    config.language,
+                    SettingsPage::Appearance,
+                    Some(Message::ToggleTheme),
+                    Icon::HalfSun,
+                    get_text("change_theme"),
+                ))
+                .push(get_custom_button(
+                    font,
+                    config.language,
+                    SettingsPage::Appearance,
+                    Some(Message::ChangeLocale(Locale::Chinese)),
+                    Icon::Language,
+                    get_text("change_locale"),
+                ))
+                .push(get_button_exit(
+                    font,
+                    config.language,
+                    SettingsPage::Appearance,
+                ))
+                .spacing(10),
+        )
+        .on_press(Message::DragWindow),
     )
     .height(70)
     .align_y(Alignment::Center)

@@ -5,18 +5,18 @@ use crate::api::ali_api::{
 use crate::api::dns_client::{DnsClient, DnsClientTrait};
 use crate::api::model::dns_operate::RecordLog;
 use crate::api::provider::aliyun::AliyunDnsClient;
-use crate::configs::gui_config::LICENCE;
+use crate::configs::gui_config::{LICENCE, WindowState};
 use crate::gui::components::footer::footer;
 use crate::gui::components::header::header;
 use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
 use crate::gui::model::form::{AddDnsField, AddDomainField};
-use crate::gui::pages::demo::scrollables::scrollables;
+use crate::gui::model::gui::ReloadModel;
 use crate::gui::pages::domain::{
     add_domain_page, add_domain_provider_page, AddDomainProviderForm, DomainProvider,
 };
 use crate::gui::pages::domain_dns_record::{add_dns_record, dns_record};
 use crate::gui::pages::help::help;
-use crate::gui::pages::names::{DemoPage, Page};
+use crate::gui::pages::names::Page;
 use crate::gui::pages::types::settings::SettingsPage;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
@@ -27,6 +27,7 @@ use crate::gui::types::message::{Message, SyncResult};
 use crate::model::dns_record_response::Record;
 use crate::models::account::{Account, NewAccount};
 use crate::models::domain::NewDomain;
+use crate::storage::records::get_records_by_domain;
 use crate::storage::{
     add_domain_many, count_all_domains, create_account, delete_domain, delete_domain_by_account,
     get_account_domains, list_accounts, list_domains,
@@ -38,18 +39,20 @@ use crate::utils::types::web_page::WebPage;
 use crate::{get_text, Config, StyleType};
 use iced::keyboard::Key;
 use iced::widget::{
-    button, container, horizontal_rule, horizontal_space, scrollable, Button, Column, Container,
-    Row, Text, Tooltip,
+    button, center, container, horizontal_rule, horizontal_space, mouse_area, scrollable, text,
+    Button, Column, Container, MouseArea, Row, Text, Tooltip,
 };
 use iced::Event::Window;
 use iced::{
     keyboard, window, Alignment, Element, Font, Length, Point, Size, Subscription, Task, Theme,
 };
+use mockall::Any;
 use sea_orm::DatabaseConnection;
 use std::error::Error;
 use std::sync::Mutex;
 use std::{env, process};
-use tracing::{debug, error, info};
+use tokio::join;
+use tracing::{debug, error, info, warn};
 
 pub struct DomainManager {
     /// 应用程序的配置：设置、窗口属性、应用程序名称
@@ -141,6 +144,7 @@ impl Default for DomainManager {
             color_gradient: GradientType::Mild,
             ali_access_key_id: None,
             ali_access_key_secret: None,
+            window_state: WindowState::default(),
         };
 
         // 初始化数据
@@ -225,29 +229,46 @@ impl DomainManager {
             Page::DomainPage => {
                 Container::new(
                     Row::new()
-                        // 左侧托管商导航
-                        .push(Self::provider_sidebar(self).width(Length::Fixed(300.0)))
-                        .push(self.domain_list().width(Length::FillPortion(5))) // 中间域名列表
+                        .spacing(8) // 添加列间距
+                        // 左侧托管商导航 - 固定宽度250px
+                        .push(Self::provider_sidebar(self).width(Length::Fixed(250.0)))
+                        // 中间域名列表 - 占据更多空间
+                        .push(self.domain_list().width(Length::FillPortion(6)))
+                        // 右侧详情面板 - 适中宽度
                         .push_maybe(match &self.filter.selected_domain {
-                            Some(domain) => Some(self.detail_panel().width(Length::FillPortion(2))),
-                            // 右侧详情面板
-                            None => Container::new(Text::new("选择域名以查看详情"))
-                                .width(Length::FillPortion(2))
-                                .into(),
-                        }) // 右侧详情面板
+                            Some(domain) => {
+                                Some(self.domain_detail(domain).width(Length::FillPortion(4)))
+                            }
+                            None => {
+                                Some(
+                                    Container::new(
+                                        center(
+                                            Column::new()
+                                                .spacing(10)
+                                                .push(text("🔍").size(48))
+                                                .push(text("选择域名查看详情").size(16))
+                                                .push(text("点击左侧域名列表中的任意域名").size(12))
+                                                .align_x(Alignment::Center)
+                                        )
+                                    )
+                                    .width(Length::FillPortion(4))
+                                    .height(Length::Fill)
+                                    .class(ContainerType::Bordered)
+                                )
+                            }
+                        })
                         .height(Length::Fill)
                         .width(Length::Fill),
                 )
+                .padding(8) // 添加整体内边距
                 .class(ContainerType::HighlightedOnHeader)
             }
             Page::AddDomain => add_domain_page(self),
             Page::DnsRecord => dns_record(self),
             Page::AddRecord => add_dns_record(self),
             Page::Help => help(self),
-            Page::Demo(demo) => match demo {
-                DemoPage::Scrollers => scrollables(self),
-            },
             Page::AddProvider => add_domain_provider_page(self),
+            _ => help(self),
         };
 
         // 底部
@@ -270,25 +291,55 @@ impl DomainManager {
 
     // 左侧托管商导航
     fn provider_sidebar(app: &DomainManager) -> Container<Message, StyleType> {
-        let provider_list = Column::new().padding(10).spacing(10).width(Length::Shrink);
+        let provider_list = Column::new().spacing(8).width(Length::Fill);
         debug!("托管商数量：「{}」", app.domain_providers.len());
+
         let provider_list = app
             .domain_providers
             .iter()
             .fold(provider_list, |col, provider| {
                 let is_selected = app.filter.selected_provider.as_ref() == Some(provider);
-                col.push(
-                    provider_item(provider, is_selected)
-                        .on_press(Message::ProviderSelected(provider.clone())),
-                )
+                col.push(provider_item(provider, is_selected))
             });
 
-        let sidebar = Column::new()
-            .push(Text::new("域名托管商").size(16))
-            .push(scrollable(provider_list).height(Length::Shrink))
-            .spacing(15);
+        // 添加"全部"选项
+        let all_providers_item = Container::new(
+            button(
+                Row::new()
+                    .spacing(8)
+                    .push(text("📁").size(14))
+                    .push(text("全部托管商").size(14))
+                    .align_y(Alignment::Center)
+            )
+            .width(Length::Fill)
+            .on_press(Message::ProviderSelected(None))
+            .class(if app.filter.selected_provider.is_none() {
+                ButtonType::Primary
+            } else {
+                ButtonType::Standard
+            })
+        )
+        .width(Length::Fill)
+        .padding([4, 0]);
 
-        container(sidebar).height(Length::Fill).padding(10).into()
+        let sidebar = Column::new()
+            .spacing(12)
+            .push(
+                Row::new()
+                    .spacing(8)
+                    .push(text("🏢").size(16))
+                    .push(Text::new("托管商").size(16).width(Length::Fill))
+                    .align_y(Alignment::Center)
+            )
+            .push(horizontal_rule(1))
+            .push(all_providers_item)
+            .push(scrollable(provider_list).height(Length::Fill));
+
+        container(sidebar)
+            .height(Length::Fill)
+            .padding(12)
+            .class(ContainerType::Bordered)
+            .into()
     }
 
     // 中间域名列表
@@ -308,126 +359,263 @@ impl DomainManager {
         //https://jsd.nn.ci/gh/YunlongChen/yunlongchen@main/out/github-snake-dark.svg
 
         let header: Row<Message, StyleType> = Row::new()
-            .push(Text::new(title).size(20).width(Length::Fill))
+            .spacing(12)
+            .align_y(Alignment::Center)
             .push(
                 Row::new()
-                    .spacing(10)
-                    .push(button("重置").on_press(Message::Reset))
-                    .push(button("模拟").on_press(Message::Mock))
-                    .push(
-                        button("导出")
-                            .on_press(Message::Export)
-                            .class(ButtonType::Alert),
-                    ),
+                    .spacing(8)
+                    .push(text("📋").size(18))
+                    .push(Text::new(title).size(18))
+                    .align_y(Alignment::Center)
             )
-            .padding(10);
+            .push(horizontal_space())
+            .push(
+                Row::new()
+                    .spacing(8)
+                    .push(
+                        button(
+                            Row::new()
+                                .spacing(6)
+                                .push(text("🔄").size(12))
+                                .push(text("刷新").size(12))
+                                .align_y(Alignment::Center)
+                        )
+                        .on_press(Message::Reset)
+                        .class(ButtonType::Standard)
+                        .padding([6, 12])
+                    )
+                    .push(
+                        button(
+                            Row::new()
+                                .spacing(6)
+                                .push(text("🎭").size(12))
+                                .push(text("模拟").size(12))
+                                .align_y(Alignment::Center)
+                        )
+                        .on_press(Message::Mock)
+                        .class(ButtonType::Standard)
+                        .padding([6, 12])
+                    )
+                    .push(
+                        button(
+                            Row::new()
+                                .spacing(6)
+                                .push(text("☁️").size(12))
+                                .push(text(if self.is_syncing { "同步中..." } else { "同步" }).size(12))
+                                .align_y(Alignment::Center)
+                        )
+                        .on_press(Message::Sync)
+                        .class(if self.is_syncing { ButtonType::Standard } else { ButtonType::Primary })
+                        .padding([6, 12])
+                    )
+                    .align_y(Alignment::Center)
+            )
+            .padding(12);
 
-        // 统计卡片
+        // 统计卡片 - 更紧凑的设计
         let stats = Row::new()
-            .spacing(15)
+            .spacing(8)
             .push(stat_card(
-                "总域名数".to_string(),
+                "总计".to_string(),
                 self.stats.total.to_string(),
-                "本月新增3个",
+                "域名总数",
             ))
             .push(stat_card(
                 "即将到期".to_string(),
                 self.stats.expiring.to_string(),
-                "30天内到期",
+                "30天内",
             ))
             .push(stat_card(
                 "托管商".to_string(),
                 self.stats.providers.to_string(),
-                "全部正常",
+                "已配置",
             ))
             .width(Length::Fill);
 
-        // 域名列表
-        let domain_list = Column::new().spacing(5).padding(5);
-
-        debug!("域名数量：「{}」", self.domain_list.len());
-        let domain_list = self
+        // 过滤域名列表
+        let filtered_domains: Vec<&Domain> = self
             .domain_list
             .iter()
             .filter(|domain| match &self.filter.selected_provider {
                 Some(provider) => domain.provider == provider.provider,
                 None => true,
             })
-            .enumerate()
-            .fold(domain_list, |column, (index, domain)| {
-                let is_selected = self.filter.selected_domain == Some(domain.clone());
-                let button_event = if let false = is_selected {
-                    debug!("当前是否添加异常信息");
-                    Some(Message::DomainSelected(domain.clone()))
-                } else {
-                    None
-                };
-                column.push(
-                    //SelectedDomainRowStyle
-                    domain_row(domain, is_selected, font).on_press_maybe(button_event),
+            .collect();
+
+        debug!("域名数量：「{}」，过滤后：「{}」", self.domain_list.len(), filtered_domains.len());
+
+        // 域名列表内容
+        let domain_list_content = if filtered_domains.is_empty() {
+            Container::new(
+                center(
+                    Column::new()
+                        .spacing(12)
+                        .push(text("📭").size(48))
+                        .push(text("暂无域名").size(16))
+                        .push(text("点击同步按钮从云端获取域名数据").size(12))
+                        .align_x(Alignment::Center)
                 )
-            });
+            )
+            .height(Length::Fill)
+            .width(Length::Fill)
+        } else {
+            let domain_list = filtered_domains
+                .iter()
+                .enumerate()
+                .fold(Column::new().spacing(4), |column, (_index, domain)| {
+                    let is_selected = self.filter.selected_domain == Some((*domain).clone());
+                    column.push(domain_row(domain, is_selected, font))
+                });
+
+            Container::new(scrollable(domain_list).height(Length::Fill))
+                .height(Length::Fill)
+                .width(Length::Fill)
+        };
 
         let content = Column::new()
-            .spacing(15)
+            .spacing(12)
             .push(header)
+            .push(horizontal_rule(1))
             .push(stats)
-            .push(scrollable(domain_list).height(Length::Shrink));
+            .push(horizontal_rule(1))
+            .push(domain_list_content);
+
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
+            .padding(12)
+            .class(ContainerType::Bordered)
     }
 
-    // 右侧详情面板
-    fn detail_panel(&self) -> Container<Message, StyleType> {
-        if let Some(index) = &self.filter.selected_domain {
-            if let Some(domain) = self.domain_list.get(0) {
-                info!("选中了，现在查看详情：当前选中域名：「{:?}」", &domain.name);
-                return self.domain_detail(domain);
-            }
-        }
-        info!("没选中，查看提示信息");
-        // 如果没有选择域名，显示空状态
-        container(Text::new("选择域名以查看详情"))
-            .width(Length::Fixed(240.0))
-            .height(Length::Fill)
-            .into()
-    }
-
+    /// 创建域名详情面板
+    ///
+    /// # 参数
+    /// * `domain` - 域名信息
     fn domain_detail<'a>(&'a self, domain: &'a Domain) -> Container<'a, Message, StyleType> {
-        let domain_title = Row::new()
-            .spacing(10)
-            .push(Text::new(&domain.name).size(20))
-            .push(container(Text::new(domain.provider.name())));
+        // 域名标题和状态
+        let status_icon = match domain.status {
+            DomainStatus::Active => "🟢",
+            DomainStatus::Suspended => "🔴",
+            DomainStatus::Warning => "🟡",
+        };
 
-        let status = Text::new(domain.status.text()); //.style(domain.status.color());
+        let provider_icon = match domain.provider.name() {
+            "阿里云" => "☁️",
+            "腾讯云" => "🌐",
+            "华为云" => "🔧",
+            _ => "🏢",
+        };
 
-        let domain_info = Column::new()
-            .spacing(10)
-            .push(info_row("注册日期", "2020-08-15"))
-            .push(info_row("到期日期", &domain.expiry))
-            .push(info_row("DNS服务器", &domain.name))
-            .push(info_row("域名状态", "").push(status));
+        let domain_title = Container::new(
+            Column::new()
+                .spacing(8)
+                .push(
+                    Row::new()
+                        .spacing(8)
+                        .push(text("🌐").size(20))
+                        .push(Text::new(&domain.name).size(18))
+                        .align_y(Alignment::Center)
+                )
+                .push(
+                    Row::new()
+                        .spacing(6)
+                        .push(text(provider_icon).size(14))
+                        .push(Text::new(domain.provider.name()).size(12))
+                        .push(text(status_icon).size(14))
+                        .push(Text::new(domain.status.text()).size(12))
+                        .align_y(Alignment::Center)
+                )
+        )
+        .padding(16)
+        .class(ContainerType::Bordered);
+
+        // 域名基本信息
+        let domain_info = Container::new(
+            Column::new()
+                .spacing(12)
+                .push(
+                    Row::new()
+                        .spacing(8)
+                        .push(text("📋").size(14))
+                        .push(Text::new("基本信息").size(14))
+                        .align_y(Alignment::Center)
+                )
+                .push(info_row("📅 注册日期", "2020-08-15"))
+                .push(info_row("⏰ 到期日期", &domain.expiry))
+                .push(info_row("🌍 域服务器", &domain.name))
+                .push(info_row("📊 域名状态", domain.status.text()))
+        )
+        .padding(16)
+        .class(ContainerType::Bordered);
 
         // 托管商特色功能
-        let mut features = Row::new().spacing(10);
+        let mut features = Row::new().spacing(8);
         for feature in domain.provider.features() {
-            features = features
-                .push(button(feature).on_press(Message::FeatureClicked(feature.to_string())));
+            features = features.push(
+                button(
+                    Row::new()
+                        .spacing(4)
+                        .push(text("⚡").size(10))
+                        .push(text(feature).size(10))
+                        .align_y(Alignment::Center)
+                )
+                .class(ButtonType::Standard)
+                .padding([6, 12])
+                .on_press(Message::FeatureClicked(feature.to_string()))
+            );
         }
+
+        let features_section = Container::new(
+            Column::new()
+                .spacing(8)
+                .push(
+                    Row::new()
+                        .spacing(8)
+                        .push(text("🚀").size(14))
+                        .push(Text::new("特色功能").size(14))
+                        .align_y(Alignment::Center)
+                )
+                .push(features)
+        )
+        .padding(16)
+        .class(ContainerType::Bordered);
 
         // DNS记录管理
         let dns_header = Row::new()
             .spacing(10)
-            .push(Text::new("DNS记录管理").size(16))
+            .push(
+                Row::new()
+                    .spacing(8)
+                    .push(text("🔧").size(14))
+                    .push(Text::new("DNS记录管理").size(14))
+                    .align_y(Alignment::Center)
+            )
             .push(horizontal_space().width(Length::Fill))
             .push(
-                Button::new(Text::new(get_text("query_dns_record")))
-                    .on_press(Message::AddDnsRecord),
+                button(
+                    Row::new()
+                        .spacing(4)
+                        .push(text("🔍").size(10))
+                        .push(text("查询").size(10))
+                        .align_y(Alignment::Center)
+                )
+                .class(ButtonType::Standard)
+                .padding([4, 8])
+                .on_press(Message::AddDnsRecord)
             )
             .push(
-                Button::new(Text::new(get_text("add_dns_record"))).on_press(Message::AddDnsRecord),
-            );
+                button(
+                    Row::new()
+                        .spacing(4)
+                        .push(text("➕").size(10))
+                        .push(text("添加").size(10))
+                        .align_y(Alignment::Center)
+                )
+                .class(ButtonType::Primary)
+                .padding([4, 8])
+                .on_press(Message::AddDnsRecord)
+            )
+            .align_y(Alignment::Center);
 
         let dns_table = Column::new().spacing(5);
 
@@ -439,22 +627,30 @@ impl DomainManager {
                 col.push(dns_row(record, index))
             });
 
-        let status = Text::new(domain.status.text()); //.style(domain.status.color());
+        let dns_section = Container::new(
+            Column::new()
+                .spacing(12)
+                .push(dns_header)
+                .push(horizontal_rule(1))
+                .push(scrollable(dns_table))
+        )
+        .padding(16)
+        .class(ContainerType::Bordered);
 
         let content = Column::new()
-            .spacing(20)
+            .spacing(16)
             .push(domain_title)
-            .push(status)
             .push(domain_info)
-            .push(features)
-            .push(horizontal_rule(2))
-            .push(dns_header)
-            .push(scrollable(dns_table));
+            .push(features_section)
+            .push(dns_section);
 
         container(scrollable(content))
-            .width(Length::Fixed(380.0))
+            .width(Length::Fixed(400.0))
             .height(Length::Fill)
+            .padding(8)
+            .class(ContainerType::Background)
             .padding(10)
+            .class(ContainerType::BorderedRound)
             .into()
     }
 
@@ -509,12 +705,8 @@ impl DomainManager {
 
                 let total_size = *(&domains.len()) as u64;
 
-                self.update(ReloadComplete((
-                    providers,
-                    domains,
-                    records,
-                    total_size,
-                    "创建模拟数据成功".into(),
+                self.update(ReloadComplete(ReloadModel::new_from(
+                    providers, domains, records, total_size,
                 )))
             }
 
@@ -523,13 +715,15 @@ impl DomainManager {
                 self.update(Message::Reload)
             }
             Message::Reload => {
-                debug!("界面刷新,当前选择的域名托管商");
+                info!("收到界面刷新消息");
+                debug!("当前选择的域名托管商: {:?}", self.filter.selected_provider);
                 // 更新数据
                 // TODO 这里可能会影响界面刷新，需要在异步线程里面完成
                 match &self.connection {
                     None => {
-                        error!("当前没有数据库连接！");
-                        self.update(ReloadComplete((vec![], vec![], vec![], 0, "".to_string())))
+                        error!("当前没有数据库连接，无法刷新界面数据");
+                        self.message = "数据库连接失败，无法加载数据".to_string();
+                        self.update(ReloadComplete(ReloadModel::default()))
                     }
                     Some(connection) => {
                         // 克隆连接，因为我们需要将它移动到异步任务中
@@ -540,33 +734,44 @@ impl DomainManager {
                             match result {
                                 Ok(result) => {
                                     let (accounts, domains, total_count, message) = result;
+                                    info!(
+                                        "数据加载成功，账户: {}, 域名: {}, 总数: {}",
+                                        accounts.len(),
+                                        domains.len(),
+                                        total_count
+                                    );
                                     let providers = accounts
                                         .into_iter()
                                         .map(|account| account.into())
                                         .collect();
 
-                                    return ReloadComplete((
+                                    return ReloadComplete(ReloadModel {
+                                        reload_types: vec![],
                                         providers,
                                         domains,
-                                        vec![],
+                                        records: vec![],
+                                        message: "".to_string(),
                                         total_count,
-                                        "".to_string(),
-                                    ));
+                                    });
                                 }
-                                Err(_) => {}
+                                Err(err) => {
+                                    error!("数据加载失败: {:?}", err);
+                                }
                             }
-                            ReloadComplete((vec![], vec![], vec![], 0, "".to_string()))
+                            ReloadComplete(ReloadModel::default())
                         })
                     }
                 }
             }
             ReloadComplete(result) => {
                 info!("数据重新加载完成！，当前加载数据类型：「所有」");
-                let (providers, domain, record, total_count, message) = result;
-                self.domain_providers = providers;
-                self.domain_list = domain;
-                self.dns_records = record;
-                self.stats.total = total_count;
+                // 创建上面的
+                self.domain_providers = result.providers;
+                self.domain_list = result.domains;
+                self.dns_records = result.records;
+                self.stats.total = result.total_count;
+                // 清除加载消息
+                self.message = result.message;
                 Task::none()
             }
             Message::Started => {
@@ -575,11 +780,25 @@ impl DomainManager {
                 self.update(Message::Reload)
             }
             Message::ChangeLocale(locale) => {
-                Self::locale(self.locale);
+                Self::locale(locale);
                 self.update(Message::LocaleChanged(locale))
             }
             Message::LocaleChanged(locale) => {
                 self.locale = locale;
+                // 更新配置中的语言设置
+                self.config.locale = match locale {
+                    Locale::Chinese => "zh_CN".to_string(),
+                    Locale::English => "en".to_string(),
+                };
+                self.config.language = match locale {
+                    Locale::Chinese => Language::ZH,
+                    Locale::English => Language::EN,
+                };
+                // 保存配置到文件
+                if let Err(e) = self.config.save_to_file("config.json") {
+                    error!("保存语言配置失败: {}", e);
+                }
+                info!("语言切换为: {:?}", locale);
                 Task::none()
             }
             Message::ToggleTheme => {
@@ -614,7 +833,7 @@ impl DomainManager {
                 self.handle_add_provider_form_credential_changed(credential)
             }
             Message::ProviderSelected(dns_provider) => self.handle_provider_selected(dns_provider),
-            Message::Export => self.handle_export(),
+            Message::Sync => self.handle_sync(),
             Message::SyncAllDomains => self.handle_sync_domain(),
             // 改变当前页面
             Message::ChangePage(page) => {
@@ -667,13 +886,19 @@ impl DomainManager {
                     }
                     .name()
                 );
-                self.domain_list
-                    .push(self.add_domain_field.domain_name.clone().into());
                 self.update(Message::ChangePage(Page::DomainPage))
             }
             Message::QueryDomainDnsRecord(domain_name) => {
                 self.current_domain_name = Some(domain_name.clone());
-                self.update(Message::ChangePage(Page::DnsRecord))
+                // 异步加载选定域名的DNS记录
+                let domain_name_for_query = domain_name.name.clone();
+                Task::batch([
+                    self.update(Message::ChangePage(Page::DnsRecord)),
+                    Task::perform(
+                        Self::handle_dns_reload(domain_name_for_query),
+                        Message::QueryDnsResult,
+                    ),
+                ])
             }
             Message::DnsProviderSelected(provider) => {
                 self.add_domain_field.provider = Some(provider);
@@ -820,6 +1045,60 @@ impl DomainManager {
                 Self::open_web(&web_page);
                 Task::none()
             }
+            Message::SyncAllDomainsComplete(result) => {
+                info!("收到同步域名完成消息，结果: {:?}", result);
+                self.is_syncing = false;
+                match result {
+                    SyncResult::Success => {
+                        info!("域名同步成功，准备刷新界面");
+                        self.message = "".to_string(); // 清除错误消息
+                        self.update(Message::Reload) // 触发界面刷新
+                    }
+                    SyncResult::Failed(err) => {
+                        error!("域名同步失败，错误信息: {}", err);
+                        self.message = format!("同步失败: {}", err);
+                        Task::none()
+                    }
+                    SyncResult::Cancelled => {
+                        info!("域名同步被取消");
+                        Task::none()
+                    }
+                }
+            }
+            Message::DragWindow => {
+                // 获取最旧的窗口并拖动
+                window::get_oldest().map(|id_option| {
+                    if let Some(id) = id_option {
+                        Message::StartDragWindow(id)
+                    } else {
+                        Message::DragWindow // 如果没有窗口，重新尝试
+                    }
+                })
+            }
+            Message::StartDragWindow(id) => {
+                // 开始拖动指定窗口
+                window::drag(id)
+            }
+            Message::WindowMoved(x, y) => {
+                // 处理窗口移动事件，更新配置中的窗口位置
+                info!("窗口移动到位置: ({}, {})", x, y);
+                self.config.update_window_state(x, y, self.config.window_state.width, self.config.window_state.height);
+                // 保存配置到文件
+                if let Err(e) = self.config.save_to_file("config.json") {
+                    error!("保存窗口位置配置失败: {}", e);
+                }
+                Task::none()
+            }
+            Message::WindowResized(width, height) => {
+                // 处理窗口大小调整事件，更新配置中的窗口大小
+                info!("窗口大小调整为: {}x{}", width, height);
+                self.config.update_window_state(self.config.window_state.x, self.config.window_state.y, width, height);
+                // 保存配置到文件
+                if let Err(e) = self.config.save_to_file("config.json") {
+                    error!("保存窗口大小配置失败: {}", e);
+                }
+                Task::none()
+            }
             _ => {
                 debug!("未处理的消息：{:?}", message);
                 Task::none()
@@ -828,7 +1107,11 @@ impl DomainManager {
     }
 
     async fn sync_domains(app: DnsClient) -> Vec<Domain> {
-        info!("同步域名信息");
+        info!("开始同步域名信息，使用DNS客户端: {:?}", app);
+        let mut all_domains: Vec<Domain> = Vec::new();
+
+        // 1. 获取所有域名信息
+        info!("调用DNS客户端获取所有域名信息");
         let domain_name_response = app.get_all_domain_info().await;
         match domain_name_response {
             Ok(domain_names) => {
@@ -836,20 +1119,27 @@ impl DomainManager {
                     "同步域名信息成功，总共同步了「{}」条域名记录",
                     domain_names.len()
                 );
-
-                // 清空原有的列表
-                info!("清空历史的域名信息:{}", domain_names.len());
+                for (i, domain) in domain_names.iter().enumerate() {
+                    debug!("域名 {}/{}: {}", i + 1, domain_names.len(), domain.name);
+                }
+                // 将域名添加到结果列表
+                all_domains.extend(domain_names);
             }
             Err(err) => {
-                error!("获取域名异常:{}", err);
+                error!("获取域名异常: {}，详细错误: {:?}", err, err);
             }
         }
-        vec![]
+        info!("域名同步完成，返回 {} 个域名", all_domains.len());
+        all_domains
     }
 
     async fn handle_domain_reload(provider: DomainProvider) -> (Vec<Domain>, DomainProvider) {
         let domains: Vec<Domain> = vec![];
-        info!("开始查询列表");
+        info!(
+            "开始查询域名列表，提供商: {}, 类型: {}",
+            provider.provider_name,
+            provider.provider.name()
+        );
         match provider.provider {
             DnsProvider::Aliyun => {
                 let credential = &provider.credential;
@@ -859,49 +1149,143 @@ impl DomainManager {
                     &provider.provider_name,
                     &provider.provider.name()
                 );
+
                 match credential {
                     Credential::ApiKey(apikey_credential) => {
+                        debug!("使用API密钥认证方式，密钥ID: {}", apikey_credential.api_key);
                         let aliyun_dns_client = AliyunDnsClient::new(
                             apikey_credential.api_key.clone(),
                             apikey_credential.api_secret.clone(),
                         );
-                        info!("开始查询列表，使用的客户端：{:?}", &aliyun_dns_client);
+                        info!("创建阿里云DNS客户端成功: {:?}", &aliyun_dns_client);
 
+                        info!("开始查询阿里云域名列表");
                         let result = aliyun_dns_client.list_domains(0, 100).await;
+
+                        let mut dns_records: Vec<DnsRecord> = vec![];
+
                         match result {
                             Ok(domain_names) => {
-                                info!("获取到了【{}】条域名记录", domain_names.len());
+                                info!("成功获取阿里云域名列表，共 {} 个域名", domain_names.len());
+                                for (i, domain_name) in domain_names.iter().enumerate() {
+                                    info!(
+                                        "处理域名 {}/{}: {}",
+                                        i + 1,
+                                        domain_names.len(),
+                                        domain_name.name
+                                    );
+                                    let dns_record_response = aliyun_dns_client
+                                        .list_dns_records(domain_name.name.clone())
+                                        .await;
+
+                                    match dns_record_response {
+                                        Ok(records) => {
+                                            info!(
+                                                "查询域名:{}的解析列表成功：解析数量：「{}」",
+                                                &domain_name.name,
+                                                records.len()
+                                            );
+
+                                            for (j, record) in records.iter().enumerate() {
+                                                debug!(
+                                                    "处理DNS记录 {}/{}: 类型={}, 值={}",
+                                                    j + 1,
+                                                    records.len(),
+                                                    record.record_type,
+                                                    record.value
+                                                );
+                                                dns_records.push(DnsRecord {
+                                                    name: record.value.clone(),
+                                                    record_type: record.record_type.to_string(),
+                                                    value: record.value.clone(),
+                                                    ttl: record.ttl.to_string(),
+                                                })
+                                            }
+                                        }
+                                        Err(err) => {
+                                            error!(
+                                                "查询域名 {} 解析列表失败：「{:?}」",
+                                                domain_name.name, err
+                                            )
+                                        }
+                                    }
+                                }
+
+                                info!(
+                                    "获取到了【{}】条域名记录,{}条域名解析记录！",
+                                    domain_names.len(),
+                                    dns_records.len()
+                                );
                                 (
                                     domain_names
                                         .into_iter()
-                                        .map(|domain_name| Domain {
-                                            name: domain_name.name,
-                                            ..Default::default()
+                                        .map(|domain_name| {
+                                            debug!("转换域名: {}", domain_name.name);
+                                            Domain {
+                                                name: domain_name.name,
+                                                ..Default::default()
+                                            }
                                         })
                                         .collect(),
                                     provider,
                                 )
                             }
-                            Err(_) => (vec![], provider),
+                            Err(err) => {
+                                error!(
+                                    "同步阿里云域名信息发生异常: {:?}，详细信息: {:?}",
+                                    err, err
+                                );
+                                (vec![], provider)
+                            }
                         }
                     }
                     _ => {
-                        info!("认证方式错误:阿里云的认证方式应该是apiKey");
+                        error!(
+                            "认证方式错误: 阿里云的认证方式应该是apiKey，但收到了: {:?}",
+                            credential
+                        );
                         (vec![], provider)
                     }
                 }
             }
             _ => {
-                info!("当前认证方式未实现:{}", provider.provider.name());
+                error!("当前认证方式未实现: {}，无法处理", provider.provider.name());
                 (vec![], provider)
             }
         }
     }
 
+    /// 异步加载指定域名的DNS记录
+    /// 
+    /// # 参数
+    /// * `domain_name` - 要查询DNS记录的域名
+    /// 
+    /// # 返回值
+    /// 返回DNS记录列表，如果查询失败则返回空列表
     async fn handle_dns_reload(domain_name: String) -> Vec<Record> {
-        info!("查询域名信息");
-        let domain_list = query_aliyun_dns_list(domain_name);
-        domain_list
+        info!("开始查询域名DNS记录: {}", domain_name);
+        
+        // 从环境变量获取阿里云认证信息
+        match (env::var("ALIBABA_CLOUD_ACCESS_KEY_ID"), env::var("ALIBABA_CLOUD_ACCESS_KEY_SECRET")) {
+            (Ok(access_key_id), Ok(access_key_secret)) => {
+                let aliyun_dns_client = AliyunDnsClient::new(access_key_id, access_key_secret);
+                
+                match aliyun_dns_client.list_dns_records(domain_name.clone()).await {
+                    Ok(records) => {
+                        info!("成功获取域名 {} 的DNS记录，共 {} 条", domain_name, records.len());
+                        records
+                    }
+                    Err(err) => {
+                        error!("查询域名 {} 的DNS记录失败: {:?}", domain_name, err);
+                        vec![]
+                    }
+                }
+            }
+            _ => {
+                error!("未找到阿里云认证信息，请设置环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID 和 ALIBABA_CLOUD_ACCESS_KEY_SECRET");
+                vec![]
+            }
+        }
     }
 
     async fn handle_dns_operate_log_query(domain_name: String) -> Vec<RecordLog> {
@@ -920,8 +1304,15 @@ impl DomainManager {
         delete_aliyun_dns(record_id)
     }
 
-    fn theme(&self) -> Theme {
-        self.theme.clone()
+    /// 根据当前主题状态返回对应的StyleType
+    pub(crate) fn theme(&self) -> StyleType {
+        match self.theme {
+            Theme::Light => StyleType::Day,
+            Theme::Dark => StyleType::Night,
+            Theme::TokyoNightLight => StyleType::MonAmour,
+            Theme::SolarizedDark => StyleType::DeepSea,
+            _ => StyleType::default(),
+        }
     }
 
     fn open_web(web_page: &WebPage) {
@@ -989,28 +1380,36 @@ impl DomainManager {
         // 初始化DNS记录
         let domain_list = vec![
             Domain {
+                id: None,
                 name: "example.com".to_string(),
                 provider: DnsProvider::Aliyun,
                 status: DomainStatus::Active,
                 expiry: "".to_string(),
+                records: vec![],
             },
             Domain {
+                id: None,
                 name: "example2.com".to_string(),
                 provider: DnsProvider::Aliyun,
                 status: DomainStatus::Active,
                 expiry: "".to_string(),
+                records: vec![],
             },
             Domain {
+                id: None,
                 name: "example3.com".to_string(),
                 provider: DnsProvider::Aliyun,
                 status: DomainStatus::Active,
                 expiry: "".to_string(),
+                records: vec![],
             },
             Domain {
+                id: None,
                 name: "example4.com".to_string(),
                 provider: DnsProvider::Aliyun,
                 status: DomainStatus::Active,
                 expiry: "".to_string(),
+                records: vec![],
             },
         ];
 
@@ -1055,40 +1454,75 @@ impl DomainManager {
         connection: DatabaseConnection,
         filter: Filter,
     ) -> Result<(Vec<Account>, Vec<Domain>, u64, String), Box<dyn Error + Send>> {
-        info!("从数据库里面重新加载界面");
+        info!("开始从数据库重新加载界面数据");
+        debug!("当前过滤条件: {:?}", filter);
+
+        info!("查询账户列表");
         let list_accounts_result = list_accounts(&connection).await.unwrap_or_else(|e| {
-            error!("查询账号列表发生了异常！{}", e);
+            error!("查询账号列表发生了异常！错误详情: {}", e);
             vec![]
         });
+        info!("成功获取 {} 个账户信息", list_accounts_result.len());
 
-        let provider_account_id = filter.selected_provider.map(|provider| provider.account_id);
+        let provider_account_id = filter.selected_provider.map(|provider| {
+            debug!(
+                "使用选定的提供商过滤: {}, ID: {}",
+                provider.provider_name, provider.account_id
+            );
+            provider.account_id
+        });
 
+        info!("查询域名列表，账户ID过滤: {:?}", provider_account_id);
         let list_domain_result = get_account_domains(&connection, provider_account_id)
             .await
             .unwrap_or_else(|e| {
-                error!("查询域名列表发生了异常！:{}", e);
+                error!("查询域名列表发生了异常！错误详情: {}", e);
                 vec![]
             });
+        info!("成功获取 {} 个域名信息", list_domain_result.len());
 
+        let record: Vec<DnsRecord> = match &filter.selected_domain {
+            None => {
+                debug!("未选择特定域名，不加载DNS记录");
+                vec![]
+            }
+            Some(domain) => {
+                info!(
+                    "查询选定域名的DNS记录: {}, ID: {:?}",
+                    domain.name, domain.id
+                );
+                let result = get_records_by_domain(&connection, domain.id).await;
+                debug!("DNS记录查询结果: {:?}", result);
+                vec![]
+            }
+        };
+
+        info!("查询域名总数");
         let total_count = count_all_domains(&connection).await.unwrap_or_else(|err| {
-            error!("查询总数量域名列表发生了异常！:{}", err);
+            error!("查询域名总数发生了异常！错误详情: {}", err);
             0
         });
 
         info!(
-            "查询到的账号列表数量:{},查询到域名列表数量：「{}」,域名总数量：「{}」",
+            "数据加载完成 - 账号: {}, 域名: {}, 总域名数: {}, DNS记录: {}",
             list_accounts_result.len(),
             list_domain_result.len(),
-            total_count
+            total_count,
+            record.len()
         );
 
         let domain_list = list_domain_result
             .into_iter()
-            .map(|domain| Domain {
-                name: domain.domain_name,
-                provider: DnsProvider::Aliyun,
-                status: DomainStatus::Active,
-                expiry: "".to_string(),
+            .map(|domain| {
+                debug!("转换域名数据: {}", domain.domain_name);
+                Domain {
+                    id: None,
+                    name: domain.domain_name,
+                    provider: DnsProvider::Aliyun,
+                    status: DomainStatus::Active,
+                    expiry: "".to_string(),
+                    records: vec![],
+                }
             })
             .collect();
 
@@ -1106,33 +1540,164 @@ impl DomainManager {
         self.domain_providers.clear();
     }
 
-    fn handle_export(&self) -> Task<Message> {
-        dbg!("正在导出数据");
+    fn handle_sync(&self) -> Task<Message> {
+        info!(
+            "开始同步域名数据，当前提供商数量: {}",
+            self.domain_providers.len()
+        );
         match &self.filter.selected_provider {
-            None => Task::none(),
+            None => {
+                info!("未选择特定提供商，将查询所有域名服务商的域名记录");
+                if self.domain_providers.is_empty() {
+                    warn!("当前没有可用的域名提供商，同步操作将返回空结果");
+                }
+                Task::batch(self.domain_providers.clone().into_iter().map(|provider| {
+                    info!("准备同步提供商: {}", provider.provider_name);
+                    Task::perform(Self::handle_domain_reload(provider), |result| {
+                        let (dns_records, relative_provider) = result;
+                        info!(
+                            "获取提供商 {} 的DNS记录成功，共 {} 条记录",
+                            relative_provider.provider_name,
+                            dns_records.len()
+                        );
+                        Message::QueryDomainResult(dns_records, relative_provider.clone())
+                    })
+                }))
+            }
             Some(provider) => {
+                info!(
+                    "查询单个域名服务商的域名记录: 「{}」",
+                    &provider.provider_name
+                );
                 let domain_provider = provider.clone();
                 Task::perform(Self::handle_domain_reload(domain_provider), |result| {
                     let (dns_records, relative_provider) = result;
-
-                    info!("获取dns记录成功:{:?}", &dns_records);
+                    info!(
+                        "获取提供商 {} 的DNS记录成功，共 {} 条记录",
+                        relative_provider.provider_name,
+                        dns_records.len()
+                    );
                     Message::QueryDomainResult(dns_records, relative_provider.clone())
                 })
             }
         }
     }
 
+    /// 同步域名信息
     fn handle_sync_domain(&mut self) -> Task<Message> {
+        info!("开始同步域名信息，当前同步状态: {}", self.is_syncing);
         self.is_syncing = true;
+
+        // 克隆数据库连接，因为我们需要将它移动到异步任务中
+        let conn = match &self.connection {
+            Some(connection) => {
+                debug!("获取到有效的数据库连接");
+                connection.clone()
+            }
+            None => {
+                error!("当前没有数据库连接！同步域名操作无法继续");
+                return Task::perform(
+                    async { SyncResult::Failed("数据库连接失败".to_string()) },
+                    |result| Message::SyncAllDomainsComplete(result),
+                );
+            }
+        };
+
+        let client = self.dns_client.clone();
+        let conn_clone = conn.clone();
+
         // 同步域名信息
-        Task::perform(Self::sync_domains(self.dns_client.clone()), |dns_records| {
-            info!("获取dns记录成功:{:?}", dns_records);
-            Message::SyncAllDomainsComplete(SyncResult::Success)
-        })
+        Task::perform(
+            async move {
+                info!("开始执行域名同步任务");
+
+                let domains = Self::sync_domains(client).await;
+                info!("从DNS客户端获取到 {} 个域名", domains.len());
+
+                if domains.is_empty() {
+                    error!("没有查询到域名信息，同步任务终止");
+                    return SyncResult::Failed("未获取到域名信息".to_string());
+                }
+
+                // 获取所有账户信息
+                let accounts = match list_accounts(&conn_clone).await {
+                    Ok(accounts) => {
+                        info!("成功获取账户列表，共 {} 个账户", accounts.len());
+                        accounts
+                    }
+                    Err(err) => {
+                        error!("获取账户列表失败: {}，同步任务终止", err);
+                        return SyncResult::Failed("获取账户列表失败".to_string());
+                    }
+                };
+
+                // 遍历所有账户，同步域名信息
+                for (index, account) in accounts.iter().enumerate() {
+                    info!(
+                        "开始处理第 {}/{} 个账户: {}",
+                        index + 1,
+                        accounts.len(),
+                        account.username
+                    );
+                    let provider = DomainProvider::from(account.clone());
+                    let (domains, _) = Self::handle_domain_reload(provider.clone()).await;
+
+                    if domains.is_empty() {
+                        info!("账户 {} 没有域名信息，跳过处理", account.username);
+                        continue;
+                    }
+
+                    info!(
+                        "账户 {} 有 {} 个域名，准备更新到数据库",
+                        account.username,
+                        domains.len()
+                    );
+
+                    // 删除该账户下的所有域名
+                    if let Err(err) = delete_domain_by_account(&conn, provider.account_id).await {
+                        error!(
+                            "删除账户 {} 下的域名失败: {}，跳过此账户处理",
+                            account.username, err
+                        );
+                        continue;
+                    }
+                    debug!("成功删除账户 {} 下的旧域名记录", account.username);
+
+                    // 将域名添加到数据库
+                    let new_domains: Vec<NewDomain> = domains
+                        .into_iter()
+                        .map(|domain| {
+                            debug!("准备添加域名: {}", domain.name);
+                            NewDomain {
+                                domain_name: domain.name,
+                                registration_date: None,
+                                expiration_date: None,
+                                registrar: None,
+                                status: crate::models::domain::DomainStatus::Active,
+                                account_id: provider.account_id,
+                            }
+                        })
+                        .collect();
+
+                    if let Err(err) = add_domain_many(&conn_clone, new_domains).await {
+                        error!("添加账户 {} 的域名失败: {}", account.username, err);
+                    } else {
+                        info!("成功添加账户 {} 的所有域名到数据库", account.username);
+                    }
+                }
+
+                info!("所有账户的域名同步完成");
+                SyncResult::Success
+            },
+            |result| {
+                info!("同步域名完成: {:?}", result);
+                Message::SyncAllDomainsComplete(result)
+            },
+        )
     }
 
-    fn handle_provider_selected(&mut self, provider: DomainProvider) -> Task<Message> {
-        self.filter.selected_provider = Some(provider);
+    fn handle_provider_selected(&mut self, provider: Option<DomainProvider>) -> Task<Message> {
+        self.filter.selected_provider = provider;
         self.in_query = true;
 
         // Task::perform(Self::handle_domain_reload(clone_provider), |result| {
@@ -1153,59 +1718,81 @@ impl DomainManager {
     }
 
     fn add_credential(&mut self) -> Task<Message> {
+        info!("开始添加域名托管商凭证");
         let form_value = self.add_domain_provider_form.clone();
+        debug!(
+            "表单数据: 提供商名称={}, 提供商类型={:?}",
+            form_value.provider_name, form_value.provider
+        );
 
-        //todo 对参数进行校验
+        // 参数校验
+        if form_value.provider.is_none() {
+            error!("提供商类型未选择");
+            self.message = "请选择提供商类型".into();
+            return Task::none();
+        }
+
+        if form_value.credential.is_none() {
+            error!("凭证信息未提供");
+            self.message = "请提供凭证信息".into();
+            return Task::none();
+        }
+
         let domain_provider = NewAccount {
             provider: form_value.provider.unwrap(),
-            username: form_value.provider_name,
+            username: form_value.provider_name.clone(),
             email: "example@qq.com".to_string(),
             credential: form_value.credential.unwrap(),
         };
 
         info!(
-            "添加域名托管商:{},类型：「{}」",
+            "添加域名托管商: {}, 类型: 「{}」",
             &domain_provider.username,
             &domain_provider.provider.name()
         );
+
         // 创建新增域名托管商信息
         match &mut self.connection {
             None => {
+                error!("数据库连接未初始化，无法添加托管商");
                 self.message = "数据库连接未初始化".into();
                 Task::none()
             }
             Some(connection) => {
+                info!("开始异步添加托管商到数据库");
                 let conn_clone = connection.clone();
                 Task::perform(
                     async move {
+                        info!("执行添加托管商操作");
                         let cnn = conn_clone.clone();
                         let account = create_account(cnn, domain_provider).await;
                         account
                     },
-                    |_response| Message::Reload,
+                    |response| {
+                        match response {
+                            Ok(_) => info!("托管商添加成功，准备刷新界面"),
+                            Err(err) => error!("托管商添加失败，错误: {:?}", err),
+                        }
+                        Message::Reload
+                    },
                 )
             }
         }
     }
 }
 
-fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, StyleType> {
+fn domain_row(domain: &Domain, selected: bool, font: Font) -> Element<Message, StyleType> {
     let status = Text::new(domain.status.text());
-    //.style(domain.status.color()
 
-    let expiry = if matches!(domain.status, DomainStatus::Warning) {
-        Text::new(&domain.expiry)
-    } else {
-        Text::new(&domain.expiry)
-    };
+    let expiry = Text::new(&domain.expiry);
 
     let content = Row::new()
         .spacing(10)
         .push(
             Text::new(format!(
-                "{}{}",
+                "{}{}\n",
                 &domain.name,
-                if selected { "[☑️]" } else { "" }
+                if selected { " ✓" } else { "" }
             ))
             .font(font)
             .width(Length::FillPortion(3)),
@@ -1229,7 +1816,20 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Button<Message, St
         )
         .align_y(Alignment::Center);
 
-    button(content).padding(10).width(Length::Fill)
+    // 使用Container替代Button
+    let container = Container::new(content)
+        .padding(10)
+        .width(Length::Fill)
+        .class(if selected {
+            ContainerType::Selected
+        } else {
+            ContainerType::Hoverable
+        });
+
+    // 使用MouseArea使Container可点击
+    mouse_area(container)
+        .on_press(Message::DomainSelected(domain.clone()))
+        .into()
 }
 
 fn init_dns_client(config: &Config) -> Result<DnsClient, Box<dyn Error>> {
@@ -1291,38 +1891,85 @@ fn handle_key(app: &DomainManager, key: &Key) -> Option<Message> {
 }
 
 // 辅助组件
-fn provider_item(provider: &DomainProvider, selected: bool) -> Button<Message, StyleType> {
+fn provider_item(provider: &DomainProvider, selected: bool) -> Element<Message, StyleType> {
     let content = Row::new()
         .spacing(10)
         .push(
-            Text::new(provider.provider.name().to_string())
-                .width(30)
-                .height(30),
+            // 添加图标
+            Text::new("🌐").width(30).height(30),
         )
         .push(Text::new(format!("{}", provider.provider_name,)).width(Length::Fill));
-    button(content).padding(10).width(Length::Fill)
-    // .style(if selected {
-    //     Button::Primary
-    // } else {
-    //     Button::Secondary
-    // })
-}
 
-fn stat_card(title: String, value: String, description: &str) -> Element<Message, StyleType> {
-    Column::new()
-        .spacing(5)
-        .push(Text::new(title).size(14))
-        .push(Text::new(value).size(24))
-        .push(Text::new(description).size(12))
-        .width(Length::FillPortion(1))
+    // 使用Container替代Button
+    let container: Container<Message, StyleType> =
+        Container::new(content).padding(10).width(Length::Fill)
+        .class(if selected {
+            ContainerType::Selected
+        } else {
+            ContainerType::Hoverable
+        });
+
+    // 使用MouseArea使Container可点击
+    mouse_area(container)
+        .on_press(Message::ProviderSelected(Some(provider.clone())))
         .into()
 }
 
+/// 创建统计卡片组件
+///
+/// # 参数
+/// * `title` - 卡片标题
+/// * `value` - 统计数值
+/// * `description` - 描述信息
+fn stat_card(title: String, value: String, description: &str) -> Element<Message, StyleType> {
+    Container::new(
+        Column::new()
+            .spacing(8)
+            .push(
+                Row::new()
+                    .spacing(6)
+                    .push(text("📊").size(12))
+                    .push(Text::new(title).size(12))
+                    .align_y(Alignment::Center)
+            )
+            .push(
+                Text::new(value)
+                    .size(20)
+                    .width(Length::Fill)
+            )
+            .push(
+                Text::new(description)
+                    .size(10)
+                    .width(Length::Fill)
+            )
+            .align_x(Alignment::Start)
+    )
+    .padding(12)
+    .width(Length::FillPortion(1))
+    .class(ContainerType::Bordered)
+    .into()
+}
+
+/// 创建信息行组件
+///
+/// # 参数
+/// * `label` - 标签文本
+/// * `value` - 值文本
 fn info_row<'a>(label: &'a str, value: &'a str) -> Row<'a, Message, StyleType> {
     Row::new()
-        .spacing(10)
-        .push(Text::new(label).width(80))
-        .push(Text::new(value))
+        .spacing(12)
+        .push(
+            Text::new(label)
+                .size(12)
+                .width(Length::Fixed(120.0))
+        )
+        .push(
+            Text::new(value)
+                .size(12)
+                .width(Length::Fill)
+        )
+        .align_y(Alignment::Center)
+        .padding([4, 0])
 }
 
 fn dns_row(record: &DnsRecord, index: usize) -> Row<Message, StyleType> {
@@ -1346,6 +1993,7 @@ mod tests {
     use crate::get_text;
     use crate::gui::manager::DomainManager;
     use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
+    use crate::gui::model::gui::ReloadModel;
     use crate::gui::pages::domain::DomainProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::gui::types::message::Message;
@@ -1396,31 +2044,37 @@ mod tests {
     // needed to not collide with other tests generating configs files
     fn test_correctly_reload_complete() {
         let mut app = DomainManager::default();
-        let _ = app.update(Message::ReloadComplete((
-            vec![DomainProvider {
-                account_id: 1,
-                provider_name: "test".to_string(),
-                provider: DnsProvider::Aliyun,
-                credential: Credential::UsernamePassword(UsernamePasswordCredential {
-                    username: "test".to_string(),
-                    password: "pass".to_string(),
-                }),
-            }],
-            vec![Domain {
-                name: "test_domain".to_string(),
-                provider: DnsProvider::Aliyun,
-                status: DomainStatus::Active,
-                expiry: "2023-12-12".to_string(),
-            }],
-            vec![DnsRecord {
-                name: "www".to_string(),
-                record_type: "A".to_string(),
-                value: "127.0.0.1".to_string(),
-                ttl: "6000".to_string(),
-            }],
-            1,
-            "".into(),
+
+        let providers = vec![DomainProvider {
+            account_id: 1,
+            provider_name: "test".to_string(),
+            provider: DnsProvider::Aliyun,
+            credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                username: "test".to_string(),
+                password: "pass".to_string(),
+            }),
+        }];
+
+        let domains = vec![Domain {
+            id: None,
+            name: "test_domain".to_string(),
+            provider: DnsProvider::Aliyun,
+            status: DomainStatus::Active,
+            expiry: "2023-12-12".to_string(),
+            records: vec![],
+        }];
+
+        let records = vec![DnsRecord {
+            name: "www".to_string(),
+            record_type: "A".to_string(),
+            value: "127.0.0.1".to_string(),
+            ttl: "6000".to_string(),
+        }];
+
+        let _ = app.update(Message::ReloadComplete(ReloadModel::new_from(
+            providers, domains, records, 1,
         )));
+
         assert_eq!(app.domain_providers.len(), 1);
         let provider = app.domain_providers.get(0);
         assert_eq!(provider.unwrap().provider_name, "test");
