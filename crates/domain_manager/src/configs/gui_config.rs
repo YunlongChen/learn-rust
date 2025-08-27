@@ -15,6 +15,41 @@ pub enum LICENCE {
     MulanPSL2,
 }
 
+/// 背景类型枚举
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum BackgroundType {
+    /// 无背景
+    None,
+    /// 中国红背景
+    ChinaRed,
+    /// 红色旗袍少女背景
+    QipaoGirl,
+}
+
+impl Default for BackgroundType {
+    fn default() -> Self {
+        BackgroundType::None
+    }
+}
+
+/// 背景配置
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BackgroundConfig {
+    /// 背景类型
+    pub background_type: BackgroundType,
+    /// 背景透明度 (0.0 - 1.0)
+    pub opacity: f32,
+}
+
+impl Default for BackgroundConfig {
+    fn default() -> Self {
+        BackgroundConfig {
+            background_type: BackgroundType::None,
+            opacity: 0.8,
+        }
+    }
+}
+
 ///
 ///   "name": "Domain Manager",
 //     "description": "A simple domain manager",
@@ -62,6 +97,9 @@ pub struct Config {
     /// 窗口状态配置
     #[serde(default)]
     pub window_state: WindowState,
+    /// 背景配置
+    #[serde(default)]
+    pub background_config: BackgroundConfig,
 }
 
 impl From<String> for Config {
@@ -80,6 +118,7 @@ impl From<String> for Config {
             ali_access_key_id: None,
             ali_access_key_secret: None,
             window_state: WindowState::default(),
+            background_config: BackgroundConfig::default(),
         }
     }
 }
@@ -105,6 +144,7 @@ impl Default for Config {
             ali_access_key_id: None,
             ali_access_key_secret: None,
             window_state: WindowState::default(),
+            background_config: BackgroundConfig::default(),
         }
     }
 }

@@ -13,6 +13,7 @@ use crate::translations::translations_3::thumbnail_mode_translation;
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
+use crate::configs::gui_config::BackgroundType;
 use crate::{get_text, StyleType, DOMAIN_MANAGER_LOWERCASE};
 use iced::widget::text::LineHeight;
 use iced::widget::tooltip::Position;
@@ -84,6 +85,19 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     Some(Message::ChangeLocale(Locale::Chinese)),
                     Icon::Language,
                     get_text("change_locale"),
+                ))
+                .push(get_custom_button(
+                    font,
+                    config.language,
+                    SettingsPage::Appearance,
+                    Some(Message::OpenSettings(SettingsPage::Appearance)),
+                    Icon::Generals,
+                    get_text("settings"),
+                ))
+                .push(get_background_button(
+                    font,
+                    config.language,
+                    &app.config.background_config.background_type,
                 ))
                 .push(get_button_window_minimize(
                     font,
@@ -233,6 +247,51 @@ pub fn get_button_window_maximize<'a>(
     .on_press(Message::WindowMaximize);
 
     Tooltip::new(content, Text::new(get_text("maximize")), Position::Top)
+        .gap(5)
+        .class(ContainerType::Tooltip)
+}
+
+/// 创建背景切换按钮
+/// 
+/// # 参数
+/// * `font` - 字体
+/// * `language` - 语言
+/// * `current_background` - 当前背景类型
+pub fn get_background_button<'a>(
+    font: Font,
+    language: Language,
+    current_background: &BackgroundType,
+) -> Tooltip<'a, Message, StyleType> {
+    let (icon, tooltip, next_background) = match current_background {
+        BackgroundType::None => (
+            Icon::Image,
+            get_text("background.china_red"),
+            BackgroundType::ChinaRed,
+        ),
+        BackgroundType::ChinaRed => (
+            Icon::Image,
+            get_text("background.qipao_girl"),
+            BackgroundType::QipaoGirl,
+        ),
+        BackgroundType::QipaoGirl => (
+            Icon::Image,
+            get_text("background.none"),
+            BackgroundType::None,
+        ),
+    };
+
+    let content = button(
+        icon.to_text()
+            .size(20)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center),
+    )
+    .padding(0)
+    .height(40)
+    .width(60)
+    .on_press(Message::ChangeBackground(next_background));
+
+    Tooltip::new(content, Text::new(tooltip), Position::Top)
         .gap(5)
         .class(ContainerType::Tooltip)
 }

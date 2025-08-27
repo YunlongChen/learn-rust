@@ -8,6 +8,7 @@ use iced::{Background, Border, Color, Shadow};
 
 use crate::gui::styles::style_constants::{BORDER_ROUNDED_RADIUS, BORDER_WIDTH};
 use crate::gui::styles::types::gradient_type::{get_gradient_headers, GradientType};
+use crate::configs::gui_config::BackgroundType;
 use crate::StyleType;
 
 #[derive(Debug, Clone, Copy)]
@@ -48,6 +49,8 @@ pub enum ContainerType {
     ModalBackground,
     Selected,  // 选中状态
     Hoverable, // 可悬停
+    /// 背景图片容器
+    BackgroundImage(BackgroundType, f32), // 背景类型和透明度
 }
 
 impl ContainerType {
@@ -96,6 +99,10 @@ impl ContainerType {
                 ContainerType::Hoverable => Background::Color(Color {
                     a: 0.1,
                     ..colors.secondary
+                }),
+                ContainerType::BackgroundImage(_, opacity) => Background::Color(Color {
+                    a: *opacity,
+                    ..Color::TRANSPARENT
                 }),
             }),
             border: Border {
