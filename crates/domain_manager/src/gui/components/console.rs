@@ -9,6 +9,7 @@ use iced::widget::{
     button, column, container, row, scrollable, text, Column, Container, Row, Scrollable, Text,
 };
 use iced::{Alignment, Element, Font, Length};
+use tracing::debug;
 use std::collections::VecDeque;
 
 /// 控制台标签页类型
@@ -87,7 +88,7 @@ pub fn console_view<'a>(
     font: Font,
 ) -> Container<'a, Message, StyleType> {
     let header = create_console_header(&console_state.current_tab, font);
-    
+
     let content = match console_state.current_tab {
         ConsoleTab::ApiRequests => create_api_logs_view(&console_state.api_logs, font),
         ConsoleTab::DatabaseQueries => create_db_logs_view(&console_state.db_logs, font),
@@ -157,6 +158,9 @@ fn create_api_logs_view<'a>(
     logs: &'a VecDeque<ApiRequestLog>,
     font: Font,
 ) -> Container<'a, Message, StyleType> {
+
+    debug!("create_api_logs_view:{:?}",logs.len());
+
     let mut content = Column::new().spacing(5);
 
     if logs.is_empty() {
@@ -168,9 +172,8 @@ fn create_api_logs_view<'a>(
                     .class(TextType::Subtitle)
             )
             .width(Length::Fill)
-            .height(Length::Fill)
             .center_x(Length::Fill)
-            .center_y(Length::Fill)
+            .padding(50)
         );
     } else {
         // 添加表头
@@ -279,7 +282,6 @@ fn create_api_logs_view<'a>(
             .width(Length::Fill)
     )
     .width(Length::Fill)
-    .height(Length::Fill)
     .class(ContainerType::BorderedRound)
 }
 
@@ -299,9 +301,8 @@ fn create_db_logs_view<'a>(
                     .class(TextType::Subtitle)
             )
             .width(Length::Fill)
-            .height(Length::Fill)
             .center_x(Length::Fill)
-            .center_y(Length::Fill)
+            .padding(50)
         );
     } else {
         // 添加表头
@@ -387,6 +388,5 @@ fn create_db_logs_view<'a>(
             .width(Length::Fill)
     )
     .width(Length::Fill)
-    .height(Length::Fill)
     .class(ContainerType::BorderedRound)
 }
