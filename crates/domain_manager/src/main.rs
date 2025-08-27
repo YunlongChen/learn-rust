@@ -1,4 +1,4 @@
-#![cfg_attr(windows, windows_subsystem = "windows")]
+// #![cfg_attr(windows, windows_subsystem = "windows")]
 
 mod api;
 mod cli;
@@ -36,9 +36,8 @@ use tracing::{error, info};
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;
 const CONTENT_SIZE: u16 = 20;
-pub(crate) const VERSION: &str = "0.0.1";
-
-pub(crate) const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
+pub const VERSION: &str = "0.0.1";
+pub const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
 
 /// Update period (milliseconds)
 pub const PERIOD_TICK: u64 = 1000;
@@ -116,9 +115,12 @@ pub async fn main() -> iced::Result {
         DomainManager::update,
         DomainManager::view,
     )
+    .theme(DomainManager::theme)
     .window(window::Settings {
-        // size: Size::new(1920.0, 1080.0),
+        size: iced::Size::new(config.window_state.width, config.window_state.height),
+        position: iced::window::Position::Specific(iced::Point::new(config.window_state.x, config.window_state.y)),
         icon,
+        decorations: false,  // 禁用窗口装饰器以实现自定义拖动
         ..Default::default()
     })
     .subscription(DomainManager::keyboard_subscription)

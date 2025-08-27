@@ -78,7 +78,7 @@ impl Icon {
             Icon::Inspect => '5',
             Icon::Moon => 'G',
             Icon::Notification => '7',
-            Icon::Overview => 'd',
+            Icon::Overview => 'O',
             Icon::PacketsThreshold => 'e',
             Icon::Restore => 'k',
             Icon::Rocket => 'S',
@@ -99,7 +99,7 @@ impl Icon {
             Icon::Feedback => '=',
             Icon::News => '>',
             Icon::Update => '<',
-            Icon::Sync => 'd',
+            Icon::Sync => 'D',
             Icon::Add => 'P',
         }
     }

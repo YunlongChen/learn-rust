@@ -3,11 +3,11 @@ use crate::api::model::domain::DomainQueryResponse;
 use crate::gui::model::domain::DnsProvider::Aliyun;
 use crate::gui::model::domain::{Domain, DomainName};
 use crate::model::dns_record_response::{DnsRecordResponse, Record};
+use anyhow::Result;
 use domain_client::RequestBody;
 use reqwest::{Client, Method};
 use serde_json::json;
 use std::collections::HashMap;
-use std::error::Error;
 use tracing::{error, info};
 
 #[derive(Debug, Clone)]
@@ -44,7 +44,7 @@ impl AliyunDnsClient {
         action: &str,
         version: &str,
         body: RequestBody,
-    ) -> Result<serde_json::Value, Box<dyn Error>> {
+    ) -> Result<serde_json::Value> {
         info!(
             "请求后台接口，当前密钥：「{:?}」，请求参数：「{:?}」",
             &self.access_key_id, &body
@@ -61,19 +61,16 @@ impl AliyunDnsClient {
             &self.access_key_id,
             &self.access_key_secret,
         )
-        .await?;
+        .await;
         info!("接口请求结果:{}", json!(&response));
-        Ok(serde_json::from_str(&response)?)
+
+        Ok(serde_json::from_str(&response.unwrap())?)
     }
 }
 
 impl DnsClientTrait for AliyunDnsClient {
     /// 查询域名列表
-    async fn list_domains(
-        &self,
-        page_num: u32,
-        page_size: u32,
-    ) -> Result<Vec<DomainName>, Box<dyn Error>> {
+    async fn list_domains(&self, page_num: u32, page_size: u32) -> Result<Vec<DomainName>> {
         let query_params = &[
             ("RegionId", self.region_id.as_str()),
             ("PageNum", &page_num.to_string()),
@@ -122,12 +119,12 @@ impl DnsClientTrait for AliyunDnsClient {
         }
     }
 
-    fn query_domain(&self, _domain: &Domain) -> Result<DomainQueryResponse, Box<dyn Error>> {
+    fn query_domain(&self, _domain: &Domain) -> Result<DomainQueryResponse> {
         todo!()
     }
 
     /// 查询DNS记录
-    async fn list_dns_records(&self, domain_name: String) -> Result<Vec<Record>, Box<dyn Error>> {
+    async fn list_dns_records(&self, domain_name: String) -> Result<Vec<Record>> {
         let query_params = &[
             ("RegionId", self.region_id.as_str()),
             ("DomainName", domain_name.as_str()),
@@ -137,7 +134,7 @@ impl DnsClientTrait for AliyunDnsClient {
         let mut body = HashMap::new();
         body.insert("PageSize".to_string(), json!(100));
 
-        let response = self
+        let response_result = self
             .call_ali_api(
                 Method::GET,
                 "dns.aliyuncs.com",
@@ -147,41 +144,122 @@ impl DnsClientTrait for AliyunDnsClient {
                 "2015-01-09",
                 RequestBody::Json(body),
             )
-            .await?;
+            .await
+            .map_err(|err| {
+                error!("获取域名解析列表发生了异常：「{:?}」", err);
+                err.to_string()
+            });
 
-        info!("调用结果：{:?}", response);
+        info!("调用结果：{:?}", response_result);
 
-        let result: Result<DnsRecordResponse, serde_json::Error> = response.try_into();
+        let result: Result<DnsRecordResponse, serde_json::Error> =
+            response_result.unwrap().try_into();
         match result {
             Ok(result) => Ok(result.domain_records.record),
             Err(err) => {
-                info!("调用失败：{:?}", err);
+                info!("反序列化结果异常：{:?}", err);
                 Err(err.into())
             }
         }
     }
 
-    fn add_dns_record(
-        &self,
-        domain_name: &DomainName,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error>> {
-        todo!()
+    /// 添加DNS记录
+    fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+        let query_params = &[
+            ("RegionId", self.region_id.as_str()),
+            ("DomainName", domain_name.name.as_str()),
+            ("RR", record.rr.as_str()),
+            ("Type", record.record_type.get_value()),
+            ("Value", record.value.as_str()),
+            ("TTL", &record.ttl.to_string()),
+        ];
+
+        let mut body = HashMap::new();
+        body.insert("DomainName".to_string(), json!(domain_name.name));
+        body.insert("RR".to_string(), json!(record.rr));
+        body.insert("Type".to_string(), json!(record.record_type.get_value()));
+        body.insert("Value".to_string(), json!(record.value));
+        body.insert("TTL".to_string(), json!(record.ttl));
+
+        let rt = tokio::runtime::Runtime::new()?;
+        let response = rt.block_on(async {
+            self.call_ali_api(
+                Method::POST,
+                "dns.aliyuncs.com",
+                "/",
+                query_params,
+                "AddDomainRecord",
+                "2015-01-09",
+                RequestBody::Json(body),
+            )
+            .await
+        })?;
+
+        info!("添加DNS记录结果：{:?}", response);
+        Ok(())
     }
 
-    fn delete_dns_record(
-        &self,
-        domain_name: &DomainName,
-        record_id: &str,
-    ) -> Result<(), Box<dyn Error>> {
-        todo!()
+    /// 删除DNS记录
+    fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()> {
+        let query_params = &[
+            ("RegionId", self.region_id.as_str()),
+            ("RecordId", record_id),
+        ];
+
+        let mut body = HashMap::new();
+        body.insert("RecordId".to_string(), json!(record_id));
+
+        let rt = tokio::runtime::Runtime::new()?;
+        let response = rt.block_on(async {
+            self.call_ali_api(
+                Method::POST,
+                "dns.aliyuncs.com",
+                "/",
+                query_params,
+                "DeleteDomainRecord",
+                "2015-01-09",
+                RequestBody::Json(body),
+            )
+            .await
+        })?;
+
+        info!("删除DNS记录结果：{:?}", response);
+        Ok(())
     }
 
-    fn update_dns_record(
-        &self,
-        domain_name: &DomainName,
-        record: &Record,
-    ) -> Result<(), Box<dyn Error>> {
-        todo!()
+    /// 更新DNS记录
+    fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+        let query_params = &[
+            ("RegionId", self.region_id.as_str()),
+            ("RecordId", record.record_id.as_str()),
+            ("RR", record.rr.as_str()),
+            ("Type", record.record_type.get_value()),
+            ("Value", record.value.as_str()),
+            ("TTL", &record.ttl.to_string()),
+        ];
+
+        let mut body = HashMap::new();
+        body.insert("RecordId".to_string(), json!(record.record_id));
+        body.insert("RR".to_string(), json!(record.rr));
+        body.insert("Type".to_string(), json!(record.record_type.get_value()));
+        body.insert("Value".to_string(), json!(record.value));
+        body.insert("TTL".to_string(), json!(record.ttl));
+
+        let rt = tokio::runtime::Runtime::new()?;
+        let response = rt.block_on(async {
+            self.call_ali_api(
+                Method::POST,
+                "dns.aliyuncs.com",
+                "/",
+                query_params,
+                "UpdateDomainRecord",
+                "2015-01-09",
+                RequestBody::Json(body),
+            )
+            .await
+        })?;
+
+        info!("更新DNS记录结果：{:?}", response);
+        Ok(())
     }
 }

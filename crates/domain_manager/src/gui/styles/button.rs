@@ -17,6 +17,7 @@ use crate::StyleType;
 pub enum ButtonType {
     #[default]
     Standard,
+    Primary,
     BorderedRound,
     BorderedRoundSelected,
     TabActive,
@@ -40,6 +41,7 @@ impl ButtonType {
                 ButtonType::TabActive | ButtonType::BorderedRoundSelected => {
                     Background::Color(mix_colors(colors.primary, ext.buttons_color))
                 }
+                ButtonType::Primary => Background::Color(colors.primary),
                 ButtonType::Starred => Background::Color(colors.starred),
                 ButtonType::BorderedRound => Background::Color(Color {
                     a: ext.alpha_round_containers,
@@ -89,6 +91,7 @@ impl ButtonType {
                 },
             },
             text_color: match self {
+                ButtonType::Primary => colors.text_headers,
                 ButtonType::Starred => Color::BLACK,
                 ButtonType::SortArrows => Color {
                     a: if ext.is_nightly { 0.2 } else { 0.7 },
@@ -132,6 +135,7 @@ impl ButtonType {
                 },
             },
             background: Some(match self {
+                ButtonType::Primary => Background::Color(mix_colors(colors.primary, colors.secondary)),
                 ButtonType::Starred => Background::Color(colors.starred),
                 ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail => {
                     Background::Color(Color::TRANSPARENT)
@@ -178,6 +182,7 @@ impl ButtonType {
                 },
             },
             text_color: match self {
+                ButtonType::Primary => colors.text_headers,
                 ButtonType::Starred => Color::BLACK,
                 ButtonType::Gradient(_) | ButtonType::Thumbnail => colors.text_headers,
                 ButtonType::SortArrowActive | ButtonType::SortArrows => colors.secondary,

@@ -1,29 +1,49 @@
-use crate::models::domain::DomainEntity;
+use crate::models::domain::{DomainEntity, DomainStatus, NewDomain};
 use crate::models::record::{NewRecord, RecordEntity};
-use chrono::Utc;
-use sea_orm::DatabaseConnection;
+use crate::storage::{dns_record, DnsRecordDbEntity};
+use anyhow::Result;
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
+};
 use std::error::Error;
+use tracing::{error, info};
+use ActiveValue::Set;
 
 /// 添加新域名
-pub fn add_record(
+pub async fn add_record(
     conn: &DatabaseConnection,
     new_record: NewRecord,
-    domain_entity: &DomainEntity,
-) -> Result<RecordEntity, Box<dyn Error>> {
-    let now = Utc::now().to_string();
+) -> Result<RecordEntity, String> {
+    let model = dns_record::ActiveModel {
+        id: Default::default(),
+        domain_id: Set(new_record.domain_id.clone()),
+        record_type: Set(new_record.record_type.clone()),
+        name: Set(new_record.record_name.clone()),
+        value: Set(new_record.record_value.clone()),
+        ttl: Set(new_record.ttl.clone()),
+        created_at: Default::default(),
+        updated_at: Default::default(),
+        priority: Default::default(),
+    };
 
-    // let record_id = conn.last_insert_rowid();
-
-    Ok(RecordEntity {
-        // id: record_id,
-        id: 0,
-        account_id: new_record.account_id,
-        domain_id: domain_entity.id,
-        record_name: new_record.record_name,
-        record_type: new_record.record_type,
-        record_value: new_record.record_value,
-        ttl: new_record.ttl,
-    })
+    Ok(DnsRecordDbEntity::insert(model)
+        .exec(conn)
+        .await
+        .map(|insert_result|
+            // 创建记录
+            RecordEntity {
+                id: insert_result.last_insert_id,
+                domain_id: new_record.domain_id,
+                record_name: new_record.record_name,
+                record_type: new_record.record_type,
+                record_value: new_record.record_value,
+                ttl: new_record.ttl,
+            })
+        .map_err(|err| {
+            //
+            error!("发布信息了:{:?}", err);
+            "添加记录发生了异常！"
+        })?)
 }
 
 /// 更新域名信息
@@ -50,31 +70,32 @@ pub fn update_domain(
 }
 
 /// 获取用户的所有域名
-pub fn get_account_domains(
+pub async fn get_records_by_domain(
     conn: &DatabaseConnection,
-    domain_id: Option<i32>,
-) -> Result<Vec<RecordEntity>, Box<dyn Error>> {
-    // let mut stmt = conn.prepare(
-    //     "select id, account_id, domain_id, record_name, record_type, value, ttl, create_at from domain_records where domain_id = ?1;",
-    // )?;
+    domain_id: Option<i64>,
+) -> Result<Vec<RecordEntity>> {
+    let select = DnsRecordDbEntity::find();
 
-    // let domain_iter = stmt.query_map([domain_id], |row| {
-    //     Ok(RecordEntity {
-    //         id: row.get(0)?,
-    //         account_id: row.get(1)?,
-    //         domain_id: row.get(2)?,
-    //         record_name: row.get(3)?,
-    //         record_type: row.get(4)?,
-    //         record_value: row.get(5)?,
-    //         ttl: row.get(6)?,
-    //     })
-    // })?;
-    //
-    // let mut records: Vec<RecordEntity> = Vec::new();
-    // for domain in domain_iter {
-    //     records.push(domain?);
-    // }
-    Ok(vec![])
+    let select = match domain_id {
+        None => select,
+        Some(domain_condition) => select.filter(dns_record::Column::DomainId.eq(domain_condition)),
+    };
+
+    let find_result = select.all(conn).await?;
+
+    // 查询域名记录成功
+    info!("查询成功了！：「{}」", find_result.len());
+    Ok(find_result
+        .into_iter()
+        .map(|record| RecordEntity {
+            id: record.id,
+            domain_id: record.domain_id,
+            record_name: record.name,
+            record_type: record.record_type,
+            record_value: record.value,
+            ttl: record.ttl,
+        })
+        .collect())
 }
 
 /// 删除域名
@@ -83,79 +104,95 @@ pub fn delete_domain(conn: &DatabaseConnection, domain_id: i32) -> Result<(), Bo
     Ok(())
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::gui::model::domain::DnsProvider;
-//     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
-//     use crate::models::account::NewAccount;
-//     use crate::models::domain::{DomainStatus, NewDomain};
-//     use crate::storage::{add_domain,  init_memory_database};
-//     use secrecy::{ExposeSecret, SecretString};
-//
-//     #[test]
-//     fn it_works() {
-//         let mut connection = init_memory_database().unwrap();
-//
-//         let _vault = String::from("stanic");
-//
-//         let password: SecretString = SecretString::from("12123");
-//
-//         let account = create_account(
-//             &mut connection,
-//             NewAccount {
-//                 provider: DnsProvider::Aliyun,
-//                 username: "stanic".to_string(),
-//                 email: "example@qq.com".to_string(),
-//                 credential: Credential::UsernamePassword(UsernamePasswordCredential {
-//                     username: _vault.clone(),
-//                     password: password.expose_secret().to_string(),
-//                 }),
-//                 master_key: Default::default(),
-//                 api_keys: vec![],
-//                 created_at: Utc::now().to_string(),
-//             },
-//         )
-//         .expect("创建连接失败！");
-//
-//         let new_domain = NewDomain {
-//             account_id: account.id,
-//             domain_name: "".to_string(),
-//             registration_date: None,
-//             expiration_date: None,
-//             registrar: None,
-//             status: DomainStatus::Active,
-//         };
-//
-//         let new_domain_entity = add_domain(&mut connection, new_domain).unwrap();
-//
-//         assert_eq!(account.username, "stanic", "变量名错误");
-//
-//         let record = add_record(
-//             &mut connection,
-//             NewRecord {
-//                 account_id: account.id,
-//                 domain_id: new_domain_entity.id,
-//                 record_name: String::from("name"),
-//                 record_type: String::from("@"),
-//                 record_value: String::from("127.0.0.1"),
-//                 ttl: 10,
-//             },
-//             &new_domain_entity,
-//         )
-//         .expect("账号创建失败");
-//
-//         assert_eq!(record.record_value, "127.0.0.1", "保存用户名异常");
-//         assert_eq!(record.account_id, account.id, "保存用户名异常");
-//
-//         let domain_list = get_account_domains(&connection, Some(account.id)).expect("查询账号失败");
-//         assert_eq!(domain_list.len(), 1, "获取账号失败");
-//
-//         let record = domain_list.get(0).unwrap();
-//         assert_eq!(record.record_name, "name");
-//         assert_eq!(record.record_value, "127.0.0.1");
-//
-//         let domain_list = get_account_domains(&connection, None).expect("查询账号失败");
-//         assert_eq!(domain_list.len(), 0, "获取账号失败");
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::model::domain::DnsProvider;
+    use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
+    use crate::models::account::NewAccount;
+    use crate::storage::{add_domain, create_account, init_memory_database};
+    use chrono::Utc;
+    use secrecy::{ExposeSecret, SecretString};
+    use serde_test::assert_de_tokens;
+    use std::ops::Index;
+    use tracing_test::traced_test;
+
+    #[traced_test]
+    #[tokio::test]
+    pub async fn it_works() {
+        let connection = init_memory_database().await.unwrap();
+
+        let _vault = String::from("stanic");
+
+        let password: SecretString = SecretString::from("12123");
+
+        let account = create_account(
+            connection.clone(),
+            NewAccount {
+                provider: DnsProvider::Aliyun,
+                username: "stanic".to_string(),
+                email: "example@qq.com".to_string(),
+                credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                    username: _vault.clone(),
+                    password: password.expose_secret().to_string(),
+                }),
+            },
+        )
+        .await
+        .expect("查询数据库发生了异常".into());
+
+        assert_eq!(account.username, "stanic", "变量名错误");
+
+        let new_account = account.clone();
+
+        let domain = add_domain(
+            &connection,
+            NewDomain {
+                domain_name: String::from("chenyunlong.cn"),
+                registration_date: Some(Utc::now().to_string()),
+                expiration_date: None,
+                registrar: None,
+                status: DomainStatus::Active,
+                account_id: new_account.id,
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(domain.domain_name, "chenyunlong.cn", "保存用户名异常");
+        assert_eq!(domain.account_id, account.id, "保存用户名异常");
+        assert_eq!(domain.updated_at, None);
+
+        let new_record = NewRecord {
+            account_id: account.id,
+            domain_id: domain.id,
+            record_name: "www".to_string(),
+            record_type: "A".to_string(),
+            record_value: "127.0.0.1".to_string(),
+            ttl: 100,
+        };
+
+        let record = add_record(&connection, new_record).await;
+        assert!(record.is_ok());
+
+        let record_entity = record.unwrap();
+
+        assert_eq!(record_entity.domain_id, domain.id);
+        assert_eq!(record_entity.record_value, "127.0.0.1");
+        assert_eq!(record_entity.ttl, 100);
+
+        let vec = get_records_by_domain(&connection, Some(domain.id))
+            .await
+            .unwrap();
+
+        assert_eq!(vec.len(), 1);
+
+        let vec = get_records_by_domain(&connection, None).await.unwrap();
+
+        assert_eq!(vec.len(), 1);
+
+        let vec = get_records_by_domain(&connection, Some(2)).await.unwrap();
+
+        assert_eq!(vec.len(), 0);
+    }
+}

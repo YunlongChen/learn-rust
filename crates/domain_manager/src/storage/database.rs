@@ -1,15 +1,13 @@
 use crate::configs::database::DatabaseConfig;
-use crate::configs::get_database_path;
+use crate::models::domain::{DomainStatus, NewDomain};
 use crate::storage::migration::migration::Migrator;
+use crate::storage::{add_domain, add_domain_many, count_all_domains, list_domains};
 use anyhow::Context;
-use directories::ProjectDirs;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use sea_orm::entity::prelude::*;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, Schema};
 use sea_orm_migration::MigratorTrait;
 use std::cmp::min;
-use std::fs;
-use std::path::PathBuf;
 use std::time::Duration;
 use tracing::log::LevelFilter::Info;
 use tracing::{debug, info};
@@ -21,10 +19,10 @@ const CURRENT_DB_VERSION: u32 = 1;
 pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<DatabaseConnection> {
     debug!("建立数据库连接");
     // postgres
-    let string: String = database_config.into();
-    debug!("建立数据库连接，地址：「{}」", &string);
+    let url: String = database_config.into();
+    debug!("建立数据库连接，地址：「{}」", &url);
 
-    let mut options = ConnectOptions::new(string);
+    let mut options = ConnectOptions::new(url);
 
     let cpus = num_cpus::get() as u32;
     debug!("当前系统cpu数量:{}", cpus);
@@ -46,7 +44,7 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
 
     match result {
         Ok(connection) => {
-            debug!("连接创建成功");
+            info!("连接创建成功");
             Migrator::up(&connection, None)
                 .await
                 .expect("迁移数据库发生了异常！");
@@ -177,3 +175,104 @@ pub async fn init_memory_database() -> anyhow::Result<DatabaseConnection> {
 //         .execute(db.get_database_backend().build(&stmt))
 //         .await;
 // }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gui::model::domain::DnsProvider;
+    use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
+    use crate::models::account::NewAccount;
+    use crate::storage::{create_account, init_memory_database};
+    use chrono::Utc;
+    use secrecy::{ExposeSecret, SecretString};
+    use tracing_test::traced_test;
+
+    #[traced_test]
+    #[tokio::test]
+    pub async fn it_works() {
+        let connection = init_memory_database().await.unwrap();
+
+        let _vault = String::from("stanic");
+
+        let password: SecretString = SecretString::from("12123");
+
+        let account = create_account(
+            connection.clone(),
+            NewAccount {
+                provider: DnsProvider::Aliyun,
+                username: "stanic".to_string(),
+                email: "example@qq.com".to_string(),
+                credential: Credential::UsernamePassword(UsernamePasswordCredential {
+                    username: _vault.clone(),
+                    password: password.expose_secret().to_string(),
+                }),
+            },
+        )
+        .await
+        .expect("查询数据库发生了异常".into());
+
+        assert_eq!(account.username, "stanic", "变量名错误");
+
+        let new_account = account.clone();
+
+        let domain = add_domain(
+            &connection,
+            NewDomain {
+                domain_name: String::from("chenyunlong.cn"),
+                registration_date: Some(Utc::now().to_string()),
+                expiration_date: None,
+                registrar: None,
+                status: DomainStatus::Active,
+                account_id: new_account.id,
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(domain.domain_name, "chenyunlong.cn", "保存用户名异常");
+        assert_eq!(domain.account_id, account.id, "保存用户名异常");
+        assert_eq!(domain.updated_at, None);
+
+        let domain_list = crate::storage::get_account_domains(&connection, Some(account.id))
+            .await
+            .expect("查询账号失败");
+        assert_eq!(domain_list.len(), 1, "获取账号失败");
+
+        let domain_list = crate::storage::get_account_domains(&connection, None)
+            .await
+            .expect("查询账号失败");
+        assert_eq!(domain_list.len(), 1, "获取账号失败");
+
+        let domain_list = list_domains(&connection).await.expect("查询账号失败");
+        assert_eq!(domain_list.len(), 1, "获取账号失败");
+
+        add_domain_many(
+            &connection,
+            vec![NewDomain {
+                domain_name: String::from("stanic.xyz"),
+                registration_date: Some(Utc::now().to_string()),
+                expiration_date: None,
+                registrar: None,
+                status: DomainStatus::Active,
+                account_id: new_account.id,
+            }],
+        )
+        .await
+        .unwrap();
+
+        let domain_list = crate::storage::get_account_domains(&connection, Some(account.id))
+            .await
+            .expect("查询域名失败");
+        assert_eq!(domain_list.len(), 2, "获取账号失败");
+
+        let result = domain_list
+            .iter()
+            .find(|domain| domain.domain_name == "stanic.xyz")
+            .unwrap();
+        assert_eq!(result.status, DomainStatus::Active);
+        assert_eq!(result.account_id, account.id);
+
+        let domains_count = count_all_domains(&connection).await.unwrap();
+        assert_eq!(domains_count, 2, "查询域名数量异常，数量对不上！");
+    }
+}

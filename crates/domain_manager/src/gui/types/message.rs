@@ -13,6 +13,7 @@ use crate::utils::types::web_page::WebPage;
 use iced::keyboard::Key;
 use iced::window;
 use std::fmt::Display;
+use crate::gui::model::gui::ReloadModel;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -45,15 +46,7 @@ pub enum Message {
     },
     Mock,
     Reload,
-    ReloadComplete(
-        (
-            Vec<DomainProvider>,
-            Vec<Domain>,
-            Vec<DnsRecord>,
-            u64,
-            String,
-        ),
-    ),
+    ReloadComplete(ReloadModel),
     QueryDomain,
     QueryDomainResult(Vec<Domain>, DomainProvider),
     QueryDnsResult(Vec<Record>),
@@ -89,8 +82,11 @@ pub enum Message {
     Quit,
     CloseSettings,
     WindowId(Option<window::Id>),
+    /// 拖动窗口
+    DragWindow,
+    StartDragWindow(iced::window::Id),
 
-    ProviderSelected(DomainProvider),
+    ProviderSelected(Option<DomainProvider>),
     DomainSelected(Domain),
     SearchChanged(String),
     AddDomain,
@@ -98,7 +94,7 @@ pub enum Message {
     EditDnsRecord(usize),
     DeleteDnsRecord(usize),
     Filter,
-    Export,
+    Sync,
     ReSet,
     FeatureClicked(String),
     AddDnsProvider,

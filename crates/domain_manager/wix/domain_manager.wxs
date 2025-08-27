@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product
+    Id='*'
+    Name='Domain Manager'
+    UpgradeCode='12345678-1234-1234-1234-123456789012'
+    Manufacturer='Domain Manager Team'
+    Language='1033'
+    Codepage='1252'
+    Version='$(var.Version)'>
+
+    <Package Id='*'
+      Keywords='Installer'
+      Description='Domain Manager Windows Installer'
+      Manufacturer='Domain Manager Team'
+      InstallerVersion='450'
+      Languages='1033'
+      Compressed='yes'
+      SummaryCodepage='1252' />
+
+    <MajorUpgrade
+      Schedule='afterInstallInitialize'
+      DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.' />
+
+    <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1' />
+    <Property Id='DiskPrompt' Value='Domain Manager Installation' />
+
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='ProgramFilesFolder'>
+        <Directory Id='APPLICATIONROOTDIRECTORY' Name='Domain Manager'>
+          <Component Id='MainExecutable' Guid='11111111-2222-3333-4444-555555555555'>
+            <File
+              Id='MainExecutableFile'
+              Source='$(var.CargoTargetBinDir)\domain_manager.exe'
+              KeyPath='yes'
+              Checksum='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+
+      <Directory Id='ProgramMenuFolder'>
+        <Directory Id='ApplicationProgramsFolder' Name='Domain Manager'>
+          <Component Id='ApplicationShortcut' Guid='66666666-7777-8888-9999-000000000000'>
+            <Shortcut Id='ApplicationStartMenuShortcut'
+              Name='Domain Manager'
+              Description='Domain Manager - 域名管理工具'
+              Target='[APPLICATIONROOTDIRECTORY]domain_manager.exe'
+              WorkingDirectory='APPLICATIONROOTDIRECTORY' />
+            <RemoveFolder Id='ApplicationProgramsFolder' On='uninstall' />
+            <RegistryValue Root='HKCU' Key='Software\Microsoft\DomainManager' Name='installed' Type='integer' Value='1' KeyPath='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+
+      <Directory Id='DesktopFolder' Name='Desktop'>
+        <Component Id='ApplicationDesktopShortcut' Guid='77777777-8888-9999-0000-111111111111'>
+          <Shortcut Id='ApplicationDesktopShortcut'
+            Name='Domain Manager'
+            Description='Domain Manager - 域名管理工具'
+            Target='[APPLICATIONROOTDIRECTORY]domain_manager.exe'
+            WorkingDirectory='APPLICATIONROOTDIRECTORY' />
+          <RegistryValue Root='HKCU' Key='Software\Microsoft\DomainManager' Name='desktop' Type='integer' Value='1' KeyPath='yes' />
+        </Component>
+      </Directory>
+    </Directory>
+
+    <Feature
+      Id='MainApplication'
+      Title='Domain Manager'
+      Description='主程序文件'
+      Level='1'
+      ConfigurableDirectory='APPLICATIONROOTDIRECTORY'
+      AllowAdvertise='no'
+      Display='expand'
+      Absent='disallow'>
+      <ComponentRef Id='MainExecutable' />
+    </Feature>
+
+    <Feature
+      Id='Shortcuts'
+      Title='快捷方式'
+      Description='开始菜单和桌面快捷方式'
+      Level='1'>
+      <ComponentRef Id='ApplicationShortcut' />
+      <ComponentRef Id='ApplicationDesktopShortcut' />
+    </Feature>
+
+    <UIRef Id='WixUI_FeatureTree' />
+    <UIRef Id='WixUI_ErrorProgressText' />
+
+  </Product>
+</Wix>

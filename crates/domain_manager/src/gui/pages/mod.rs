@@ -1,4 +1,3 @@
-pub mod demo;
 pub mod domain;
 pub mod domain_dns_record;
 pub mod help;
