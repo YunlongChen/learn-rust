@@ -101,7 +101,6 @@ pub fn console_view<'a>(
             .padding(20)
     )
     .width(Length::Fill)
-    .height(Length::Fill)
     .class(ContainerType::Standard)
 }
 
