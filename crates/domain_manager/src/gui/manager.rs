@@ -1902,12 +1902,12 @@ fn domain_row(domain: &Domain, selected: bool, font: Font) -> Element<Message, S
                 .push(
                     button(Text::new(get_text("modify")))
                         .width(Length::Fixed(100.0))
-                        .on_press(Message::DomainSelected(domain.clone())),
+                        .on_press(Message::ShowToast("修改功能暂未实现".to_string())),
                 )
                 .push(
                     button(Text::new(get_text("delete")))
                         .width(Length::Fixed(100.0))
-                        .on_press(Message::DomainSelected(domain.clone())),
+                        .on_press(Message::ShowToast("删除功能暂未实现".to_string())),
                 )
                 .spacing(5),
         )
