@@ -43,5 +43,12 @@ settings:
   china_red: China Red
   qipao_girl: Qipao Girl
   toggle_theme: Toggle Theme
+  enable_notifications: Enable Notifications
+  notification_preferences: Notification Preferences
+  auto_start: Auto Start
+  check_updates: Check Updates
+  export_data: Export Data
+  import_data: Import Data
 notifications_under_development: Notifications settings under development...
 general_settings_under_development: General settings under development...
+feature_under_development: This feature is under development

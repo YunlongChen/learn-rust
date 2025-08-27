@@ -110,6 +110,10 @@ pub enum Message {
     ChangeBackground(BackgroundType),
     /// 背景透明度改变
     BackgroundOpacityChanged(f32),
+    /// 显示Toast通知
+    ShowToast(String),
+    /// 隐藏Toast通知
+    HideToast,
 }
 
 #[derive(Debug, Clone)]

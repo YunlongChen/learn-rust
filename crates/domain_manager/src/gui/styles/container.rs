@@ -51,6 +51,8 @@ pub enum ContainerType {
     Hoverable, // 可悬停
     /// 背景图片容器
     BackgroundImage(BackgroundType, f32), // 背景类型和透明度
+    /// Toast通知容器
+    Toast,
 }
 
 impl ContainerType {
@@ -104,6 +106,12 @@ impl ContainerType {
                     a: *opacity,
                     ..Color::TRANSPARENT
                 }),
+                ContainerType::Toast => Background::Color(Color {
+                    r: 0.2,
+                    g: 0.2,
+                    b: 0.2,
+                    a: 0.95,
+                }),
             }),
             border: Border {
                 radius: match self {
@@ -115,6 +123,7 @@ impl ContainerType {
                     | ContainerType::Highlighted
                     | ContainerType::HighlightedOnHeader => 100.0.into(),
                     ContainerType::Bordered => Radius::new(1).bottom(BORDER_ROUNDED_RADIUS),
+                    ContainerType::Toast => 8.0.into(),
                     _ => 0.0.into(),
                 },
                 width: match self {

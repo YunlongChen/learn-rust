@@ -211,6 +211,42 @@ fn notifications_settings<'a>(
                 .size(16)
                 .font(font),
         )
+        .push(
+            Row::new()
+                .spacing(15)
+                .push(
+                    Button::new(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .push(
+                                Icon::Bell
+                                    .to_text()
+                                    .size(16)
+                                    .align_y(Alignment::Center),
+                            )
+                            .push(text(get_text("settings.enable_notifications")).font(font)),
+                    )
+                    .on_press(Message::ShowToast(get_text("feature_under_development")))
+                    .class(ButtonType::Standard),
+                )
+                .push(
+                    Button::new(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .push(
+                                Icon::Settings
+                                    .to_text()
+                                    .size(16)
+                                    .align_y(Alignment::Center),
+                            )
+                            .push(text(get_text("settings.notification_preferences")).font(font)),
+                    )
+                    .on_press(Message::ShowToast(get_text("feature_under_development")))
+                    .class(ButtonType::Standard),
+                )
+        )
         .width(Length::Fill)
         .into()
 }
@@ -235,6 +271,78 @@ fn general_settings<'a>(
             text(get_text("general_settings_under_development"))
                 .size(16)
                 .font(font),
+        )
+        .push(
+            Row::new()
+                .spacing(15)
+                .push(
+                    Button::new(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .push(
+                                Icon::Language
+                                    .to_text()
+                                    .size(16)
+                                    .align_y(Alignment::Center),
+                            )
+                            .push(text(get_text("settings.auto_start")).font(font)),
+                    )
+                    .on_press(Message::ShowToast(get_text("feature_under_development")))
+                    .class(ButtonType::Standard),
+                )
+                .push(
+                    Button::new(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .push(
+                                Icon::Update
+                                    .to_text()
+                                    .size(16)
+                                    .align_y(Alignment::Center),
+                            )
+                            .push(text(get_text("settings.check_updates")).font(font)),
+                    )
+                    .on_press(Message::ShowToast(get_text("feature_under_development")))
+                    .class(ButtonType::Standard),
+                )
+        )
+        .push(
+            Row::new()
+                .spacing(15)
+                .push(
+                    Button::new(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .push(
+                                Icon::Export
+                                    .to_text()
+                                    .size(16)
+                                    .align_y(Alignment::Center),
+                            )
+                            .push(text(get_text("settings.export_data")).font(font)),
+                    )
+                    .on_press(Message::ShowToast(get_text("feature_under_development")))
+                    .class(ButtonType::Standard),
+                )
+                .push(
+                    Button::new(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .push(
+                                Icon::Import
+                                    .to_text()
+                                    .size(16)
+                                    .align_y(Alignment::Center),
+                            )
+                            .push(text(get_text("settings.import_data")).font(font)),
+                    )
+                    .on_press(Message::ShowToast(get_text("feature_under_development")))
+                    .class(ButtonType::Standard),
+                )
         )
         .width(Length::Fill)
         .into()

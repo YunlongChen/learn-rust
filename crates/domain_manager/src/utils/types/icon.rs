@@ -55,6 +55,12 @@ pub enum Icon {
     Minimize,
     /// 最大化窗口图标
     Maximize,
+    /// 铃铛图标
+    Bell,
+    /// 导出图标
+    Export,
+    /// 导入图标
+    Import,
 }
 
 impl Icon {
@@ -109,6 +115,9 @@ impl Icon {
             Icon::Add => 'P',
             Icon::Minimize => 'M',
             Icon::Maximize => 'N',
+            Icon::Bell => 'b',
+            Icon::Export => 'E',
+            Icon::Import => 'J',
         }
     }
 
