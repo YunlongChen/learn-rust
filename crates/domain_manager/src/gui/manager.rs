@@ -1067,11 +1067,11 @@ impl DomainManager {
             }
             Message::DragWindow => {
                 // 获取最旧的窗口并拖动
-                window::get_oldest().map(|id_option| {
+                window::get_oldest().then(|id_option| {
                     if let Some(id) = id_option {
-                        Message::StartDragWindow(id)
+                        Task::done(Message::StartDragWindow(id))
                     } else {
-                        Message::DragWindow // 如果没有窗口，重新尝试
+                        Task::none()
                     }
                 })
             }
@@ -1099,7 +1099,29 @@ impl DomainManager {
                 }
                 Task::none()
             }
-            _ => {
+            Message::WindowMinimize => {
+                // 处理窗口最小化事件
+                info!("窗口最小化");
+                window::get_oldest().then(|id_option| {
+                    if let Some(id) = id_option {
+                        window::minimize(id, true)
+                    } else {
+                        Task::none()
+                    }
+                })
+            }
+            Message::WindowMaximize => {
+                // 处理窗口最大化/还原事件
+                info!("窗口最大化/还原");
+                window::get_oldest().then(|id_option| {
+                    if let Some(id) = id_option {
+                        window::toggle_maximize(id)
+                    } else {
+                        Task::none()
+                    }
+                })
+             }
+             _ => {
                 debug!("未处理的消息：{:?}", message);
                 Task::none()
             }

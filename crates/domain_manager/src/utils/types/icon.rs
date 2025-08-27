@@ -50,6 +50,10 @@ pub enum Icon {
     Waves,
     Sync,
     Add,
+    /// 最小化窗口图标
+    Minimize,
+    /// 最大化窗口图标
+    Maximize,
 }
 
 impl Icon {
@@ -101,6 +105,8 @@ impl Icon {
             Icon::Update => '<',
             Icon::Sync => 'D',
             Icon::Add => 'P',
+            Icon::Minimize => 'M',
+            Icon::Maximize => 'N',
         }
     }
 

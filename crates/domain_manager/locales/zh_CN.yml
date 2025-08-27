@@ -25,6 +25,8 @@ help:
 sync: 同步
 syncing: 同步中。。。
 exit: 退出
+minimize: 最小化
+maximize: 最大化
 provider:
   add: 添加服务商
 validate_credential: 验证凭据

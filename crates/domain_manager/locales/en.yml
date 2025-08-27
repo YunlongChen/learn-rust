@@ -16,5 +16,7 @@ help:
 sync: sync
 syncing: syncing...
 exit: Exit
+minimize: Minimize
+maximize: Maximize
 provider:
   add: Add Domain Provider

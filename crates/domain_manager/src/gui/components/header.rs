@@ -85,6 +85,14 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     Icon::Language,
                     get_text("change_locale"),
                 ))
+                .push(get_button_window_minimize(
+                    font,
+                    config.language,
+                ))
+                .push(get_button_window_maximize(
+                    font,
+                    config.language,
+                ))
                 .push(get_button_exit(
                     font,
                     config.language,
@@ -173,6 +181,58 @@ pub fn get_button_exit<'a>(
     .on_press(Message::Quit);
 
     Tooltip::new(content, Text::new(get_text("exit")), Position::Top)
+        .gap(5)
+        .class(ContainerType::Tooltip)
+}
+
+/// 创建最小化按钮
+/// 
+/// # 参数
+/// * `font` - 字体
+/// * `language` - 语言
+pub fn get_button_window_minimize<'a>(
+    font: Font,
+    language: Language,
+) -> Tooltip<'a, Message, StyleType> {
+    let content = button(
+        Icon::Minimize
+            .to_text()
+            .size(20)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center),
+    )
+    .padding(0)
+    .height(40)
+    .width(60)
+    .on_press(Message::WindowMinimize);
+
+    Tooltip::new(content, Text::new(get_text("minimize")), Position::Top)
+        .gap(5)
+        .class(ContainerType::Tooltip)
+}
+
+/// 创建最大化按钮
+/// 
+/// # 参数
+/// * `font` - 字体
+/// * `language` - 语言
+pub fn get_button_window_maximize<'a>(
+    font: Font,
+    language: Language,
+) -> Tooltip<'a, Message, StyleType> {
+    let content = button(
+        Icon::Maximize
+            .to_text()
+            .size(20)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center),
+    )
+    .padding(0)
+    .height(40)
+    .width(60)
+    .on_press(Message::WindowMaximize);
+
+    Tooltip::new(content, Text::new(get_text("maximize")), Position::Top)
         .gap(5)
         .class(ContainerType::Tooltip)
 }

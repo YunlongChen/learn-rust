@@ -101,6 +101,10 @@ pub enum Message {
     ValidateCredential,
     AddCredential,
     DnsProviderChange,
+    /// 最小化窗口
+    WindowMinimize,
+    /// 最大化/还原窗口
+    WindowMaximize,
 }
 
 #[derive(Debug, Clone)]
