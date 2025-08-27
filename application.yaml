@@ -2,7 +2,7 @@
 server:
   port: 8080
 database:
-  type: sqlite
+  db_type: postgres
   user: postgres
   password: StrongPassword123!
   port: 5432

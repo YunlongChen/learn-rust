@@ -32,10 +32,10 @@ jobs:
             ~/.cargo/git
             target/debug
             target/release
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo
       - name: CheckOut
         uses: actions/checkout@v4
-      - name: Build binaries
-        run: cargo build -p domain_manager
       - name: Run tests
         run: cargo test -p domain_manager
+      - name: Build binaries
+        run: cargo build -p domain_manager --release

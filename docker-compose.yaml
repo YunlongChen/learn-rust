@@ -14,5 +14,19 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+  ipmi-tool:
+    image: pnnlmiscscripts/ipmitool:latest
+    container_name: set-fans-auto-remote
+    command:
+      - -I
+      - lanplus
+      - -H
+      - 192.168.9.5     # 替换为目标服务器的IPMI IP
+      - -U
+      - root             # IPMI 用户名
+      - -P
+      - 4745701816long     # IPMI 密码
+      - mc
+      - info
 volumes:
   postgres-data:

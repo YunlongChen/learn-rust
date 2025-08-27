@@ -4,32 +4,38 @@
 
 ### 编译错误修复与代码优化
 
-#### 控制台界面滚动错误修复（第二次修复）
+#### 控制台界面滚动错误修复（最终修复）
 
 **问题描述**
-在点击控制台界面时出现运行时错误："scrollable content must not fill its vertical scrolling axis"，导致应用程序崩溃。
+在点击控制台界面时持续出现运行时错误："scrollable content must not fill its vertical scrolling axis"，导致应用程序崩溃。
 
 **根本原因**
-除了 `Scrollable` 组件本身的配置问题外，控制台主容器 `Container` 同时设置了 `width(Length::Fill)` 和 `height(Length::Fill)`，这与内部的 `Scrollable` 组件产生了冲突。
+多层容器都设置了 `height(Length::Fill)`，造成了滚动轴冲突：
+1. 控制台主容器 `Container` 设置了 `height(Length::Fill)`
+2. API日志视图和数据库日志视图的外层 `Container` 也设置了 `height(Length::Fill)`
+3. 内部的 `Scrollable` 组件无法正确处理这种嵌套的高度填充
 
 **修复方案**
 - **位置**：`console.rs` 文件中的 `create_api_logs_view`、`create_db_logs_view` 和 `console_view` 函数
-- **问题原因**：Scrollable 组件同时设置了 `width(Length::Fill)` 和 `height(Length::Fill)`，违反了 iced 框架的约束
+- **问题原因**：多层容器的高度填充设置与 Scrollable 组件产生冲突
 - **解决方案**：
-  1. 移除 Scrollable 组件的 `height(Length::Fill)` 设置，保留 `width(Length::Fill)`
-  2. 移除 `console_view` 函数中主 `Container` 的 `height(Length::Fill)` 设置，只保留 `width(Length::Fill)`
+  1. 移除 `console_view` 函数中主 `Container` 的 `height(Length::Fill)` 设置
+  2. 移除 `create_api_logs_view` 函数中外层 `Container` 的 `height(Length::Fill)` 设置
+  3. 移除 `create_db_logs_view` 函数中外层 `Container` 的 `height(Length::Fill)` 设置
+  4. 所有容器只保留 `width(Length::Fill)` 设置，让高度自动调整
 - **修改**：
-  - `Scrollable::new(content).width(Length::Fill).height(Length::Fill)` → `Scrollable::new(content).width(Length::Fill)`
-  - 主容器移除 `height(Length::Fill)` 设置
+  - 移除所有外层容器的 `height(Length::Fill)` 设置
+  - 保持 `width(Length::Fill)` 设置以确保水平布局正确
 
 **技术细节**
-在 Iced 框架中，`Scrollable` 组件不能在其滚动轴方向上填充整个可用空间，需要让容器自动调整高度。
+在 Iced 框架中，`Scrollable` 组件的垂直滚动轴不能被强制填充整个可用空间，需要根据内容自动调整高度。多层容器的高度填充会导致滚动计算错误。
 
 **功能验证**
 - ✅ 控制台界面可以正常点击和显示
 - ✅ API请求日志和数据库查询日志可以正常滚动
 - ✅ 应用程序不再崩溃
 - ✅ 应用程序成功启动并运行
+- ✅ 彻底解决了滚动轴冲突问题
 
 #### 编译错误修复
 
@@ -151,6 +157,13 @@
   - 添加了中英文本地化支持：minimize/最小化，maximize/最大化
   - 修复了编译错误：正确处理 `window::get_oldest()` 和 `window::drag()` 返回的 Task 类型
   - 验证了应用程序成功编译并运行
+
+- **控制台界面滚动错误彻底修复**: 修复了应用程序在切换到控制台界面时的崩溃问题
+  - **问题描述**: 应用程序在切换到控制台界面时崩溃，错误信息为 `scrollable content must not fill its vertical scrolling axis`
+  - **根本原因**: 多层容器和空状态显示都设置了 `height(Length::Fill)` 导致滚动轴冲突
+  - **修复方案**: 移除了所有容器的 `height(Length::Fill)` 设置，包括空状态显示容器
+  - **技术细节**: 所有容器只保留 `width(Length::Fill)` 设置，让高度自动调整，空状态显示使用padding替代垂直居中
+  - **功能验证**: 应用程序可正常启动，控制台界面可正常访问，日志可正常显示和滚动，空状态显示正常
 
 ### 技术细节
 - 文件修改: `src/gui/manager.rs`, `src/utils/types/message.rs`, `src/utils/types/icon.rs`, `src/gui/header.rs`, `locales/zh_CN.yml`, `locales/en.yml`
