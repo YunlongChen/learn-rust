@@ -89,6 +89,9 @@ pub struct DomainManager {
     stats: DomainStats,
     is_syncing: bool,
     pub message: String,
+    /// Toast通知相关字段
+    pub toast_message: Option<String>,
+    pub toast_visible: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -178,6 +181,8 @@ impl Default for DomainManager {
             add_domain_provider_form: Default::default(),
             domain_providers: vec![],
             message: "加载中。。。".into(),
+            toast_message: None,
+            toast_visible: false,
         }
     }
 }
@@ -214,6 +219,8 @@ impl DomainManager {
             locale,
             dns_client,
             connection: Some(connection),
+            toast_message: None,
+            toast_visible: false,
             ..DomainManager::default()
         };
         info!("初始化完成");
@@ -293,7 +300,7 @@ impl DomainManager {
             .into();
 
         // 如果有背景，则创建带背景的容器
-        if self.config.background_config.background_type != crate::configs::gui_config::BackgroundType::None {
+        let content_with_background = if self.config.background_config.background_type != crate::configs::gui_config::BackgroundType::None {
             // 使用Stack来叠加背景和内容
             iced::widget::Stack::new()
                 .push(Background::new(
@@ -304,7 +311,14 @@ impl DomainManager {
                 .into()
         } else {
             main_content
-        }
+        };
+
+        // 添加toast通知
+        crate::gui::components::toast::with_toast(
+            content_with_background,
+            self.toast_message.as_deref().unwrap_or(""),
+            self.toast_visible,
+        )
     }
 
     // 左侧托管商导航
@@ -1164,6 +1178,22 @@ impl DomainManager {
                 if let Err(e) = self.config.save_to_file("config.json") {
                     error!("保存背景透明度配置失败: {}", e);
                 }
+                Task::none()
+             }
+             Message::ShowToast(message) => {
+                self.toast_message = Some(message.clone());
+                self.toast_visible = true;
+                // 3秒后自动隐藏toast
+                Task::perform(
+                    async {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                    },
+                    |_| Message::HideToast,
+                )
+             }
+             Message::HideToast => {
+                self.toast_visible = false;
+                self.toast_message = None;
                 Task::none()
              }
              _ => {
