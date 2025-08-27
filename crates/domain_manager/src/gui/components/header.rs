@@ -92,7 +92,7 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     SettingsPage::Appearance,
                     Some(Message::ChangePage(Page::Console)),
                     Icon::Terminal,
-                    "控制台",
+                    "控制台".to_string(),
                 ))
                 .push(get_custom_button(
                     font,

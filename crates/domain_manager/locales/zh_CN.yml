@@ -59,8 +59,15 @@ settings:
   check_updates: 检查更新
   export_data: 导出数据
   import_data: 导入数据
+  floating_window: 悬浮窗
+  enable_floating_window: 启用悬浮窗
+  disable_floating_window: 禁用悬浮窗
 notifications_under_development: 通知设置功能开发中...
 general_settings_under_development: 常规设置功能开发中...
+floating_window_enabled: 悬浮窗已启用
+floating_window_disabled: 悬浮窗已禁用
+floating_window_created: 悬浮窗已创建
+floating_window_closed: 悬浮窗已关闭
 feature_under_development: 此功能正在开发中
 console:
   title: 控制台

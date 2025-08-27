@@ -63,6 +63,8 @@ pub enum Icon {
     Import,
     /// 终端图标
     Terminal,
+    /// 窗口图标
+    Window,
 }
 
 impl Icon {
@@ -121,6 +123,7 @@ impl Icon {
             Icon::Export => 'E',
             Icon::Import => 'J',
             Icon::Terminal => 't',
+            Icon::Window => 'w',
         }
     }
 

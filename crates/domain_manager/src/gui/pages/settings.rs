@@ -261,7 +261,7 @@ fn notifications_settings<'a>(
 /// # 返回
 /// 常规设置的UI元素
 fn general_settings<'a>(
-    _app: &DomainManager,
+    app: &DomainManager,
     font: Font,
     language: Language,
 ) -> Element<'a, Message, StyleType> {
@@ -306,6 +306,30 @@ fn general_settings<'a>(
                     )
                     .on_press(Message::ShowToast(get_text("feature_under_development")))
                     .class(ButtonType::Standard),
+                )
+                .push(
+                    Button::new(
+                        Row::new()
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                            .push(
+                                Icon::Window
+                                    .to_text()
+                                    .size(16)
+                                    .align_y(Alignment::Center),
+                            )
+                            .push(text(if app.floating_window_enabled {
+                                get_text("settings.disable_floating_window")
+                            } else {
+                                get_text("settings.enable_floating_window")
+                            }).font(font)),
+                    )
+                    .on_press(Message::ToggleFloatingWindow)
+                    .class(if app.floating_window_enabled {
+                        ButtonType::BorderedRoundSelected
+                    } else {
+                        ButtonType::Standard
+                    }),
                 )
         )
         .push(

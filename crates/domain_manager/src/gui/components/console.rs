@@ -83,7 +83,7 @@ impl ConsoleState {
 
 /// 创建控制台界面
 pub fn console_view<'a>(
-    console_state: &ConsoleState,
+    console_state: &'a ConsoleState,
     font: Font,
 ) -> Container<'a, Message, StyleType> {
     let header = create_console_header(&console_state.current_tab, font);
@@ -155,7 +155,7 @@ fn create_console_header<'a>(
 
 /// 创建API请求日志视图
 fn create_api_logs_view<'a>(
-    logs: &VecDeque<ApiRequestLog>,
+    logs: &'a VecDeque<ApiRequestLog>,
     font: Font,
 ) -> Container<'a, Message, StyleType> {
     let mut content = Column::new().spacing(5);
@@ -170,8 +170,8 @@ fn create_api_logs_view<'a>(
             )
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
-            .center_y()
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
         );
     } else {
         // 添加表头
@@ -287,7 +287,7 @@ fn create_api_logs_view<'a>(
 
 /// 创建数据库查询日志视图
 fn create_db_logs_view<'a>(
-    logs: &VecDeque<DatabaseQueryLog>,
+    logs: &'a VecDeque<DatabaseQueryLog>,
     font: Font,
 ) -> Container<'a, Message, StyleType> {
     let mut content = Column::new().spacing(5);
@@ -302,8 +302,8 @@ fn create_db_logs_view<'a>(
             )
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
-            .center_y()
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
         );
     } else {
         // 添加表头

@@ -49,9 +49,16 @@ settings:
   check_updates: Check Updates
   export_data: Export Data
   import_data: Import Data
+  floating_window: Floating Window
+  enable_floating_window: Enable Floating Window
+  disable_floating_window: Disable Floating Window
 notifications_under_development: Notifications settings under development...
 general_settings_under_development: General settings under development...
 feature_under_development: This feature is under development
+floating_window_enabled: Floating window enabled
+floating_window_disabled: Floating window disabled
+floating_window_created: Floating window created
+floating_window_closed: Floating window closed
 console:
   title: Console
   api_requests: API Requests
