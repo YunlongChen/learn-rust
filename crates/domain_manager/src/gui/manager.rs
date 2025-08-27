@@ -7,6 +7,7 @@ use crate::api::model::dns_operate::RecordLog;
 use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::configs::gui_config::{BackgroundConfig, LICENCE, WindowState};
 use crate::gui::components::background::Background;
+use crate::gui::components::console::{console_view, ConsoleState};
 use crate::gui::components::footer::footer;
 use crate::gui::components::header::header;
 use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain, DomainStatus};
@@ -92,6 +93,8 @@ pub struct DomainManager {
     /// Toast通知相关字段
     pub toast_message: Option<String>,
     pub toast_visible: bool,
+    /// 控制台状态
+    pub console_state: ConsoleState,
 }
 
 #[derive(Debug, Clone)]
@@ -183,6 +186,7 @@ impl Default for DomainManager {
             message: "加载中。。。".into(),
             toast_message: None,
             toast_visible: false,
+            console_state: ConsoleState::default(),
         }
     }
 }
@@ -270,7 +274,7 @@ impl DomainManager {
                         .width(Length::Fill),
                 )
                 .padding(8) // 添加整体内边距
-                .class(ContainerType::HighlightedOnHeader)
+                .class(ContainerType::Standard) // 改为透明容器以显示背景
                 .into()
             }
             Page::AddDomain => add_domain_page(self).into(),
@@ -279,6 +283,7 @@ impl DomainManager {
             Page::Help => help(self).into(),
             Page::AddProvider => add_domain_provider_page(self).into(),
             Page::Settings(settings_page) => crate::gui::pages::settings::settings_page(self, settings_page).into(),
+            Page::Console => console_view(&self.console_state, font).into(),
             _ => help(self).into(),
         };
 
@@ -292,10 +297,14 @@ impl DomainManager {
             &Mutex::new(Some(true)),
         );
 
-        // 主要内容
+        // 主要内容 - 使用透明容器以显示背景
         let main_content = Column::new()
             .push(header)
-            .push(Container::new(body).height(Length::Fill))
+            .push(
+                Container::new(body)
+                    .height(Length::Fill)
+                    .class(ContainerType::Standard) // 使用透明容器
+            )
             .push(footer)
             .into();
 
@@ -307,7 +316,10 @@ impl DomainManager {
                     self.config.background_config.background_type.clone(),
                     self.config.background_config.opacity,
                 ).view())
-                .push(main_content)
+                .push(
+                    Container::new(main_content)
+                        .class(ContainerType::Standard) // 确保主容器也是透明的
+                )
                 .into()
         } else {
             main_content
@@ -892,7 +904,16 @@ impl DomainManager {
             Message::AddCredential => self.add_credential(),
             Message::DnsProviderChange => self.update(Message::Reload),
             Message::QueryDnsResult(dns_list) => {
-                self.dns_list = dns_list;
+                // 将查询到的Record转换为DnsRecord并更新UI显示字段
+                self.dns_records = dns_list.into_iter().map(|record| {
+                    DnsRecord {
+                        name: record.rr,
+                        record_type: record.record_type.get_value().to_string(),
+                        value: record.value,
+                        ttl: record.ttl.to_string(),
+                    }
+                }).collect();
+                info!("DNS记录更新完成，共 {} 条记录", self.dns_records.len());
                 Task::none()
             }
             Message::QueryDnsLogResult(logs) => {
@@ -1195,6 +1216,22 @@ impl DomainManager {
                 self.toast_visible = false;
                 self.toast_message = None;
                 Task::none()
+             }
+             Message::ChangeConsoleTab(tab) => {
+                self.console_state.current_tab = tab;
+                Task::none()
+             }
+             Message::ClearConsoleLogs => {
+                self.console_state.clear_logs();
+                self.toast_message = Some("控制台日志已清空".to_string());
+                self.toast_visible = true;
+                // 3秒后自动隐藏toast
+                Task::perform(
+                    async {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                    },
+                    |_| Message::HideToast,
+                )
              }
              _ => {
                 debug!("未处理的消息：{:?}", message);

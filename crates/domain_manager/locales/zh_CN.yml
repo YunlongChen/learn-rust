@@ -62,3 +62,9 @@ settings:
 notifications_under_development: 通知设置功能开发中...
 general_settings_under_development: 常规设置功能开发中...
 feature_under_development: 此功能正在开发中
+console:
+  title: 控制台
+  api_requests: API请求
+  database_queries: 数据库查询
+  clear_logs: 清空日志
+  logs_cleared: 日志已清空

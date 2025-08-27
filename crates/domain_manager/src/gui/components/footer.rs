@@ -184,52 +184,88 @@ fn get_button_sponsor<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     .class(ContainerType::Tooltip)
 }
 
+/// 获取版本信息显示组件
+/// 
+/// # 参数
+/// * `language` - 语言设置
+/// * `font` - 字体
+/// * `font_footer` - footer字体
+/// * `newer_release_available` - 是否有新版本可用
 fn get_release_details<'a>(
     language: Language,
     font: Font,
     font_footer: Font,
     newer_release_available: &Mutex<Option<bool>>,
 ) -> Row<'a, Message, StyleType> {
-    let mut ret_val = Row::new()
+    let has_update = if let Some(boolean_response) = *newer_release_available.lock().unwrap() {
+        boolean_response
+    } else {
+        false
+    };
+
+    // 创建可点击的版本号按钮
+    let version_button = button(
+        Row::new()
+            .spacing(8)
+            .align_y(Alignment::Center)
+            .push(
+                Icon::DomainManager
+                    .to_text()
+                    .size(16)
+                    .align_y(Alignment::Center)
+                    .class(if has_update { TextType::Danger } else { TextType::Standard })
+            )
+            .push(
+                Text::new(format!("{DOMAIN_MANAGER_LOWERCASE} v{APP_VERSION}"))
+                    .size(FONT_SIZE_FOOTER)
+                    .font(font_footer)
+                    .class(if has_update { TextType::Danger } else { TextType::Standard })
+            )
+            .push_maybe(if has_update {
+                Some(
+                    Icon::Update
+                        .to_text()
+                        .size(14)
+                        .class(TextType::Danger)
+                        .align_y(Alignment::Center)
+                )
+            } else {
+                Some(
+                    Text::new(" ✔")
+                        .size(12)
+                        .font(font_footer)
+                        .class(TextType::Subtitle)
+                        .align_y(Alignment::Center)
+                )
+            })
+    )
+    .padding([4, 8])
+    .class(ButtonType::Standard)
+    .on_press(if has_update {
+        Message::OpenWebPage(WebPage::WebsiteDownload)
+    } else {
+        Message::ShowToast("当前已是最新版本".to_string())
+    });
+
+    let tooltip_text = if has_update {
+        new_version_available_translation(language)
+    } else {
+        "点击检查更新".to_string()
+    };
+
+    let version_tooltip = Tooltip::new(
+        version_button,
+        Text::new(tooltip_text).font(font),
+        Position::Top,
+    )
+    .gap(5)
+    .class(ContainerType::Tooltip);
+
+    Row::new()
         .align_y(Alignment::Center)
         .height(Length::Fill)
         .width(Length::Fill)
-        .push(
-            Text::new(format!("{DOMAIN_MANAGER_LOWERCASE} {APP_VERSION}"))
-                .size(FONT_SIZE_FOOTER)
-                .font(font_footer),
-        );
-    if let Some(boolean_response) = *newer_release_available.lock().unwrap() {
-        if boolean_response {
-            // a newer release is available on GitHub
-            let button = button(
-                Icon::Update
-                    .to_text()
-                    .class(TextType::Danger)
-                    .size(18)
-                    .align_x(Alignment::Center)
-                    .align_y(Alignment::Center)
-                    .line_height(LineHeight::Relative(0.8)),
-            )
-            .padding(0)
-            .height(35)
-            .width(35)
-            .class(ButtonType::Alert)
-            .on_press(Message::OpenWebPage(WebPage::WebsiteDownload));
-            let tooltip = Tooltip::new(
-                button,
-                row_open_link_tooltip(new_version_available_translation(language), font),
-                Position::Top,
-            )
-            .gap(7.5)
-            .class(ContainerType::Tooltip);
-            ret_val = ret_val.push(Space::with_width(10)).push(tooltip);
-        } else {
-            // this is the latest release
-            ret_val = ret_val.push(Text::new(" ✔").size(FONT_SIZE_SUBTITLE).font(font_footer));
-        }
-    }
-    ret_val
+        .push(version_tooltip)
 }
 
 fn thumbnail_footer<'a>() -> Container<'a, Message, StyleType> {
