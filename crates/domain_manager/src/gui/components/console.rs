@@ -278,7 +278,6 @@ fn create_api_logs_view<'a>(
     Container::new(
         Scrollable::new(content)
             .width(Length::Fill)
-            .height(Length::Fill)
     )
     .width(Length::Fill)
     .height(Length::Fill)
@@ -387,7 +386,6 @@ fn create_db_logs_view<'a>(
     Container::new(
         Scrollable::new(content)
             .width(Length::Fill)
-            .height(Length::Fill)
     )
     .width(Length::Fill)
     .height(Length::Fill)

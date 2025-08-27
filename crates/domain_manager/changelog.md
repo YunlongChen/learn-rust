@@ -4,6 +4,22 @@
 
 ### 编译错误修复与代码优化
 
+#### 控制台界面滚动错误修复
+
+**问题描述**
+在点击控制台界面时出现运行时错误："scrollable content must not fill its vertical scrolling axis"，导致应用程序崩溃。
+
+**修复方案**
+- **位置**：`console.rs` 文件中的 `create_api_logs_view` 和 `create_db_logs_view` 函数
+- **问题原因**：Scrollable 组件同时设置了 `width(Length::Fill)` 和 `height(Length::Fill)`，违反了 iced 框架的约束
+- **解决方案**：移除 Scrollable 组件的 `height(Length::Fill)` 设置，保留 `width(Length::Fill)`
+- **修改**：`Scrollable::new(content).width(Length::Fill).height(Length::Fill)` → `Scrollable::new(content).width(Length::Fill)`
+
+**功能验证**
+- ✅ 控制台界面可以正常点击和显示
+- ✅ API请求日志和数据库查询日志可以正常滚动
+- ✅ 应用程序不再崩溃
+
 #### 编译错误修复
 
 **问题描述**
