@@ -189,6 +189,79 @@
 - 支持代码格式化、静态检查、性能分析等开发流程
 - 提供了便捷的Docker开发环境
 
+## 2025-01-17
+
+### 二进制文件大小优化分析
+
+**问题分析**: Domain Manager应用程序打包体积过大，release版本达到167.6MB，MSI安装包86.2MB。
+
+**根本原因分析**:
+1. **GUI框架开销**: Iced + wgpu + naga 占用约19.4%的空间 (约32MB)
+2. **数据库相关**: sea_orm + sqlx 系列占用约11.6%的空间 (约19MB)
+3. **网络库**: reqwest + h2 + rustls 占用约6.6%的空间 (约11MB)
+4. **图像处理**: image库支持多种格式导致体积较大 (约1MB)
+5. **标准库**: Rust标准库本身占用较大空间 (约2.6MB)
+
+**主要占用空间的组件** (通过cargo-bloat分析):
+- std库: 2.6MB (12.5%)
+- wgpu图形库: 2.3MB (11.1%)
+- naga着色器: 1.2MB (5.8%)
+- image图像处理: 1.0MB (4.8%)
+- **sea_orm**: 860KB (4.0%) - 并非主要原因
+- reqwest网络库: 713KB (3.3%)
+- sqlx_postgres: 711KB (3.3%)
+
+**优化建议**:
+1. **编译器优化**: 使用`opt-level = "z"`, `lto = true`, `strip = true`等配置
+2. **依赖项优化**: 禁用不必要的特性，仅启用必需功能
+3. **移除非必要依赖**: cloudflare、maxminddb、plotters等大型依赖
+4. **轻量级替代方案**: 考虑使用更轻量的GUI框架或ORM
+
+**预期优化效果**:
+- 保守估计: 减少40-50% (80-100MB)
+- 激进优化: 减少70-80% (30-50MB)
+- 极致优化: 减少85-90% (15-25MB，需要重构)
+
+**创建文件**:
+- `BINARY_SIZE_OPTIMIZATION.md` - 详细优化指南
+- `crates/domain_manager/Cargo.optimized.toml` - 优化配置示例
+
+### 控制台界面滚动错误修复 (最终解决)
+
+**问题描述**: Domain Manager应用程序中控制台界面无法正常滚动，出现"scrollable widget must have a limited height"错误。
+
+**根本原因**: 
+- 多层容器都设置了`height(Length::Fill)`导致滚动轴冲突
+- 具体包括:
+  1. `console_view`函数中的主`Container`设置了`height(Length::Fill)`
+  2. `create_api_logs_view`函数中的外层`Container`设置了`height(Length::Fill)`
+  3. `create_db_logs_view`函数中的外层`Container`设置了`height(Length::Fill)`
+  4. API日志视图和数据库日志视图的空状态显示容器都设置了`height(Length::Fill)`和`center_y(Length::Fill)`
+
+**修复方案**:
+1. 移除了所有容器的`height(Length::Fill)`设置，包括:
+   - `console_view`函数中的主容器
+   - `create_api_logs_view`函数中的外层容器
+   - `create_db_logs_view`函数中的外层容器
+2. 修复了空状态显示问题:
+   - 移除了空状态显示容器的`height(Length::Fill)`设置
+   - 将`center_y(Length::Fill)`替换为`padding(50)`，保持视觉效果的同时避免高度冲突
+
+**技术细节**: 
+- Iced框架中`Scrollable`组件要求其父容器不能设置`Length::Fill`高度
+- 当多层嵌套容器都使用`Length::Fill`时，会导致滚动组件无法确定可用空间
+- 通过移除不必要的高度设置，让滚动组件能够正确计算和管理其内容区域
+
+**功能验证**: 
+- 应用程序可正常启动
+- 控制台界面可正常访问
+- API日志和数据库日志可正常显示和滚动
+- 空状态显示正常，视觉效果保持一致
+
+**修改文件**: 
+- `crates/domain_manager/src/gui/components/console.rs`
+- `changelog.md`
+
 ## 2025-01-28
 
 ### Windows MSI安装包构建系统
