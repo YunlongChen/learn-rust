@@ -2,7 +2,7 @@ pub mod database;
 pub mod encryption;
 
 mod accounts;
-mod domains;
+pub mod domains;
 pub mod entities;
 pub mod migration;
 pub mod records;

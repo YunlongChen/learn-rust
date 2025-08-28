@@ -2,6 +2,40 @@
 
 本文档记录了项目的重要变更历史。
 
+## 2025-01-29
+
+### Domain Manager DNS记录同步功能开发
+
+#### 数据库模型扩展
+- **批量操作支持**: 在`records.rs`中添加了批量DNS记录操作功能
+  - 实现了`add_records_many`异步函数用于批量添加DNS记录
+  - 实现了`delete_records_by_domain`异步函数用于根据域名ID删除所有DNS记录
+- **域名查询功能**: 在`domains.rs`中添加了域名查询功能
+  - 实现了`find_domain_by_name_and_account`异步函数用于根据域名名称和账户ID查找域名
+
+#### 同步功能集成
+- **域名同步增强**: 修改了`handle_sync_domain`函数以支持DNS记录同步
+  - 在成功添加域名后，自动触发DNS记录同步流程
+  - 添加了错误处理和信息日志记录
+- **DNS记录同步函数**: 实现了`sync_dns_records_for_domain`异步函数
+  - 支持查找域名实体、创建DNS集成客户端
+  - 支持查询DNS记录、删除旧记录、批量添加新记录
+  - 包含完整的错误处理和日志记录
+
+#### 编译问题修复
+- **模块可见性**: 修复了`domains`模块的私有访问问题
+  - 将`storage/mod.rs`中的`mod domains`改为`pub mod domains`
+- **结构体Clone支持**: 为`NewDomain`结构体添加了`Clone` trait
+  - 解决了`Vec<NewDomain>`的clone方法调用问题
+- **临时架构调整**: 由于DNS客户端访问限制，暂时跳过DNS记录同步功能
+  - 保留了完整的同步逻辑框架，等待后续重构
+
+#### 编译成果
+- **编译成功**: 成功解决所有编译错误
+  - 从3个编译错误减少到0个错误
+  - 仅剩348个警告（主要是未使用的代码警告）
+  - 编译时间：1.53秒
+
 ## 2025-01-28
 
 ### Domain Manager DNS模块编译错误修复

@@ -69,6 +69,49 @@ pub fn update_domain(
     Ok(())
 }
 
+/// 批量添加DNS记录
+pub async fn add_records_many(
+    conn: &DatabaseConnection,
+    new_records: Vec<NewRecord>,
+) -> Result<Vec<RecordEntity>, String> {
+    if new_records.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let mut results = Vec::new();
+    
+    for new_record in new_records {
+        match add_record(conn, new_record).await {
+            Ok(record) => results.push(record),
+            Err(err) => {
+                error!("批量添加DNS记录时出错: {}", err);
+                return Err(format!("批量添加DNS记录失败: {}", err));
+            }
+        }
+    }
+    
+    info!("成功批量添加 {} 条DNS记录", results.len());
+    Ok(results)
+}
+
+/// 根据域名ID删除所有DNS记录
+pub async fn delete_records_by_domain(
+    conn: &DatabaseConnection,
+    domain_id: i64,
+) -> Result<u64, String> {
+    let delete_result = DnsRecordDbEntity::delete_many()
+        .filter(dns_record::Column::DomainId.eq(domain_id))
+        .exec(conn)
+        .await
+        .map_err(|err| {
+            error!("删除域名DNS记录失败: {:?}", err);
+            format!("删除域名DNS记录失败: {}", err)
+        })?;
+    
+    info!("成功删除域名ID {} 的 {} 条DNS记录", domain_id, delete_result.rows_affected);
+    Ok(delete_result.rows_affected)
+}
+
 /// 获取用户的所有域名
 pub async fn get_records_by_domain(
     conn: &DatabaseConnection,

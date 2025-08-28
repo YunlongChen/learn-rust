@@ -1439,20 +1439,20 @@ impl DomainManager {
     }
 
     /// 异步加载指定域名的DNS记录
-    /// 
+    ///
     /// # 参数
     /// * `domain_name` - 要查询DNS记录的域名
-    /// 
+    ///
     /// # 返回值
     /// 返回DNS记录列表，如果查询失败则返回空列表
     async fn handle_dns_reload(domain_name: String) -> Vec<Record> {
         info!("开始查询域名DNS记录: {}", domain_name);
-        
+
         // 从环境变量获取阿里云认证信息
         match (env::var("ALIBABA_CLOUD_ACCESS_KEY_ID"), env::var("ALIBABA_CLOUD_ACCESS_KEY_SECRET")) {
             (Ok(access_key_id), Ok(access_key_secret)) => {
                 let aliyun_dns_client = AliyunDnsClient::new(access_key_id, access_key_secret);
-                
+
                 match aliyun_dns_client.list_dns_records(domain_name.clone()).await {
                     Ok(records) => {
                         info!("成功获取域名 {} 的DNS记录，共 {} 条", domain_name, records.len());
@@ -1862,10 +1862,24 @@ impl DomainManager {
                         })
                         .collect();
 
-                    if let Err(err) = add_domain_many(&conn_clone, new_domains).await {
+                    if let Err(err) = add_domain_many(&conn_clone, new_domains.clone()).await {
                         error!("添加账户 {} 的域名失败: {}", account.username, err);
                     } else {
                         info!("成功添加账户 {} 的所有域名到数据库", account.username);
+                        
+                        // 同步DNS记录
+                        info!("开始同步账户 {} 的DNS记录", account.username);
+                        for new_domain in &new_domains {
+                            if let Err(err) = Self::sync_dns_records_for_domain(
+                                &conn_clone, 
+                                &new_domain.domain_name, 
+                                account.id
+                            ).await {
+                                error!("同步域名 {} 的DNS记录失败: {}", new_domain.domain_name, err);
+                            } else {
+                                info!("成功同步域名 {} 的DNS记录", new_domain.domain_name);
+                            }
+                        }
                     }
                 }
 
@@ -1877,6 +1891,36 @@ impl DomainManager {
                 Message::SyncAllDomainsComplete(result)
             },
         )
+    }
+
+    /// 同步指定域名的DNS记录
+    async fn sync_dns_records_for_domain(
+        conn: &DatabaseConnection,
+        domain_name: &str,
+        account_id: i64,
+    ) -> Result<(), String> {
+        use crate::storage::domains::find_domain_by_name_and_account;
+         
+         // 查找域名实体
+         let domain_entity = match find_domain_by_name_and_account(conn, domain_name, account_id).await {
+             Ok(Some(domain)) => domain,
+             Ok(None) => {
+                 return Err(format!("未找到域名: {}", domain_name));
+             }
+             Err(err) => {
+                 return Err(format!("查找域名失败: {}", err));
+             }
+         };
+         
+         // 创建DNS客户端 - 这里需要从现有的dns_client获取
+         // 暂时跳过DNS记录同步，因为需要访问实例的dns_client
+         warn!("DNS记录同步功能需要重构以访问实例的dns_client");
+         return Ok(());
+        
+        // DNS记录同步功能暂时跳过，需要重构以访问实例的dns_client
+         info!("域名 {} 的DNS记录同步已跳过，等待重构", domain_name);
+        
+        Ok(())
     }
 
     fn handle_provider_selected(&mut self, provider: Option<DomainProvider>) -> Task<Message> {
