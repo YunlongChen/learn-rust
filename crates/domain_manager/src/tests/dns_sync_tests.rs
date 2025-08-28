@@ -18,6 +18,7 @@ use crate::models::domain::DomainEntity;
 use crate::storage::init_memory_database;
 use crate::storage::records::add_record;
 use crate::models::domain::{NewDomain, DomainStatus};
+use crate::tests::test_utils::init_test_env;
 use anyhow::Result;
 use sea_orm::DatabaseConnection;
 use std::error::Error as StdError;
@@ -27,10 +28,8 @@ use tracing::{info, error};
 /// 测试DNS记录同步到数据库的完整流程
 #[tokio::test]
 async fn test_dns_sync_complete_flow() -> Result<()> {
-    // 初始化日志系统
-    let _ = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .try_init();
+    // 初始化测试环境
+    init_test_env();
 
     info!("开始测试DNS记录同步完整流程");
 
@@ -178,11 +177,10 @@ fn create_mock_dns_records() -> Vec<crate::model::dns_record_response::Record> {
 /// 测试域名查找功能
 #[tokio::test]
 async fn test_find_domain_by_name() -> Result<()> {
-    let _ = tracing_subscriber::fmt::try_init();
+    init_test_env();
     info!("开始测试域名查找功能");
 
-    let db_config = DatabaseConfig::default();
-    let conn = init_database(&db_config).await?;
+    let conn = init_memory_database().await?;
     let test_domain_name = "test-find-domain.com";
 
     // 首先添加一个测试域名
@@ -222,11 +220,10 @@ async fn test_find_domain_by_name() -> Result<()> {
 /// 测试数据库连接
 #[tokio::test]
 async fn test_database_connection() -> Result<()> {
-    let _ = tracing_subscriber::fmt::try_init();
+    init_test_env();
     info!("开始测试数据库连接");
 
-    let db_config = DatabaseConfig::default();
-    let conn = init_database(&db_config).await
+    let conn = init_memory_database().await
         .map_err(|e| {
             error!("数据库连接失败: {:?}", e);
             e

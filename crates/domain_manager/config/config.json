@@ -14,10 +14,10 @@
   "ali_access_key_id": "23",
   "ali_access_key_secret": "23",
   "window_state": {
-    "x": -7.2,
-    "y": -7.2,
-    "width": 2048.0,
-    "height": 1104.0
+    "x": 0.8,
+    "y": 0.8,
+    "width": 2046.4,
+    "height": 1102.4
   },
   "background_config": {
     "background_type": "QipaoGirl",

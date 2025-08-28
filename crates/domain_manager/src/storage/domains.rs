@@ -322,13 +322,13 @@ mod tests {
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::models::account::NewAccount;
     use crate::storage::{create_account, init_memory_database};
-    use chrono::Utc;
-    use secrecy::{ExposeSecret, SecretString};
-    use tracing_test::traced_test;
+use crate::tests::test_utils::init_test_env;
+use chrono::Utc;
+use secrecy::{ExposeSecret, SecretString};
 
-    #[traced_test]
     #[tokio::test]
     pub async fn it_works() {
+        init_test_env();
         let connection = init_memory_database().await.unwrap();
 
         let _vault = String::from("stanic");

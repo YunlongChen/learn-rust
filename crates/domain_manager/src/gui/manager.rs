@@ -87,7 +87,7 @@ pub struct DomainManager {
     filter: Filter,
     pub search_query: String,
     dns_records: Vec<DnsRecord>,
-    stats: DomainStats,
+    pub stats: DomainStats,
     is_syncing: bool,
     pub message: String,
     /// Toast通知相关字段
@@ -100,8 +100,8 @@ pub struct DomainManager {
 }
 
 #[derive(Debug, Clone)]
-struct DomainStats {
-    total: u64,
+pub struct DomainStats {
+    pub total: u64,
     expiring: usize,
     providers: usize,
 }
@@ -232,6 +232,46 @@ impl DomainManager {
         };
         info!("初始化完成");
         manager
+    }
+
+    /// 获取DNS记录列表的只读引用
+    /// 
+    /// # 返回值
+    /// 返回当前DNS记录列表的引用
+    pub fn get_dns_records(&self) -> &Vec<DnsRecord> {
+        &self.dns_records
+    }
+
+    /// 获取同步状态
+    /// 
+    /// # 返回值
+    /// 返回当前同步状态
+    pub fn is_syncing(&self) -> bool {
+        self.is_syncing
+    }
+
+    /// 设置同步状态
+    /// 
+    /// # 参数
+    /// * `syncing` - 新的同步状态
+    pub fn set_syncing(&mut self, syncing: bool) {
+        self.is_syncing = syncing;
+    }
+
+    /// 获取消息内容
+    /// 
+    /// # 返回值
+    /// 返回当前消息内容的引用
+    pub fn get_message(&self) -> &str {
+        &self.message
+    }
+
+    /// 设置消息内容
+    /// 
+    /// # 参数
+    /// * `message` - 新的消息内容
+    pub fn set_message(&mut self, message: String) {
+        self.message = message;
     }
 
     pub fn view(&self) -> Element<Message, StyleType> {
@@ -769,8 +809,15 @@ impl DomainManager {
                 match &self.connection {
                     None => {
                         error!("当前没有数据库连接，无法刷新界面数据");
-                        self.message = "数据库连接失败，无法加载数据".to_string();
-                        self.update(ReloadComplete(ReloadModel::default()))
+                        let error_message = "数据库连接失败，无法加载数据".to_string();
+                        self.update(ReloadComplete(ReloadModel {
+                            reload_types: vec![],
+                            providers: vec![],
+                            domains: vec![],
+                            records: vec![],
+                            message: error_message,
+                            total_count: 0,
+                        }))
                     }
                     Some(connection) => {
                         // 克隆连接，因为我们需要将它移动到异步任务中
@@ -1479,7 +1526,7 @@ impl DomainManager {
 
     async fn handle_dns_record_add(domain_name: AddDnsField) -> bool {
         info!("添加域名解析记录");
-        add_aliyun_dns_record(&domain_name)
+        add_aliyun_dns_record(&domain_name).await
     }
 
     async fn handle_dns_record_delete(record_id: String) -> Option<String> {
@@ -2253,12 +2300,12 @@ mod tests {
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::gui::types::message::Message;
     use crate::storage::init_memory_database;
-    use tracing_test::traced_test;
+use crate::tests::test_utils::init_test_env;
 
     // tests using this will require the  annotation
-    #[traced_test]
     #[tokio::test]
     async fn new_instance() {
+        init_test_env();
         let connection = init_memory_database()
             .await
             .expect("Cannot initialize memory database.");
