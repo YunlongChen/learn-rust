@@ -1,4 +1,5 @@
 use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm::Iden;
 use tracing::info;
 
 #[derive(DeriveMigrationName)]
@@ -6,6 +7,7 @@ pub struct Migration;
 
 #[derive(DeriveIden)]
 enum DnsRecords {
+    #[sea_orm(iden = "dns_records")]
     Table,
     Id,
     DomainId,
@@ -26,7 +28,7 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(DnsRecords::Table)
+                    .table(Alias::new("dns_records"))
                     .if_not_exists()
                     .col(pk_auto(DnsRecords::Id).big_integer())
                     .col(ColumnDef::new(DnsRecords::Name).string().null())

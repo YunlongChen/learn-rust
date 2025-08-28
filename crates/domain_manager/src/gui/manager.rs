@@ -1794,7 +1794,7 @@ impl DomainManager {
             async move {
                 info!("开始执行域名同步任务");
 
-                let domains = Self::sync_domains(client).await;
+                let domains = Self::sync_domains(client.clone()).await;
                 info!("从DNS客户端获取到 {} 个域名", domains.len());
 
                 if domains.is_empty() {
@@ -1866,14 +1866,15 @@ impl DomainManager {
                         error!("添加账户 {} 的域名失败: {}", account.username, err);
                     } else {
                         info!("成功添加账户 {} 的所有域名到数据库", account.username);
-                        
+
                         // 同步DNS记录
                         info!("开始同步账户 {} 的DNS记录", account.username);
                         for new_domain in &new_domains {
                             if let Err(err) = Self::sync_dns_records_for_domain(
-                                &conn_clone, 
-                                &new_domain.domain_name, 
-                                account.id
+                                &conn_clone,
+                                &new_domain.domain_name,
+                                account.id,
+                                &client
                             ).await {
                                 error!("同步域名 {} 的DNS记录失败: {}", new_domain.domain_name, err);
                             } else {
@@ -1898,9 +1899,13 @@ impl DomainManager {
         conn: &DatabaseConnection,
         domain_name: &str,
         account_id: i64,
+        dns_client: &DnsClient,
     ) -> Result<(), String> {
         use crate::storage::domains::find_domain_by_name_and_account;
-         
+        use crate::storage::records::add_record;
+        use crate::models::record::NewRecord;
+        use crate::api::dns_client::DnsClientTrait;
+
          // 查找域名实体
          let domain_entity = match find_domain_by_name_and_account(conn, domain_name, account_id).await {
              Ok(Some(domain)) => domain,
@@ -1911,15 +1916,51 @@ impl DomainManager {
                  return Err(format!("查找域名失败: {}", err));
              }
          };
-         
-         // 创建DNS客户端 - 这里需要从现有的dns_client获取
-         // 暂时跳过DNS记录同步，因为需要访问实例的dns_client
-         warn!("DNS记录同步功能需要重构以访问实例的dns_client");
-         return Ok(());
-        
-        // DNS记录同步功能暂时跳过，需要重构以访问实例的dns_client
-         info!("域名 {} 的DNS记录同步已跳过，等待重构", domain_name);
-        
+
+         info!("开始同步域名 {} 的DNS记录", domain_name);
+
+         // 创建阿里云DNS客户端
+         let aliyun_client = crate::api::provider::aliyun::AliyunDnsClient::new(
+             dns_client.access_key_id.clone(),
+             dns_client.access_key_secret.clone(),
+         );
+
+         // 查询DNS记录
+         let dns_records = match aliyun_client.list_dns_records(domain_name.to_string()).await {
+             Ok(records) => records,
+             Err(err) => {
+                 error!("查询DNS记录失败: {:?}", err);
+                 return Err(format!("查询DNS记录失败: {:?}", err));
+             }
+         };
+
+         info!("查询到 {} 条DNS记录", dns_records.len());
+
+         // 保存DNS记录到数据库
+         let mut saved_count = 0;
+         for record in dns_records {
+             let new_record = NewRecord {
+                 account_id,
+                 domain_id: domain_entity.id,
+                 record_name: record.rr.clone(),
+                 record_type: record.record_type.to_string(),
+                 record_value: record.value.clone(),
+                 ttl: record.ttl,
+             };
+
+             match add_record(conn, new_record).await {
+                 Ok(_) => {
+                     saved_count += 1;
+                     debug!("保存DNS记录成功: {} {} {}", record.rr, record.record_type.to_string(), record.value);
+                 }
+                 Err(err) => {
+                     warn!("保存DNS记录失败: {} - {}", record.rr, err);
+                 }
+             }
+         }
+
+         info!("域名 {} 的DNS记录同步完成，成功保存 {} 条记录", domain_name, saved_count);
+
         Ok(())
     }
 

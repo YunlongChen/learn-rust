@@ -124,6 +124,8 @@ pub enum Type {
     SOA,
     PTR,
     SRV,
+    #[serde(rename = "FORWARD_URL")]
+    ForwardUrl,
 }
 
 impl Type {
@@ -140,6 +142,7 @@ impl Type {
             Type::SOA => "SOA",
             Type::PTR => "PTR",
             Type::SRV => "SRV",
+            Type::ForwardUrl => "FORWARD_URL",
         }
     }
 }
@@ -156,6 +159,7 @@ impl Display for Type {
             Type::SOA => write!(f, "SOA"),
             Type::PTR => write!(f, "PTR"),
             Type::SRV => write!(f, "SRV"),
+            Type::ForwardUrl => write!(f, "FORWARD_URL"),
         }
     }
 }

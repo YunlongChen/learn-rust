@@ -135,6 +135,7 @@ impl AliyunDnsApi {
             "SOA" => Type::SOA,
             "PTR" => Type::PTR,
             "SRV" => Type::SRV,
+            "FORWARD_URL" => Type::ForwardUrl,
             _ => Type::A, // 默认为A记录
         };
         
