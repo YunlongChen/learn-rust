@@ -1,6 +1,5 @@
 use crate::countries::flags_pictures::{
-    CN, DE, ES, FI, FLAGS_WIDTH_BIG, FR, GB, GR, ID, IT, JP, KR, PL, PT, RO, RU, SE, TR, TW, UA,
-    UZ, VN,
+    AU, CA, CN, DE, FLAGS_WIDTH_BIG, FR, GB, IN, JP, KR, UNKNOWN, US,
 };
 use crate::StyleType;
 use iced::widget::svg::Handle;
@@ -87,27 +86,27 @@ impl Language {
     pub fn get_flag<'a>(self) -> Svg<'a, StyleType> {
         Svg::new(Handle::from_memory(Vec::from(match self {
             Language::ZH => CN,
-            Language::ZH_TW => TW,
+            Language::ZH_TW => UNKNOWN,
             Language::DE => DE,
-            Language::ES => ES,
+            Language::ES => UNKNOWN,
             Language::FR => FR,
             Language::EN => GB,
-            Language::IT => IT,
+            Language::IT => UNKNOWN,
             Language::KO => KR,
-            Language::PL => PL,
-            Language::PT => PT,
-            Language::RO => RO,
-            Language::RU => RU,
-            Language::TR => TR,
-            Language::UK => UA,
-            Language::EL => GR,
+            Language::PL => UNKNOWN,
+            Language::PT => UNKNOWN,
+            Language::RO => UNKNOWN,
+            Language::RU => UNKNOWN,
+            Language::TR => UNKNOWN,
+            Language::UK => UNKNOWN,
+            Language::EL => UNKNOWN,
             // Language::FA => IR,
-            Language::SV => SE,
-            Language::FI => FI,
+            Language::SV => UNKNOWN,
+            Language::FI => UNKNOWN,
             Language::JA => JP,
-            Language::UZ => UZ,
-            Language::VI => VN,
-            Language::ID => ID,
+            Language::UZ => UNKNOWN,
+            Language::VI => UNKNOWN,
+            Language::ID => UNKNOWN,
         })))
         .width(FLAGS_WIDTH_BIG)
     }
