@@ -198,6 +198,44 @@ pub async fn list_domains(conn: &DatabaseConnection) -> Result<Vec<DomainEntity>
     Ok(domain_list)
 }
 
+/// 根据域名名称和账户ID查找域名
+pub async fn find_domain_by_name_and_account(
+    conn: &DatabaseConnection,
+    domain_name: &str,
+    account_id: i64,
+) -> Result<Option<DomainEntity>, Box<dyn Error>> {
+    let domain_model = DomainDbEntity::find()
+        .filter(domain::Column::Name.eq(domain_name))
+        .filter(domain::Column::ProviderId.eq(account_id))
+        .one(conn)
+        .await
+        .map_err(|e| {
+            error!("根据域名名称查找域名失败: {}", e);
+            e
+        })?;
+    
+    match domain_model {
+        Some(domain) => {
+            info!("找到域名: {} (ID: {})", domain_name, domain.id);
+            Ok(Some(DomainEntity {
+                id: domain.id,
+                account_id: domain.provider_id,
+                domain_name: domain.name,
+                registration_date: None,
+                expiration_date: None,
+                registrar: None,
+                status: DomainStatus::Active,
+                created_at: domain.created_at.to_string(),
+                updated_at: domain.updated_at,
+            }))
+        }
+        None => {
+            info!("未找到域名: {}", domain_name);
+            Ok(None)
+        }
+    }
+}
+
 /// 获取用户的所有域名
 pub async fn count_all_domains(conn: &DatabaseConnection) -> Result<u64, Box<dyn Error>> {
     let count_result = DomainDbEntity::find()

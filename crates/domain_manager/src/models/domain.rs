@@ -46,6 +46,7 @@ pub struct DomainEntity {
 }
 
 /// 新域名创建模型
+#[derive(Clone)]
 pub struct NewDomain {
     pub domain_name: String,
     pub registration_date: Option<String>,
