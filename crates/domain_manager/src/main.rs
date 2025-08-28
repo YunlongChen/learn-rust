@@ -14,6 +14,9 @@ pub mod storage;
 mod translations;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 use crate::configs::gui_config::Config;
 use crate::gui::manager::DomainManager;
 use crate::gui::styles::style_constants::{

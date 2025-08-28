@@ -399,6 +399,7 @@ impl DnsRecordValidator {
             Type::SOA => Ok(()), // SOA记录格式复杂，暂时跳过验证
             Type::PTR => Self::validate_cname_record(value), // PTR记录格式类似CNAME
             Type::SRV => Ok(()), // SRV记录格式复杂，暂时跳过验证
+            Type::ForwardUrl => Ok(()), // URL转发记录，暂时跳过验证
         }
     }
 }

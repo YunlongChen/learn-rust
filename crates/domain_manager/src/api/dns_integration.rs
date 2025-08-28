@@ -405,6 +405,7 @@ impl DnsApiManager {
             crate::model::dns_record_response::Type::SOA,
             crate::model::dns_record_response::Type::PTR,
             crate::model::dns_record_response::Type::SRV,
+            crate::model::dns_record_response::Type::ForwardUrl,
         ]
     }
     
