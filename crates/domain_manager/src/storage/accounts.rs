@@ -247,12 +247,12 @@ mod tests {
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::storage::init_memory_database;
-    use secrecy::ExposeSecret;
-    use tracing_test::traced_test;
+use crate::tests::test_utils::init_test_env;
+use secrecy::ExposeSecret;
 
-    #[traced_test]
     #[tokio::test]
     async fn it_works() {
+        init_test_env();
         let connection = init_memory_database().await.unwrap();
         connection.ping().await.unwrap();
 

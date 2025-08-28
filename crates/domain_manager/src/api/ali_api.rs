@@ -277,7 +277,6 @@ pub async fn query_aliyun_dns_list(domain_name: String) -> Vec<Record> {
     }
 }
 
-#[tokio::main]
 pub async fn add_aliyun_dns_record(add_dns_field: &AddDnsField) -> bool {
     info!("查询dns解析");
     // 创建 HTTP 客户端
