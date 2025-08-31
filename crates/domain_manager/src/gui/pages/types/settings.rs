@@ -1,4 +1,3 @@
-use crate::gui::types::message::Message;
 use crate::translations::translations::{notifications_translation, style_translation};
 use crate::translations::translations_3::general_translation;
 use crate::translations::types::language::Language;
@@ -56,9 +55,9 @@ impl SettingsPage {
         .to_text()
     }
 
-    pub fn action(self) -> Message {
-        Message::OpenSettings(self)
-    }
+    // pub fn action(self) -> MessageCategory {
+    //     MessageCategory::Navigation(NavigationMessage::PageChanged(self))
+    // }
 }
 
 #[cfg(test)]

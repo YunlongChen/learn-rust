@@ -1,5 +1,5 @@
 use crate::countries::flags_pictures::{
-    AU, CA, CN, DE, FLAGS_WIDTH_BIG, FR, GB, IN, JP, KR, UNKNOWN, US,
+    CN, DE, FLAGS_WIDTH_BIG, FR, GB, JP, KR, UNKNOWN,
 };
 use crate::StyleType;
 use iced::widget::svg::Handle;

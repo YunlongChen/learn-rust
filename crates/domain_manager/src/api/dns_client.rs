@@ -1,7 +1,7 @@
 use crate::api::model::domain::DomainQueryResponse;
 use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::model::domain::DnsProvider::Aliyun;
-use crate::gui::model::domain::{DnsProvider, Domain, DomainName};
+use crate::gui::model::domain::{DnsProvider, Domain, DomainName, DomainStatus};
 use crate::model::dns_record_response::Record;
 use anyhow::Result;
 use reqwest::Client;
@@ -59,8 +59,12 @@ impl DnsClient {
                             // 将结果添加到列表里面
                             domain_names.iter().for_each(|domain| {
                                 domain_name_list.push(Domain {
+                                    id: 0,
                                     name: domain.name.clone(),
-                                    ..Default::default()
+                                    provider: Aliyun,
+                                    status: DomainStatus::Active,
+                                    expiry: "".to_string(),
+                                    records: vec![],
                                 })
                             })
                         }

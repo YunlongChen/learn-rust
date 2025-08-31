@@ -1,22 +1,21 @@
 //! 控制台界面组件 - 显示API请求和数据库查询日志
 
+use crate::gui::handlers::message_handler::{ConsoleMessage, MessageCategory, NavigationMessage};
 use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::text::TextType;
-use crate::gui::types::message::Message;
 use crate::StyleType;
-use iced::widget::{
-    button, column, container, row, scrollable, text, Column, Container, Row, Scrollable, Text,
-};
-use iced::{Alignment, Element, Font, Length};
-use tracing::debug;
+use iced::widget::{button, Column, Container, Row, Scrollable, Text};
+use iced::{Alignment, Font, Length};
 use std::collections::VecDeque;
+use tracing::debug;
 
 /// 控制台标签页类型
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConsoleTab {
     ApiRequests,
     DatabaseQueries,
+    Log,
 }
 
 /// API请求日志条目
@@ -86,12 +85,13 @@ impl ConsoleState {
 pub fn console_view<'a>(
     console_state: &'a ConsoleState,
     font: Font,
-) -> Container<'a, Message, StyleType> {
+) -> Container<'a, MessageCategory, StyleType> {
     let header = create_console_header(&console_state.current_tab, font);
 
     let content = match console_state.current_tab {
         ConsoleTab::ApiRequests => create_api_logs_view(&console_state.api_logs, font),
         ConsoleTab::DatabaseQueries => create_db_logs_view(&console_state.db_logs, font),
+        _ => create_db_logs_view(&console_state.db_logs, font),
     };
 
     Container::new(
@@ -99,7 +99,7 @@ pub fn console_view<'a>(
             .spacing(10)
             .push(header)
             .push(content)
-            .padding(20)
+            .padding(20),
     )
     .width(Length::Fill)
     .class(ContainerType::Standard)
@@ -109,46 +109,38 @@ pub fn console_view<'a>(
 fn create_console_header<'a>(
     current_tab: &ConsoleTab,
     font: Font,
-) -> Row<'a, Message, StyleType> {
+) -> Row<'a, MessageCategory, StyleType> {
     Row::new()
         .spacing(10)
         .push(
-            button(
-                Text::new("API请求")
-                    .font(font)
-                    .size(14)
-            )
-            .class(if *current_tab == ConsoleTab::ApiRequests {
-                ButtonType::TabActive
-            } else {
-                ButtonType::TabInactive
-            })
-            .on_press(Message::ChangeConsoleTab(ConsoleTab::ApiRequests))
-            .padding([8, 16])
+            button(Text::new("API请求").font(font).size(14))
+                .class(if *current_tab == ConsoleTab::ApiRequests {
+                    ButtonType::TabActive
+                } else {
+                    ButtonType::TabInactive
+                })
+                .on_press(MessageCategory::Navigation(
+                    NavigationMessage::ChangeConsoleTab(ConsoleTab::ApiRequests),
+                ))
+                .padding([8, 16]),
         )
         .push(
-            button(
-                Text::new("数据库查询")
-                    .font(font)
-                    .size(14)
-            )
-            .class(if *current_tab == ConsoleTab::DatabaseQueries {
-                ButtonType::TabActive
-            } else {
-                ButtonType::TabInactive
-            })
-            .on_press(Message::ChangeConsoleTab(ConsoleTab::DatabaseQueries))
-            .padding([8, 16])
+            button(Text::new("数据库查询").font(font).size(14))
+                .class(if *current_tab == ConsoleTab::DatabaseQueries {
+                    ButtonType::TabActive
+                } else {
+                    ButtonType::TabInactive
+                })
+                .on_press(MessageCategory::Navigation(
+                    NavigationMessage::ChangeConsoleTab(ConsoleTab::DatabaseQueries),
+                ))
+                .padding([8, 16]),
         )
         .push(
-            button(
-                Text::new("清空日志")
-                    .font(font)
-                    .size(14)
-            )
-            .class(ButtonType::Alert)
-            .on_press(Message::ClearConsoleLogs)
-            .padding([8, 16])
+            button(Text::new("清空日志").font(font).size(14))
+                .class(ButtonType::Alert)
+                .on_press(MessageCategory::Console(ConsoleMessage::ClearConsoleLogs))
+                .padding([8, 16]),
         )
         .align_y(Alignment::Center)
 }
@@ -157,9 +149,8 @@ fn create_console_header<'a>(
 fn create_api_logs_view<'a>(
     logs: &'a VecDeque<ApiRequestLog>,
     font: Font,
-) -> Container<'a, Message, StyleType> {
-
-    debug!("create_api_logs_view:{:?}",logs.len());
+) -> Container<'a, MessageCategory, StyleType> {
+    debug!("create_api_logs_view:{:?}", logs.len());
 
     let mut content = Column::new().spacing(5);
 
@@ -169,11 +160,11 @@ fn create_api_logs_view<'a>(
                 Text::new("暂无API请求日志")
                     .font(font)
                     .size(16)
-                    .class(TextType::Subtitle)
+                    .class(TextType::Subtitle),
             )
             .width(Length::Fill)
             .center_x(Length::Fill)
-            .padding(50)
+            .padding(50),
         );
     } else {
         // 添加表头
@@ -185,37 +176,37 @@ fn create_api_logs_view<'a>(
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fixed(150.0))
+                        .width(Length::Fixed(150.0)),
                 )
                 .push(
                     Text::new("方法")
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fixed(80.0))
+                        .width(Length::Fixed(80.0)),
                 )
                 .push(
                     Text::new("URL")
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fill)
+                        .width(Length::Fill),
                 )
                 .push(
                     Text::new("状态")
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fixed(80.0))
+                        .width(Length::Fixed(80.0)),
                 )
                 .push(
                     Text::new("耗时")
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fixed(100.0))
+                        .width(Length::Fixed(100.0)),
                 )
-                .padding([10, 15])
+                .padding([10, 15]),
         );
 
         // 添加日志条目
@@ -228,7 +219,7 @@ fn create_api_logs_view<'a>(
                             Text::new(&log.timestamp)
                                 .font(font)
                                 .size(11)
-                                .width(Length::Fixed(150.0))
+                                .width(Length::Fixed(150.0)),
                         )
                         .push(
                             Text::new(&log.method)
@@ -241,14 +232,9 @@ fn create_api_logs_view<'a>(
                                     "DELETE" => TextType::Danger,
                                     _ => TextType::Standard,
                                 })
-                                .width(Length::Fixed(80.0))
+                                .width(Length::Fixed(80.0)),
                         )
-                        .push(
-                            Text::new(&log.url)
-                                .font(font)
-                                .size(11)
-                                .width(Length::Fill)
-                        )
+                        .push(Text::new(&log.url).font(font).size(11).width(Length::Fill))
                         .push(
                             Text::new(log.status.to_string())
                                 .font(font)
@@ -260,36 +246,33 @@ fn create_api_logs_view<'a>(
                                 } else {
                                     TextType::Incoming
                                 })
-                                .width(Length::Fixed(80.0))
+                                .width(Length::Fixed(80.0)),
                         )
                         .push(
                             Text::new(&log.duration)
                                 .font(font)
                                 .size(11)
-                                .width(Length::Fixed(100.0))
+                                .width(Length::Fixed(100.0)),
                         )
                         .padding([8, 15])
-                        .align_y(Alignment::Center)
+                        .align_y(Alignment::Center),
                 )
                 .class(ContainerType::Hoverable)
-                .width(Length::Fill)
+                .width(Length::Fill),
             );
         }
     }
 
-    Container::new(
-        Scrollable::new(content)
-            .width(Length::Fill)
-    )
-    .width(Length::Fill)
-    .class(ContainerType::BorderedRound)
+    Container::new(Scrollable::new(content).width(Length::Fill))
+        .width(Length::Fill)
+        .class(ContainerType::BorderedRound)
 }
 
 /// 创建数据库查询日志视图
 fn create_db_logs_view<'a>(
     logs: &'a VecDeque<DatabaseQueryLog>,
     font: Font,
-) -> Container<'a, Message, StyleType> {
+) -> Container<'a, MessageCategory, StyleType> {
     let mut content = Column::new().spacing(5);
 
     if logs.is_empty() {
@@ -298,11 +281,11 @@ fn create_db_logs_view<'a>(
                 Text::new("暂无数据库查询日志")
                     .font(font)
                     .size(16)
-                    .class(TextType::Subtitle)
+                    .class(TextType::Subtitle),
             )
             .width(Length::Fill)
             .center_x(Length::Fill)
-            .padding(50)
+            .padding(50),
         );
     } else {
         // 添加表头
@@ -314,30 +297,30 @@ fn create_db_logs_view<'a>(
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fixed(150.0))
+                        .width(Length::Fixed(150.0)),
                 )
                 .push(
                     Text::new("查询语句")
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fill)
+                        .width(Length::Fill),
                 )
                 .push(
                     Text::new("耗时")
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fixed(100.0))
+                        .width(Length::Fixed(100.0)),
                 )
                 .push(
                     Text::new("影响行数")
                         .font(font)
                         .size(12)
                         .class(TextType::Subtitle)
-                        .width(Length::Fixed(100.0))
+                        .width(Length::Fixed(100.0)),
                 )
-                .padding([10, 15])
+                .padding([10, 15]),
         );
 
         // 添加日志条目
@@ -350,43 +333,40 @@ fn create_db_logs_view<'a>(
                             Text::new(&log.timestamp)
                                 .font(font)
                                 .size(11)
-                                .width(Length::Fixed(150.0))
+                                .width(Length::Fixed(150.0)),
                         )
                         .push(
                             Text::new(&log.query)
                                 .font(font)
                                 .size(11)
-                                .width(Length::Fill)
+                                .width(Length::Fill),
                         )
                         .push(
                             Text::new(&log.duration)
                                 .font(font)
                                 .size(11)
-                                .width(Length::Fixed(100.0))
+                                .width(Length::Fixed(100.0)),
                         )
                         .push(
                             Text::new(
                                 log.rows_affected
                                     .map(|n| n.to_string())
-                                    .unwrap_or_else(|| "-".to_string())
+                                    .unwrap_or_else(|| "-".to_string()),
                             )
                             .font(font)
                             .size(11)
-                            .width(Length::Fixed(100.0))
+                            .width(Length::Fixed(100.0)),
                         )
                         .padding([8, 15])
-                        .align_y(Alignment::Center)
+                        .align_y(Alignment::Center),
                 )
                 .class(ContainerType::Hoverable)
-                .width(Length::Fill)
+                .width(Length::Fill),
             );
         }
     }
 
-    Container::new(
-        Scrollable::new(content)
-            .width(Length::Fill)
-    )
-    .width(Length::Fill)
-    .class(ContainerType::BorderedRound)
+    Container::new(Scrollable::new(content).width(Length::Fill))
+        .width(Length::Fill)
+        .class(ContainerType::BorderedRound)
 }

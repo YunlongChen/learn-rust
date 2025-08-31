@@ -18,5 +18,4 @@ pub mod text_input;
 mod toggler;
 pub mod types;
 
-pub use button::ButtonType;
 pub use container::ContainerType;

@@ -1,9 +1,6 @@
 use crate::configs::database::DatabaseConfig;
-use crate::models::domain::{DomainStatus, NewDomain};
 use crate::storage::migration::migration::Migrator;
-use crate::storage::{add_domain, add_domain_many, count_all_domains, list_domains};
 use anyhow::Context;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use sea_orm::entity::prelude::*;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, Schema};
 use sea_orm_migration::MigratorTrait;
@@ -182,10 +179,14 @@ mod tests {
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::models::account::NewAccount;
-    use crate::storage::{create_account, init_memory_database};
-use crate::tests::test_utils::init_test_env;
-use chrono::Utc;
-use secrecy::{ExposeSecret, SecretString};
+    use crate::models::domain::{DomainStatus, NewDomain};
+    use crate::storage::{
+        add_domain, add_domain_many, count_all_domains, create_account, init_memory_database,
+        list_domains,
+    };
+    use crate::tests::test_utils::init_test_env;
+    use chrono::Utc;
+    use secrecy::{ExposeSecret, SecretString};
 
     #[tokio::test]
     pub async fn it_works() {

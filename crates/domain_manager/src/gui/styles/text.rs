@@ -2,7 +2,7 @@
 
 #![allow(clippy::module_name_repetitions)]
 
-use crate::gui::types::message::Message;
+use crate::gui::handlers::message_handler::MessageCategory;
 use crate::StyleType;
 use iced::widget::text::{Catalog, Style};
 use iced::widget::{Column, Text};
@@ -27,7 +27,7 @@ impl TextType {
         subtitle: &str,
         desc: &str,
         font: Font,
-    ) -> Column<'a, Message, StyleType> {
+    ) -> Column<'a, MessageCategory, StyleType> {
         Column::new()
             .push(
                 Text::new(format!("{subtitle}:"))

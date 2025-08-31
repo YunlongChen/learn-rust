@@ -3,13 +3,16 @@
 use std::sync::Mutex;
 
 use crate::gui::components::button::row_open_link_tooltip;
+use crate::gui::handlers::message_handler::NavigationMessage::OpenWebPage;
+use crate::gui::handlers::message_handler::{
+    MessageCategory, NavigationMessage, NotificationMessage,
+};
 use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
-use crate::gui::styles::style_constants::{FONT_SIZE_FOOTER, FONT_SIZE_SUBTITLE};
+use crate::gui::styles::style_constants::FONT_SIZE_FOOTER;
 use crate::gui::styles::text::TextType;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::gui::styles::types::style_type::StyleType;
-use crate::gui::types::message::Message;
 use crate::translations::translations_2::new_version_available_translation;
 use crate::translations::translations_4::share_feedback_translation;
 use crate::translations::types::language::Language;
@@ -20,7 +23,7 @@ use crate::DOMAIN_MANAGER_LOWERCASE;
 use iced::widget::text::LineHeight;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, rich_text, span, Column, Container, Row, Text, Tooltip};
-use iced::widget::{horizontal_space, Space};
+use iced::widget::{horizontal_space, Button};
 use iced::{Alignment, Font, Length, Padding};
 
 pub fn footer<'a>(
@@ -30,15 +33,15 @@ pub fn footer<'a>(
     font: Font,
     font_footer: Font,
     newer_release_available: &Mutex<Option<bool>>,
-) -> Container<'a, Message, StyleType> {
+) -> Container<'a, MessageCategory, StyleType> {
     if thumbnail {
         return thumbnail_footer();
     }
 
-    let release_details_row =
+    let release_details_row: Row<MessageCategory, StyleType> =
         get_release_details(language, font, font_footer, newer_release_available);
 
-    let footer_row = Row::new()
+    let footer_row: Row<MessageCategory, StyleType> = Row::new()
         .spacing(10)
         .padding([0, 20])
         .align_y(Alignment::Center)
@@ -55,7 +58,7 @@ pub fn footer<'a>(
                         "Made with ❤ by ",
                         span("Stanic.xyz")
                             .underline(true)
-                            .link(Message::OpenWebPage(WebPage::MyGitHub)),
+                            .link(MessageCategory::Navigation(OpenWebPage(WebPage::MyGitHub))),
                     ]
                     .size(FONT_SIZE_FOOTER)
                     .font(font_footer),
@@ -70,8 +73,11 @@ pub fn footer<'a>(
         .class(ContainerType::Gradient(color_gradient))
 }
 
-fn get_button_feedback<'a>(font: Font, language: Language) -> Tooltip<'a, Message, StyleType> {
-    let content = button(
+fn get_button_feedback<'a>(
+    font: Font,
+    language: Language,
+) -> Tooltip<'a, MessageCategory, StyleType> {
+    let content: Button<MessageCategory, StyleType> = button(
         Icon::Feedback
             .to_text()
             .size(15)
@@ -82,7 +88,7 @@ fn get_button_feedback<'a>(font: Font, language: Language) -> Tooltip<'a, Messag
     .padding(Padding::ZERO.top(2))
     .height(30)
     .width(30)
-    .on_press(Message::OpenWebPage(WebPage::Issues));
+    .on_press(MessageCategory::Navigation(NavigationMessage::Back));
 
     Tooltip::new(
         content,
@@ -93,7 +99,7 @@ fn get_button_feedback<'a>(font: Font, language: Language) -> Tooltip<'a, Messag
     .class(ContainerType::Tooltip)
 }
 
-fn get_button_wiki<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
+fn get_button_wiki<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::Book
             .to_text()
@@ -105,7 +111,7 @@ fn get_button_wiki<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     .padding(Padding::ZERO.top(1))
     .height(35)
     .width(35)
-    .on_press(Message::OpenWebPage(WebPage::Wiki));
+    .on_press(MessageCategory::Navigation(OpenWebPage(WebPage::Wiki)));
 
     Tooltip::new(
         content,
@@ -116,7 +122,7 @@ fn get_button_wiki<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     .class(ContainerType::Tooltip)
 }
 
-fn get_button_github<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
+fn get_button_github<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::GitHub
             .to_text()
@@ -127,7 +133,7 @@ fn get_button_github<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     )
     .height(40)
     .width(40)
-    .on_press(Message::OpenWebPage(WebPage::Repo));
+    .on_press(MessageCategory::Navigation(OpenWebPage(WebPage::Repo)));
 
     Tooltip::new(
         content,
@@ -138,7 +144,7 @@ fn get_button_github<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     .class(ContainerType::Badge)
 }
 
-fn get_button_news<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
+fn get_button_news<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::News
             .to_text()
@@ -149,7 +155,9 @@ fn get_button_news<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     )
     .height(35)
     .width(35)
-    .on_press(Message::OpenWebPage(WebPage::WebsiteNews));
+    .on_press(MessageCategory::Navigation(OpenWebPage(
+        WebPage::WebsiteNews,
+    )));
 
     Tooltip::new(
         content,
@@ -160,7 +168,7 @@ fn get_button_news<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     .class(ContainerType::Tooltip)
 }
 
-fn get_button_sponsor<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
+fn get_button_sponsor<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Text::new('❤'.to_string())
             .font(font)
@@ -173,7 +181,9 @@ fn get_button_sponsor<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
     .padding(Padding::ZERO.top(2))
     .height(30)
     .width(30)
-    .on_press(Message::OpenWebPage(WebPage::WebsiteSponsor));
+    .on_press(MessageCategory::Navigation(OpenWebPage(
+        WebPage::WebsiteSponsor,
+    )));
 
     Tooltip::new(
         content,
@@ -185,7 +195,7 @@ fn get_button_sponsor<'a>(font: Font) -> Tooltip<'a, Message, StyleType> {
 }
 
 /// 获取版本信息显示组件
-/// 
+///
 /// # 参数
 /// * `language` - 语言设置
 /// * `font` - 字体
@@ -196,7 +206,7 @@ fn get_release_details<'a>(
     font: Font,
     font_footer: Font,
     newer_release_available: &Mutex<Option<bool>>,
-) -> Row<'a, Message, StyleType> {
+) -> Row<'a, MessageCategory, StyleType> {
     let has_update = if let Some(boolean_response) = *newer_release_available.lock().unwrap() {
         boolean_response
     } else {
@@ -204,7 +214,7 @@ fn get_release_details<'a>(
     };
 
     // 创建可点击的版本号按钮
-    let version_button = button(
+    let version_button: Button<MessageCategory, StyleType> = button(
         Row::new()
             .spacing(8)
             .align_y(Alignment::Center)
@@ -213,13 +223,21 @@ fn get_release_details<'a>(
                     .to_text()
                     .size(16)
                     .align_y(Alignment::Center)
-                    .class(if has_update { TextType::Danger } else { TextType::Standard })
+                    .class(if has_update {
+                        TextType::Danger
+                    } else {
+                        TextType::Standard
+                    }),
             )
             .push(
                 Text::new(format!("{DOMAIN_MANAGER_LOWERCASE} v{APP_VERSION}"))
                     .size(FONT_SIZE_FOOTER)
                     .font(font_footer)
-                    .class(if has_update { TextType::Danger } else { TextType::Standard })
+                    .class(if has_update {
+                        TextType::Danger
+                    } else {
+                        TextType::Standard
+                    }),
             )
             .push_maybe(if has_update {
                 Some(
@@ -227,7 +245,7 @@ fn get_release_details<'a>(
                         .to_text()
                         .size(14)
                         .class(TextType::Danger)
-                        .align_y(Alignment::Center)
+                        .align_y(Alignment::Center),
                 )
             } else {
                 Some(
@@ -235,16 +253,18 @@ fn get_release_details<'a>(
                         .size(12)
                         .font(font_footer)
                         .class(TextType::Subtitle)
-                        .align_y(Alignment::Center)
+                        .align_y(Alignment::Center),
                 )
-            })
+            }),
     )
     .padding([4, 8])
     .class(ButtonType::Standard)
     .on_press(if has_update {
-        Message::OpenWebPage(WebPage::WebsiteDownload)
+        MessageCategory::Navigation(OpenWebPage(WebPage::WebsiteDownload))
     } else {
-        Message::ShowToast("当前已是最新版本".to_string())
+        MessageCategory::Notification(NotificationMessage::ShowToast(
+            "当前已是最新版本".to_string(),
+        ))
     });
 
     let tooltip_text = if has_update {
@@ -253,7 +273,7 @@ fn get_release_details<'a>(
         "点击检查更新".to_string()
     };
 
-    let version_tooltip = Tooltip::new(
+    let version_tooltip: Tooltip<MessageCategory, StyleType> = Tooltip::new(
         version_button,
         Text::new(tooltip_text).font(font),
         Position::Top,
@@ -268,6 +288,6 @@ fn get_release_details<'a>(
         .push(version_tooltip)
 }
 
-fn thumbnail_footer<'a>() -> Container<'a, Message, StyleType> {
+fn thumbnail_footer<'a>() -> Container<'a, MessageCategory, StyleType> {
     Container::new(horizontal_space()).height(0)
 }

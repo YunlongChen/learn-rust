@@ -2,6 +2,58 @@
 
 本文档记录了项目的重要变更历史。
 
+## 2025-08-28
+
+### Domain Manager 测试框架完善与错误修复
+
+#### 测试框架统一化
+- **日志初始化统一**: 移除所有测试文件中的`#[traced_test]`属性，统一使用`init_test_env()`函数
+  - 修复了`Once instance has previously been poisoned`错误
+  - 涉及文件：`iced_integration_tests.rs`、`domains.rs`、`records.rs`、`accounts.rs`、`database.rs`、`manager.rs`、`dns_sync_tests.rs`
+  - 所有测试现在使用统一的日志初始化机制，避免tracing初始化冲突
+
+#### 数据库测试优化
+- **内存数据库使用**: 将所有测试改为使用`init_memory_database()`而不是持久化数据库
+  - 修复了测试间数据污染导致的ID不匹配问题
+  - 确保每个测试都有干净的数据库环境
+  - 提高了测试执行速度和可靠性
+
+#### 错误处理测试修复
+- **错误消息传递修复**: 修复了`test_error_handling`测试中错误消息无法正确传递的问题
+  - 修改了`Message::Reload`错误处理逻辑，确保错误消息通过`ReloadModel`正确传递
+  - 修复了`test_message_sync_all_domains_complete_success`测试，为其添加数据库连接避免错误消息污染
+
+#### 测试结果
+- **测试通过率**: 所有69个测试全部通过，无失败用例
+- **错误修复**: 彻底解决了`Once poisoned`错误和断言失败问题
+- **测试稳定性**: 测试现在可以稳定重复执行，无随机失败
+
+## 2025-08-28
+
+### DNS记录类型支持扩展
+
+#### FORWARD_URL类型支持
+- **DNS记录类型枚举扩展**: 在`dns_record_response.rs`中添加了`FORWARD_URL`类型支持
+  - 在`Type`枚举中添加了`#[serde(rename = "FORWARD_URL")] ForwardUrl`变体
+  - 更新了`get_value()`方法以支持`FORWARD_URL`类型
+  - 更新了`Display` trait实现以支持`FORWARD_URL`类型显示
+- **阿里云DNS API支持**: 在`aliyun_dns_api.rs`中添加了`FORWARD_URL`类型解析
+  - 在记录类型匹配逻辑中添加了`"FORWARD_URL" => Type::ForwardUrl`分支
+  - 修复了反序列化时遇到未知`FORWARD_URL`变体的错误
+- **DNS API验证支持**: 在`dns_api.rs`中添加了`FORWARD_URL`类型验证
+  - 在`validate_record_by_type`方法中添加了`Type::ForwardUrl => Ok(())`分支
+  - 暂时跳过URL转发记录的详细验证
+- **DNS集成模块支持**: 在`dns_integration.rs`中添加了`FORWARD_URL`类型
+  - 在`get_supported_record_types`方法中添加了`Type::ForwardUrl`到支持列表
+
+#### 问题修复
+- **反序列化错误修复**: 解决了查询域名解析列表时遇到的反序列化异常
+  - 错误信息：`unknown variant 'FORWARD_URL', expected one of 'A', 'CNAME', 'MX', 'AAAA', 'TXT', 'NS', 'SOA', 'PTR', 'SRV'`
+  - 现在可以正确解析包含URL转发记录的DNS响应
+- **测试验证**: DNS同步测试通过，确认修复有效
+  - `test_dns_sync_complete_flow`测试成功执行
+  - 成功保存3条DNS记录到数据库
+
 ## 2025-01-29
 
 ### Domain Manager DNS记录同步功能开发

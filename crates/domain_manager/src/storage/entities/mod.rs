@@ -3,8 +3,9 @@ pub mod dns_record;
 pub mod domain;
 pub mod provider;
 
-pub use account::Model as AccountModel;
-pub use domain::Model as DomainModel;
-pub use domain::Entity as DomainDbEntity;
-pub use dns_record::Model as DnsRecordModal;
+pub use account::ActiveModel as AccountActiveModel;
+pub use account::Entity as AccountEntity;
 pub use dns_record::Entity as DnsRecordDbEntity;
+pub use dns_record::Model as DnsRecordModal;
+pub use domain::Entity as DomainDbEntity;
+pub use domain::Model as DomainModal;

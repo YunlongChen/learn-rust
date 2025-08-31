@@ -7,14 +7,13 @@
 //! API文档: https://help.aliyun.com/document_detail/29739.html
 
 use crate::api::dns_api::*;
-use crate::model::dns_record_response::{Record, Type, Status, DnsRecordResponse};
+use crate::model::dns_record_response::{Record, Type, Status};
 use crate::utils::aliyun_utils::call_api;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::Value;
 use std::collections::HashMap;
-use tracing::{info, error, warn, debug};
+use tracing::{info, error, debug};
 use validator::Validate;
 
 /// 阿里云DNS API客户端
@@ -509,6 +508,7 @@ impl AliyunDnsApi {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use super::*;
     
     fn create_test_client() -> AliyunDnsApi {

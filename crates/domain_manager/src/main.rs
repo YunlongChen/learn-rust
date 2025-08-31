@@ -18,7 +18,9 @@ mod utils;
 mod tests;
 
 use crate::configs::gui_config::Config;
-use crate::gui::manager::DomainManager;
+use crate::dm_logger::init_logging;
+use crate::gui::handlers::message_handler::{AppMessage, MessageCategory};
+use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::styles::style_constants::{
     FONT_SIZE_BODY, ICONS_BYTES, MAPLE_MONO_NF_CN_REGULAR, SARASA_MONO_BOLD_BYTES,
     SARASA_MONO_BYTES,
@@ -26,14 +28,12 @@ use crate::gui::styles::style_constants::{
 pub use crate::gui::styles::types::style_type::StyleType;
 use crate::storage::init_database;
 pub use crate::utils::i18_utils::get_text;
-use gui::types::message::Message;
 use iced::window::icon::from_rgba;
+use iced::window::Position;
 use iced::{application, window, Font, Pixels, Settings, Task};
 use rust_i18n::i18n;
 use sea_orm::DatabaseConnection;
 use std::{panic, process};
-
-use crate::dm_logger::init_logging;
 use tracing::{error, info};
 
 const TITLE_SIZE: u16 = 36;
@@ -115,24 +115,26 @@ pub async fn main() -> iced::Result {
 
     let app = application(
         DOMAIN_MANAGER_LOWERCASE,
-        DomainManager::update,
-        DomainManager::view,
+        DomainManagerV2::update,
+        DomainManagerV2::view,
     )
-    .theme(DomainManager::theme)
+    .theme(DomainManagerV2::theme)
     .window(window::Settings {
         size: iced::Size::new(config.window_state.width, config.window_state.height),
-        position: iced::window::Position::Specific(iced::Point::new(config.window_state.x, config.window_state.y)),
+        position: Position::Specific(iced::Point::new(
+            config.window_state.x,
+            config.window_state.y,
+        )),
         icon,
-        decorations: false,  // 禁用窗口装饰器以实现自定义拖动
+        decorations: true, // 禁用窗口装饰器以实现自定义拖动
         ..Default::default()
     })
-    .subscription(DomainManager::keyboard_subscription)
-    .subscription(DomainManager::subscription)
+    .subscription(DomainManagerV2::subscription)
     .settings(settings);
     app.run_with(move || {
         (
-            DomainManager::new(config, connection),
-            Task::done(Message::Started),
+            DomainManagerV2::new(config, connection),
+            Task::done(MessageCategory::App(AppMessage::Started)),
         )
     })
 }

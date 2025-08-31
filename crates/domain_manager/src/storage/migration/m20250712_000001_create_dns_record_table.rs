@@ -1,5 +1,5 @@
-use sea_orm_migration::{prelude::*, schema::*};
 use sea_orm::Iden;
+use sea_orm_migration::{prelude::*, schema::*};
 use tracing::info;
 
 #[derive(DeriveMigrationName)]
@@ -16,6 +16,7 @@ enum DnsRecords {
     Value,
     Ttl,
     Priority,
+    Enabled,
     CreatedAt,
     UpdatedAt,
 }
@@ -44,6 +45,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(DnsRecords::Value).string().not_null())
                     .col(ColumnDef::new(DnsRecords::Ttl).integer().not_null())
                     .col(ColumnDef::new(DnsRecords::Priority).integer().null())
+                    .col(
+                        ColumnDef::new(DnsRecords::Enabled)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
                     .to_owned(),
             )
             .await

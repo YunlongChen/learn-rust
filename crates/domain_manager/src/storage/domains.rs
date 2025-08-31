@@ -20,7 +20,7 @@ pub async fn add_domain(
         id: Default::default(),
         name: Set(new_domain.domain_name),
         provider_id: Set(new_domain.account_id),
-        status: Set("active".to_string()),
+        status: Set(new_domain.status.to_string().into()),
         created_at: Default::default(),
         updated_at: Default::default(),
     };
@@ -213,7 +213,7 @@ pub async fn find_domain_by_name_and_account(
             error!("根据域名名称查找域名失败: {}", e);
             e
         })?;
-    
+
     match domain_model {
         Some(domain) => {
             info!("找到域名: {} (ID: {})", domain_name, domain.id);
@@ -322,9 +322,9 @@ mod tests {
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::models::account::NewAccount;
     use crate::storage::{create_account, init_memory_database};
-use crate::tests::test_utils::init_test_env;
-use chrono::Utc;
-use secrecy::{ExposeSecret, SecretString};
+    use crate::tests::test_utils::init_test_env;
+    use chrono::Utc;
+    use secrecy::{ExposeSecret, SecretString};
 
     #[tokio::test]
     pub async fn it_works() {

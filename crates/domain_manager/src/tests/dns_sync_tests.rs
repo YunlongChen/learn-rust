@@ -9,21 +9,42 @@
 
 use crate::api::dns_client::DnsClient;
 use crate::api::provider::aliyun::AliyunDnsClient;
-use crate::gui::model::domain::DnsProvider;
-use crate::models::record::NewRecord;
-use crate::storage::database::init_database;
-use crate::storage::domains::{add_domain, find_domain_by_name_and_account};
 use crate::configs::database::DatabaseConfig;
+use crate::gui::model::domain::DnsProvider;
 use crate::models::domain::DomainEntity;
+use crate::models::domain::{DomainStatus, NewDomain};
+use crate::models::record::NewRecord;
+use crate::storage::domains::{add_domain, find_domain_by_name_and_account};
 use crate::storage::init_memory_database;
 use crate::storage::records::add_record;
-use crate::models::domain::{NewDomain, DomainStatus};
 use crate::tests::test_utils::init_test_env;
-use anyhow::Result;
+use anyhow::{Error, Result};
 use sea_orm::DatabaseConnection;
-use std::error::Error as StdError;
 use tokio;
-use tracing::{info, error};
+use tracing::{error, info};
+
+/// 测试add_record函数的基本功能
+#[tokio::test]
+async fn test_add_record_debug() -> Result<()> {
+    // 初始化测试环境
+    init_test_env();
+
+    // 初始化内存数据库
+    let connection = init_memory_database().await?;
+
+    // 创建测试记录
+    let new_record = NewRecord {
+        domain_id: 1,
+        record_type: "A".to_string(),
+        ttl: 600,
+        record_name: "".to_string(),
+        record_value: "".to_string(),
+    };
+
+    // 尝试添加记录
+    add_record(&connection, new_record).await.unwrap();
+    Ok(())
+}
 
 /// 测试DNS记录同步到数据库的完整流程
 #[tokio::test]
@@ -61,21 +82,18 @@ async fn test_dns_sync_complete_flow() -> Result<()> {
     };
 
     // 3. 添加域名到数据库
-    let domain_entity = add_domain(&conn, new_domain).await
-        .map_err(|e| {
-            error!("添加域名失败: {:?}", e);
-            e
-        })?;
+    let domain_entity = add_domain(&conn, new_domain).await.map_err(|e| {
+        error!("添加域名失败: {:?}", e);
+        e
+    })?;
 
-    info!("成功添加测试域名: {}, ID: {}", test_domain_name, domain_entity.id);
+    info!(
+        "成功添加测试域名: {}, ID: {}",
+        test_domain_name, domain_entity.id
+    );
 
     // 4. 测试DNS记录同步功能
-    test_sync_dns_records_for_domain(
-        &conn,
-        account_id,
-        test_domain_name,
-        &domain_entity,
-    ).await?;
+    test_sync_dns_records_for_domain(&conn, account_id, test_domain_name, &domain_entity).await?;
 
     info!("DNS记录同步测试完成");
     Ok(())
@@ -114,7 +132,6 @@ async fn test_sync_dns_records_for_domain(
     let mut saved_count = 0;
     for record in mock_dns_records {
         let new_record = NewRecord {
-            account_id,
             domain_id: domain_entity.id,
             record_name: record.rr.clone(),
             record_type: record.record_type.to_string(),
@@ -125,7 +142,12 @@ async fn test_sync_dns_records_for_domain(
         match add_record(conn, new_record).await {
             Ok(_) => {
                 saved_count += 1;
-                info!("保存DNS记录成功: {} {} {}", record.rr, record.record_type.to_string(), record.value);
+                info!(
+                    "保存DNS记录成功: {} {} {}",
+                    record.rr,
+                    record.record_type.to_string(),
+                    record.value
+                );
             }
             Err(err) => {
                 error!("保存DNS记录失败: {} - {}", record.rr, err);
@@ -144,7 +166,7 @@ async fn test_sync_dns_records_for_domain(
 
 /// 创建模拟的DNS记录用于测试
 fn create_mock_dns_records() -> Vec<crate::model::dns_record_response::Record> {
-    use crate::model::dns_record_response::{Record, Type, Status, Line};
+    use crate::model::dns_record_response::{Record, Status, Type};
 
     vec![
         Record::new(
@@ -199,7 +221,10 @@ async fn test_find_domain_by_name() -> Result<()> {
     // 测试查找功能
     match find_domain_by_name_and_account(&conn, test_domain_name, 1).await {
         Ok(Some(found_domain)) => {
-            info!("成功找到域名: {} (ID: {})", found_domain.domain_name, found_domain.id);
+            info!(
+                "成功找到域名: {} (ID: {})",
+                found_domain.domain_name, found_domain.id
+            );
             assert_eq!(found_domain.domain_name, test_domain_name);
             assert_eq!(found_domain.id, added_domain.id);
         }
@@ -223,11 +248,10 @@ async fn test_database_connection() -> Result<()> {
     init_test_env();
     info!("开始测试数据库连接");
 
-    let conn = init_memory_database().await
-        .map_err(|e| {
-            error!("数据库连接失败: {:?}", e);
-            e
-        })?;
+    let conn = init_memory_database().await.map_err(|e| {
+        error!("数据库连接失败: {:?}", e);
+        e
+    })?;
 
     info!("数据库连接成功");
     Ok(())

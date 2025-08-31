@@ -2,13 +2,14 @@ use crate::gui::model::domain::Domain;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
 use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE, VERSION};
+use iced::Theme;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Display;
 use std::fs::read_to_string;
 use tracing::{error, info};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum LICENCE {
     MIT,
     Apache,
@@ -80,7 +81,7 @@ impl Default for WindowState {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
     pub domain_names: Vec<Domain>,
     pub name: String,
@@ -94,6 +95,7 @@ pub struct Config {
     pub color_gradient: GradientType,
     pub ali_access_key_id: Option<String>,
     pub ali_access_key_secret: Option<String>,
+
     /// 窗口状态配置
     #[serde(default)]
     pub window_state: WindowState,
@@ -178,18 +180,18 @@ impl Config {
         let default_path = format!("{}\\config\\", env!("CARGO_MANIFEST_DIR"));
         let public_path = env::var("PUBLIC_PATH").unwrap_or(default_path);
         let file_path = format!("{}{}", public_path, file_name);
-        
+
         // 确保目录存在
         if let Some(parent) = std::path::Path::new(&file_path).parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         let json_content = serde_json::to_string_pretty(self)?;
         std::fs::write(&file_path, json_content)?;
         info!("配置已保存到: {}", file_path);
         Ok(())
     }
-    
+
     /// 更新窗口状态
     ///
     pub fn update_window_state(&mut self, x: f32, y: f32, width: f32, height: f32) {
