@@ -52,10 +52,10 @@ pub struct Record {
     pub(crate) rr: String,
 
     #[serde(rename = "Line")]
-    line: Line,
+    pub(crate) line: Line,
 
     #[serde(rename = "Locked")]
-    locked: bool,
+    pub(crate) locked: bool,
 
     #[serde(rename = "Type")]
     pub(crate) record_type: Type,
@@ -67,16 +67,16 @@ pub struct Record {
     pub(crate) record_id: String,
 
     #[serde(rename = "UpdateTimestamp")]
-    update_timestamp: Option<i64>,
+    pub(crate) update_timestamp: Option<i64>,
 
     #[serde(rename = "TTL")]
    pub ttl: i32,
 
     #[serde(rename = "CreateTimestamp")]
-    create_timestamp: i64,
+    pub(crate) create_timestamp: i64,
 
     #[serde(rename = "Weight")]
-    weight: Option<i32>,
+    pub(crate) weight: Option<i32>,
 }
 
 impl Record {

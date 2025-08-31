@@ -8,7 +8,7 @@ use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::LazyLock;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 pub mod config_settings;
 pub mod config_window;

@@ -12,12 +12,12 @@
 //! - 错误处理和验证
 
 use crate::model::dns_record_response::{Record, Type, Status};
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{info, error, warn};
-use validator::{Validate, ValidationError};
+use tracing::{info, error};
+use validator::Validate;
 
 /// DNS记录查询参数
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]

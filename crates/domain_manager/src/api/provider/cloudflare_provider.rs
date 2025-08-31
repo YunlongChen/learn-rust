@@ -1,4 +1,4 @@
-use tracing::{error, info};
+use tracing::info;
 use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use reqwest::Client;

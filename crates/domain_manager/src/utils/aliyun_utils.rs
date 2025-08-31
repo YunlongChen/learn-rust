@@ -3,11 +3,10 @@
 //! 提供阿里云API调用的通用工具函数
 //! 包括签名生成、请求构建等功能
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use reqwest::Client;
-use serde_json::Value;
 use std::collections::HashMap;
-use tracing::{debug, error};
+use tracing::debug;
 
 /// 调用阿里云API的通用方法
 /// 

@@ -14,7 +14,7 @@ pub struct ReloadModel {
     pub domains: Vec<Domain>,
     pub records: Vec<DnsRecord>,
     pub message: String,
-    pub total_count: u64,
+    pub total_count: usize,
 }
 
 impl ReloadModel {
@@ -22,7 +22,7 @@ impl ReloadModel {
         providers: Vec<DomainProvider>,
         domains: Vec<Domain>,
         dns_records: Vec<DnsRecord>,
-        total_count: u64,
+        total_count: usize,
     ) -> Self {
         ReloadModel {
             reload_types: vec![],

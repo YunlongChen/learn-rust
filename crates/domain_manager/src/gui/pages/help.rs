@@ -1,6 +1,6 @@
-use crate::gui::manager::DomainManager;
+use crate::gui::handlers::message_handler::{MessageCategory, NavigationMessage};
+use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::pages::names::Page;
-use crate::gui::types::message::Message;
 use crate::utils::i18_utils::get_text;
 use crate::{StyleType, CONTENT_SIZE, TITLE_PADDING, TITLE_SIZE};
 use iced::alignment::Horizontal;
@@ -8,14 +8,16 @@ use iced::widget::{button, row, text, Column, Container};
 use iced::Length;
 use std::sync::OnceLock;
 
-pub fn help<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
+pub fn help<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
     let title = button(
         text(get_text("help.title"))
             .width(Length::Shrink)
             .size(TITLE_SIZE)
             .align_x(Horizontal::Center),
     )
-    .on_press(Message::ChangePage(Page::DomainPage));
+    .on_press(MessageCategory::Navigation(NavigationMessage::PageChanged(
+        Page::DomainPage,
+    )));
 
     let title = row!(title).padding(TITLE_PADDING);
 

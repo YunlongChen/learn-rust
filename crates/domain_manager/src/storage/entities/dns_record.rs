@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "dns_records")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key, auto_increment = true)]
     pub id: i64,
     pub domain_id: i64,
     pub record_type: String,
@@ -13,6 +13,8 @@ pub struct Model {
     pub ttl: i32,
     #[sea_orm(nullable)]
     pub priority: Option<i32>,
+    #[sea_orm(default_value = true)]
+    pub enabled: bool,
     pub created_at: DateTime,
     pub updated_at: Option<DateTime>,
 }

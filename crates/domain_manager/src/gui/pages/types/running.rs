@@ -1,4 +1,3 @@
-use crate::gui::types::message::Message;
 use crate::translations::translations::{notifications_translation, overview_translation};
 use crate::translations::translations_2::inspect_translation;
 use crate::translations::types::language::Language;
@@ -62,9 +61,9 @@ impl RunningPage {
         .to_text()
     }
 
-    pub fn action(self) -> Message {
-        Message::ChangeRunningPage(self)
-    }
+    // pub fn action(self) -> Message {
+    //     Message::ChangeRunningPage(self)
+    // }
 }
 
 #[cfg(test)]

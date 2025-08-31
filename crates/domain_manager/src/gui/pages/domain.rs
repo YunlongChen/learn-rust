@@ -1,31 +1,34 @@
-use crate::gui::manager::DomainManager;
+use crate::gui::handlers::message_handler::AddDomainFormMessage::ProviderChanged;
+use crate::gui::handlers::message_handler::{
+    AddDomainFormMessage, DomainMessage, MessageCategory, NavigationMessage,
+};
+use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::model::form::AddDomainField;
 use crate::gui::pages::names::Page;
 use crate::gui::types::credential::Credential;
-use crate::gui::types::message::Message;
 use crate::models::account::Account;
 use crate::utils::i18_utils::get_text;
 use crate::StyleType;
+use iced::widget::horizontal_space;
 use iced::widget::text::LineHeight;
 use iced::widget::{
     button, pick_list, scrollable, text, Button, Column, Container, Row, Space, Text,
 };
-use iced::widget::{horizontal_space, TextInput};
-use iced::{Alignment, Element, Length, Padding};
+use iced::{Alignment, Length, Padding};
 use rust_i18n::t;
 use std::default::Default;
 
 // 列表组件实现
-fn domain_list_view<'a>(domain_names: &[Domain]) -> Column<'a, Message, StyleType> {
+fn domain_list_view<'a>(domains: &[Domain]) -> Column<'a, MessageCategory, StyleType> {
     // 将每个域名转换为行元素
-    let mut container: Column<Message, StyleType> = Column::new().spacing(5);
-    for domain_name in domain_names {
-        let domain_line: Row<Message, StyleType> = Row::new()
+    let mut container: Column<MessageCategory, StyleType> = Column::new().spacing(5);
+    for domain in domains {
+        let domain_line: Row<MessageCategory, StyleType> = Row::new()
             .push(text!("选择").width(Length::Fill))
-            .push(text!("{}", &domain_name.name).width(Length::Fill))
+            .push(text!("{}", &domain.name).width(Length::Fill))
             .push(
-                text!("{}", &domain_name.provider)
+                text!("{}", &domain.provider)
                     .width(Length::Fill)
                     .line_height(LineHeight::default()),
             )
@@ -34,13 +37,17 @@ fn domain_list_view<'a>(domain_names: &[Domain]) -> Column<'a, Message, StyleTyp
             .push(text!("标签").width(Length::Fill))
             .push(
                 button(Text::new(t!("dns_record")).center())
-                    .on_press(Message::QueryDomainDnsRecord(domain_name.clone()))
+                    .on_press(MessageCategory::Domain(DomainMessage::Selected(
+                        domain.clone(),
+                    )))
                     .width(Length::Fixed(100.0)),
             )
             .push(horizontal_space().width(Length::Fixed(4f32)).height(4))
             .push(
                 button(Text::new(t!("delete")).center())
-                    .on_press(Message::DomainDeleted(domain_name.clone()))
+                    .on_press(MessageCategory::Domain(DomainMessage::Delete(
+                        domain.id as usize,
+                    )))
                     .width(Length::Fixed(100.0)),
             );
         container = container.push(domain_line);
@@ -49,7 +56,7 @@ fn domain_list_view<'a>(domain_names: &[Domain]) -> Column<'a, Message, StyleTyp
 }
 
 /// 域名管理界面
-pub fn domain_page(app: &DomainManager) -> Container<Message, StyleType> {
+pub fn domain_page(app: &DomainManagerV2) -> Container<MessageCategory, StyleType> {
     // let scrollable = optimized_list(&app.domain_names);
     Container::new(
         Column::new()
@@ -63,24 +70,28 @@ pub fn domain_page(app: &DomainManager) -> Container<Message, StyleType> {
                             .align_x(Alignment::Start)
                             .width(Length::Fill),
                     )
-                    .push_maybe(match app.in_query {
+                    .push_maybe(match app.in_query() {
                         true => Some(Text::new(get_text("in_query")).width(Length::Fill)),
                         false => None,
                     })
                     .push(
                         button(text(get_text("reload")).center())
-                            .on_press(Message::QueryDomain)
+                            .on_press(MessageCategory::Domain(DomainMessage::Reload))
                             .width(Length::Fixed(100.0)),
                     )
                     .push(horizontal_space().width(Length::Fixed(4f32)).height(4))
                     .push(
                         button(Text::new(get_text("add_domain")).center())
-                            .on_press(Message::ChangePage(Page::AddDomain))
+                            .on_press(MessageCategory::Navigation(NavigationMessage::PageChanged(
+                                Page::AddDomain,
+                            )))
                             .width(Length::Fixed(100.0)),
                     )
                     .push(
                         button(Text::new(get_text("add_provider")).center())
-                            .on_press(Message::ChangePage(Page::AddDomain))
+                            .on_press(MessageCategory::Navigation(NavigationMessage::PageChanged(
+                                Page::AddProvider,
+                            )))
                             .width(Length::Fixed(100.0)),
                     )
                     .width(Length::Fill)
@@ -92,7 +103,7 @@ pub fn domain_page(app: &DomainManager) -> Container<Message, StyleType> {
             )
             .push(
                 // 域名列表
-                scrollable(domain_list_view(&app.domain_list))
+                scrollable(domain_list_view(&app.domain_list()))
                     .height(Length::Fill)
                     .width(Length::Fill),
             ),
@@ -100,24 +111,24 @@ pub fn domain_page(app: &DomainManager) -> Container<Message, StyleType> {
 }
 
 /// 添加域名页面
-pub fn add_domain_page<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
+pub fn add_domain_page<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
     let state = AddDomainField {
         domain_name: String::from("www.example.com"),
-        provider: app.add_domain_field.provider.clone(),
+        provider: None, // TODO: 需要从DomainManagerV2中获取
     };
 
-    let content: Container<Message, StyleType> = Container::new(iced::widget::column![
+    let content: Container<MessageCategory, StyleType> = Container::new(iced::widget::column![
         text("add domain").size(20).width(Length::Fill),
-        // TextInput::new("domain name", &app.add_domain_field.domain_name)
-        //     .on_input(Message::AddDomainFormChanged),
-        pick_list(
-            &DnsProvider::ALL[..],
-            state.provider,
-            Message::DnsProviderSelected
-        )
+        pick_list(&DnsProvider::ALL[..], state.provider, |pro| {
+            MessageCategory::Domain(DomainMessage::AddFormChanged(ProviderChanged(Some(pro))))
+        })
         .placeholder("Select your favorite fruit..."),
-        Button::new(text("confirm")).on_press(Message::SubmitDomainForm),
-        button(Text::new(get_text("return"))).on_press(Message::ChangePage(Page::DomainPage)),
+        Button::new(text("confirm")).on_press(MessageCategory::Domain(
+            DomainMessage::AddFormChanged(AddDomainFormMessage::Submit)
+        )),
+        button(Text::new(get_text("return"))).on_press(MessageCategory::Navigation(
+            NavigationMessage::PageChanged(Page::DomainPage,)
+        )),
     ])
     .width(Length::Fill)
     .height(Length::Fill)
@@ -178,65 +189,66 @@ impl Default for AddDomainProviderForm {
     }
 }
 
-/// 添加域名托管商页面
-pub fn add_domain_provider_page(app: &DomainManager) -> Container<Message, StyleType> {
-    let state = &app.add_domain_provider_form;
+// /// 添加域名托管商页面
+// pub fn add_domain_provider_page(_app: &DomainManagerV2) -> Container<Message, StyleType> {
+//     // TODO: 需要从DomainManagerV2中获取add_domain_provider_form
+//     let state = AddDomainProviderForm::default();
 
-    // 动态生成凭证表单
-    let dyn_form: Option<Element<Message, StyleType>> =
-        state.credential.as_ref().and_then(|credential| {
-            // 将凭证消息转换为顶层消息
-            Some(
-                credential
-                    .view()
-                    .map(|credential_message| credential_message.into()),
-            )
-        });
+//     // 动态生成凭证表单
+//     let dyn_form: Option<Element<Message, StyleType>> =
+//         state.credential.as_ref().and_then(|credential| {
+//             // 将凭证消息转换为顶层消息
+//             Some(
+//                 credential
+//                     .view()
+//                     .map(|credential_message| credential_message.into()),
+//             )
+//         });
 
-    let content = Column::new()
-        .push(
-            TextInput::new("域名名称", &state.provider_name)
-                .on_input(Message::AddProviderFormNameChanged)
-                .padding(10),
-        )
-        .push(
-            pick_list(
-                &DnsProvider::ALL[..],
-                state.provider.clone(),
-                Message::AddProviderFormProviderChanged,
-            )
-            .width(Length::Fill)
-            .placeholder("选择域名托管商..."),
-        )
-        .push_maybe(dyn_form) // 动态添加凭证表单
-        .push(
-            Row::new()
-                .push(
-                    Button::new(
-                        Text::new(get_text("validate_credential")).align_x(Alignment::Center),
-                    )
-                    .on_press(Message::SubmitDomainForm)
-                    .width(Length::FillPortion(1)),
-                )
-                .push(
-                    button(Text::new(get_text("validate")).align_x(Alignment::Center))
-                        .on_press(Message::ValidateCredential)
-                        .width(Length::FillPortion(1)),
-                )
-                .push(
-                    Button::new(Text::new(get_text("add")).align_x(Alignment::Center))
-                        .on_press(Message::AddCredential)
-                        .width(Length::FillPortion(1)),
-                )
-                .push(
-                    Button::new(text("返回").align_x(Alignment::Center))
-                        .on_press(Message::ChangePage(Page::DomainPage))
-                        .width(Length::FillPortion(1)),
-                )
-                .spacing(20),
-        )
-        .spacing(20)
-        .padding(20);
+//     let content = Column::new()
+//         .push(
+//             TextInput::new("域名名称", &state.provider_name)
+//                 .on_input(Message::AddProviderFormNameChanged)
+//                 .padding(10),
+//         )
+//         .push(
+//             pick_list(
+//                 &DnsProvider::ALL[..],
+//                 state.provider.clone(),
+//                 Message::AddProviderFormProviderChanged,
+//             )
+//             .width(Length::Fill)
+//             .placeholder("选择域名托管商..."),
+//         )
+//         .push_maybe(dyn_form) // 动态添加凭证表单
+//         .push(
+//             Row::new()
+//                 .push(
+//                     Button::new(
+//                         Text::new(get_text("validate_credential")).align_x(Alignment::Center),
+//                     )
+//                     .on_press(Message::SubmitDomainForm)
+//                     .width(Length::FillPortion(1)),
+//                 )
+//                 .push(
+//                     button(Text::new(get_text("validate")).align_x(Alignment::Center))
+//                         .on_press(Message::ValidateCredential)
+//                         .width(Length::FillPortion(1)),
+//                 )
+//                 .push(
+//                     Button::new(Text::new(get_text("add")).align_x(Alignment::Center))
+//                         .on_press(Message::AddCredential)
+//                         .width(Length::FillPortion(1)),
+//                 )
+//                 .push(
+//                     Button::new(text("返回").align_x(Alignment::Center))
+//                         .on_press(Message::ChangePage(Page::DomainPage))
+//                         .width(Length::FillPortion(1)),
+//                 )
+//                 .spacing(20),
+//         )
+//         .spacing(20)
+//         .padding(20);
 
-    Container::new(content).height(Length::Fill)
-}
+//     Container::new(content).height(Length::Fill)
+// }

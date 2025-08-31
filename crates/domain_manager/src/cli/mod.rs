@@ -1,4 +1,4 @@
-use crate::gui::types::message::Message;
+use crate::gui::handlers::message_handler::{AppMessage, MessageCategory, WindowMessage};
 use crate::utils::formatted_strings::APP_VERSION;
 use crate::DOMAIN_MANAGER_LOWERCASE;
 use clap::Parser;
@@ -24,7 +24,7 @@ struct Args {
     restore_default: bool,
 }
 
-pub fn handle_cli_args() -> Task<Message> {
+pub fn handle_cli_args() -> Task<MessageCategory> {
     let args = Args::parse();
 
     #[cfg(all(windows, not(debug_assertions)))]
@@ -51,11 +51,12 @@ pub fn handle_cli_args() -> Task<Message> {
     //     std::process::exit(0);
     // }
 
-    let mut boot_task_chain = window::get_latest().map(Message::WindowId);
-    if let Some(adapter) = args.adapter {
-        boot_task_chain = boot_task_chain.chain(Task::done(Message::Started));
+    let mut boot_task_chain =
+        window::get_latest().map(|id| MessageCategory::Window(WindowMessage::WindowId(id)));
+    if let Some(_adapter) = args.adapter {
+        boot_task_chain =
+            boot_task_chain.chain(Task::done(MessageCategory::App(AppMessage::Started)));
     }
-
     boot_task_chain
 }
 

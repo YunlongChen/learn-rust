@@ -1,5 +1,4 @@
 use sea_orm::prelude::DateTime;
-use crate::models::account::Account;
 
 /// 域名状态
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,5 +52,5 @@ pub struct NewDomain {
     pub expiration_date: Option<String>,
     pub registrar: Option<String>,
     pub status: DomainStatus,
-    pub account_id: i64
+    pub account_id: i64,
 }

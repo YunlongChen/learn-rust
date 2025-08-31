@@ -1,5 +1,5 @@
 //! UI组件模块
-//! 
+//!
 //! 提供可重用的UI组件，将复杂的UI逻辑分解为更小、更专门的组件。
 //! 这些组件独立于具体的业务逻辑，可以在不同的页面中重复使用。
 
@@ -16,40 +16,37 @@ pub mod toast;
 pub mod types;
 
 // 重构后的新组件
-pub mod domain_list;
 pub mod dns_records;
-pub mod provider_selector;
-pub mod search_bar;
-pub mod status_indicator;
-pub mod toast_message;
-pub mod navigation;
-pub mod settings_panel;
-pub mod help_dialog;
-pub mod console_panel;
+pub mod domain_list;
 
+use crate::gui::handlers::message_handler::MessageCategory;
+use crate::gui::state::AppState;
+use crate::StyleType;
 use iced::{Element, Theme};
-use crate::gui::Message;
+
+/// 状态类型别名
+pub type State = AppState;
 
 /// 组件特征
-/// 
+///
 /// 定义所有UI组件的通用接口
 pub trait Component<State> {
     /// 组件名称
     fn name(&self) -> &'static str;
-    
+
     /// 渲染组件
-    fn view(&self, state: &State) -> Element<Message>;
-    
+    fn view<'a>(&'a self, state: &'a State) -> Element<'a, MessageCategory, StyleType>;
+
     /// 更新组件状态（可选）
-    fn update(&mut self, _state: &mut State, _message: Message) -> bool {
+    fn update(&mut self, _state: &mut State, _message: MessageCategory) -> bool {
         false
     }
-    
+
     /// 检查组件是否可见
     fn is_visible(&self, _state: &State) -> bool {
         true
     }
-    
+
     /// 检查组件是否启用
     fn is_enabled(&self, _state: &State) -> bool {
         true
@@ -59,14 +56,14 @@ pub trait Component<State> {
 /// 可主题化组件特征
 pub trait ThemeableComponent<State>: Component<State> {
     /// 使用指定主题渲染组件
-    fn view_with_theme(&self, state: &State, theme: &Theme) -> Element<Message>;
+    fn view_with_theme(&self, state: &State, theme: &Theme) -> Element<MessageCategory>;
 }
 
 /// 可配置组件特征
 pub trait ConfigurableComponent<State, Config>: Component<State> {
     /// 应用配置
     fn apply_config(&mut self, config: Config);
-    
+
     /// 获取当前配置
     fn get_config(&self) -> Config;
 }

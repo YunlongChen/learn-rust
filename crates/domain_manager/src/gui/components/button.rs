@@ -1,24 +1,23 @@
 #![allow(clippy::module_name_repetitions)]
 
-use iced::widget::text::LineHeight;
-use iced::widget::tooltip::Position;
-use iced::widget::{button, Row, Text, Tooltip};
-use iced::{Alignment, Font};
-
+use crate::gui::handlers::message_handler::{MessageCategory, NavigationMessage};
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::text::TextType;
-use crate::gui::types::message::Message;
 use crate::translations::translations::hide_translation;
 use crate::translations::types::language::Language;
 use crate::utils::types::file_info::FileInfo;
 use crate::utils::types::icon::Icon;
 use crate::StyleType;
+use iced::widget::text::LineHeight;
+use iced::widget::tooltip::Position;
+use iced::widget::{button, Row, Text, Tooltip};
+use iced::{Alignment, Font};
 
 pub fn button_hide<'a>(
-    message: Message,
+    message: MessageCategory,
     language: Language,
     font: Font,
-) -> Tooltip<'a, Message, StyleType> {
+) -> Tooltip<'a, MessageCategory, StyleType> {
     Tooltip::new(
         button(
             Text::new("×")
@@ -45,8 +44,8 @@ pub fn button_open_file<'a>(
     language: Language,
     font: Font,
     is_editable: bool,
-    action: fn(String) -> Message,
-) -> Tooltip<'a, Message, StyleType> {
+    action: fn(String) -> MessageCategory,
+) -> Tooltip<'a, MessageCategory, StyleType> {
     let mut tooltip_str = "";
     let mut tooltip_style = ContainerType::Standard;
 
@@ -64,7 +63,9 @@ pub fn button_open_file<'a>(
     if is_editable {
         tooltip_str = file_info.action_info(language);
         tooltip_style = ContainerType::Tooltip;
-        button = button.on_press(Message::OpenFile(old_file, file_info, action));
+        button = button.on_press(MessageCategory::Navigation(NavigationMessage::OpenFile(
+            old_file, file_info, action,
+        )));
     }
 
     Tooltip::new(button, Text::new(tooltip_str).font(font), Position::Right)
@@ -72,7 +73,10 @@ pub fn button_open_file<'a>(
         .class(tooltip_style)
 }
 
-pub fn row_open_link_tooltip<'a>(text: &'static str, font: Font) -> Row<'a, Message, StyleType> {
+pub fn row_open_link_tooltip<'a>(
+    text: &'static str,
+    font: Font,
+) -> Row<'a, MessageCategory, StyleType> {
     Row::new()
         .align_y(Alignment::Center)
         .spacing(10)

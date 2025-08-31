@@ -51,3 +51,11 @@ impl Default for AddDomainField {
         }
     }
 }
+
+impl AddDomainField {
+    /// 清空表单字段
+    pub fn clear(&mut self) {
+        self.domain_name.clear();
+        self.provider = Some(DnsProvider::Aliyun);
+    }
+}

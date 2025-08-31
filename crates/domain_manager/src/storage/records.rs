@@ -1,9 +1,9 @@
-use crate::models::domain::{DomainEntity, DomainStatus, NewDomain};
+use crate::models::domain::DomainEntity;
 use crate::models::record::{NewRecord, RecordEntity};
 use crate::storage::{dns_record, DnsRecordDbEntity};
 use anyhow::Result;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
 use std::error::Error;
 use tracing::{error, info};
@@ -24,6 +24,7 @@ pub async fn add_record(
         created_at: Default::default(),
         updated_at: Default::default(),
         priority: Default::default(),
+        enabled: Set(true),
     };
 
     Ok(DnsRecordDbEntity::insert(model)
@@ -79,7 +80,7 @@ pub async fn add_records_many(
     }
 
     let mut results = Vec::new();
-    
+
     for new_record in new_records {
         match add_record(conn, new_record).await {
             Ok(record) => results.push(record),
@@ -89,7 +90,7 @@ pub async fn add_records_many(
             }
         }
     }
-    
+
     info!("成功批量添加 {} 条DNS记录", results.len());
     Ok(results)
 }
@@ -107,8 +108,11 @@ pub async fn delete_records_by_domain(
             error!("删除域名DNS记录失败: {:?}", err);
             format!("删除域名DNS记录失败: {}", err)
         })?;
-    
-    info!("成功删除域名ID {} 的 {} 条DNS记录", domain_id, delete_result.rows_affected);
+
+    info!(
+        "成功删除域名ID {} 的 {} 条DNS记录",
+        domain_id, delete_result.rows_affected
+    );
     Ok(delete_result.rows_affected)
 }
 
@@ -153,12 +157,11 @@ mod tests {
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::models::account::NewAccount;
+    use crate::models::domain::{DomainStatus, NewDomain};
     use crate::storage::{add_domain, create_account, init_memory_database};
-use crate::tests::test_utils::init_test_env;
-use chrono::Utc;
-use secrecy::{ExposeSecret, SecretString};
-use serde_test::assert_de_tokens;
-use std::ops::Index;
+    use crate::tests::test_utils::init_test_env;
+    use chrono::Utc;
+    use secrecy::{ExposeSecret, SecretString};
 
     #[tokio::test]
     pub async fn it_works() {
@@ -207,7 +210,6 @@ use std::ops::Index;
         assert_eq!(domain.updated_at, None);
 
         let new_record = NewRecord {
-            account_id: account.id,
             domain_id: domain.id,
             record_name: "www".to_string(),
             record_type: "A".to_string(),

@@ -6,11 +6,13 @@ use iced::widget::{
 use iced::{Element, Font, Length};
 
 use crate::gui::components::button::button_hide;
+use crate::gui::handlers::message_handler::{
+    MessageCategory, NavigationMessage, NotificationMessage,
+};
 use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::style_constants::FONT_SIZE_TITLE;
 use crate::gui::styles::types::gradient_type::GradientType;
-use crate::gui::types::message::Message;
 use crate::translations::translations::{
     ask_clear_all_translation, ask_quit_translation, clear_all_translation,
     quit_analysis_translation, yes_translation,
@@ -19,12 +21,12 @@ use crate::translations::types::language::Language;
 use crate::StyleType;
 
 pub fn get_exit_overlay<'a>(
-    message: Message,
+    message: MessageCategory,
     color_gradient: GradientType,
     font: Font,
     font_headers: Font,
     language: Language,
-) -> Container<'a, Message, StyleType> {
+) -> Container<'a, MessageCategory, StyleType> {
     let row_buttons = confirm_button_row(language, font, message);
 
     let content = Column::new()
@@ -56,8 +58,12 @@ pub fn get_clear_all_overlay<'a>(
     font: Font,
     font_headers: Font,
     language: Language,
-) -> Container<'a, Message, StyleType> {
-    let row_buttons = confirm_button_row(language, font, Message::ClearAllNotifications);
+) -> Container<'a, MessageCategory, StyleType> {
+    let row_buttons = confirm_button_row(
+        language,
+        font,
+        MessageCategory::Notification(NotificationMessage::ClearAllNotifications),
+    );
 
     let content = Column::new()
         .align_x(Alignment::Center)
@@ -89,7 +95,7 @@ fn get_modal_header<'a>(
     color_gradient: GradientType,
     language: Language,
     title: &'static str,
-) -> Container<'a, Message, StyleType> {
+) -> Container<'a, MessageCategory, StyleType> {
     Container::new(
         Row::new()
             .push(horizontal_space())
@@ -101,9 +107,13 @@ fn get_modal_header<'a>(
                     .align_x(Alignment::Center),
             )
             .push(
-                Container::new(button_hide(Message::HideModal, language, font))
-                    .width(Length::Fill)
-                    .align_x(Alignment::Center),
+                Container::new(button_hide(
+                    MessageCategory::Navigation(NavigationMessage::HideModal),
+                    language,
+                    font,
+                ))
+                .width(Length::Fill)
+                .align_x(Alignment::Center),
             ),
     )
     .align_x(Alignment::Center)
@@ -116,8 +126,8 @@ fn get_modal_header<'a>(
 fn confirm_button_row<'a>(
     language: Language,
     font: Font,
-    message: Message,
-) -> Row<'a, Message, StyleType> {
+    message: MessageCategory,
+) -> Row<'a, MessageCategory, StyleType> {
     Row::new()
         .height(Length::Fill)
         .align_y(Alignment::Center)
@@ -137,10 +147,10 @@ fn confirm_button_row<'a>(
 }
 
 pub fn modal<'a>(
-    base: Element<'a, Message, StyleType>,
-    content: Element<'a, Message, StyleType>,
-    on_blur: Message,
-) -> Element<'a, Message, StyleType> {
+    base: Element<'a, MessageCategory, StyleType>,
+    content: Element<'a, MessageCategory, StyleType>,
+    on_blur: MessageCategory,
+) -> Element<'a, MessageCategory, StyleType> {
     stack![
         base,
         opaque(

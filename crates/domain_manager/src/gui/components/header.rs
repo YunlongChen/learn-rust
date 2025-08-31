@@ -1,27 +1,30 @@
 //! GUI upper header
 
+use crate::configs::gui_config::BackgroundType;
 use crate::gui::components::tab::notifications_badge;
-use crate::gui::manager::DomainManager;
+use crate::gui::handlers::message_handler::NavigationMessage::PageChanged;
+use crate::gui::handlers::message_handler::{
+    MessageCategory, NavigationMessage, UiMessage, WindowMessage,
+};
+use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::pages::names::Page;
 use crate::gui::pages::types::settings::SettingsPage;
 use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::types::gradient_type::GradientType;
-use crate::gui::types::message::Message;
 use crate::translations::translations::quit_analysis_translation;
 use crate::translations::translations_3::thumbnail_mode_translation;
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
-use crate::configs::gui_config::BackgroundType;
 use crate::{get_text, StyleType, DOMAIN_MANAGER_LOWERCASE};
 use iced::widget::text::LineHeight;
 use iced::widget::tooltip::Position;
+use iced::widget::MouseArea;
 use iced::widget::{button, horizontal_space, Button, Container, Row, Space, Text, Tooltip};
 use iced::{Alignment, Font, Length};
-use iced::widget::MouseArea;
 
-pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
+pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
     let is_running = true;
     let config = &app.config;
     let font = app.config.style_type.get_extension().font;
@@ -50,7 +53,7 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                 .push(Space::with_width(20))
                 .push(horizontal_space())
                 .push(Row::new().push(Text::new(format!("{}", &app.message))))
-                .push_maybe(if app.in_query {
+                .push_maybe(if app.in_query() {
                     Some(get_custom_button(
                         font,
                         config.language,
@@ -66,7 +69,7 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(Message::AddDnsProvider),
+                    Some(MessageCategory::Navigation(NavigationMessage::Back)),
                     Icon::Add,
                     get_text("provider.add"),
                 ))
@@ -74,7 +77,7 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(Message::ToggleTheme),
+                    Some(MessageCategory::Ui(UiMessage::ToggleTheme)),
                     Icon::HalfSun,
                     get_text("change_theme"),
                 ))
@@ -82,7 +85,9 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(Message::ChangeLocale(Locale::Chinese)),
+                    Some(MessageCategory::Ui(UiMessage::ToggleLocale(
+                        Locale::Chinese,
+                    ))),
                     Icon::Language,
                     get_text("change_locale"),
                 ))
@@ -90,15 +95,17 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(Message::ChangePage(Page::Console)),
-                    Icon::Terminal,
+                    Some(MessageCategory::Navigation(PageChanged(Page::Console))),
+                    Icon::Generals,
                     "控制台".to_string(),
                 ))
                 .push(get_custom_button(
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(Message::OpenSettings(SettingsPage::Appearance)),
+                    Some(MessageCategory::Navigation(PageChanged(Page::Settings(
+                        SettingsPage::General,
+                    )))),
                     Icon::Generals,
                     get_text("settings"),
                 ))
@@ -107,14 +114,8 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                     config.language,
                     &app.config.background_config.background_type,
                 ))
-                .push(get_button_window_minimize(
-                    font,
-                    config.language,
-                ))
-                .push(get_button_window_maximize(
-                    font,
-                    config.language,
-                ))
+                .push(get_button_window_minimize(font, config.language))
+                .push(get_button_window_maximize(font, config.language))
                 .push(get_button_exit(
                     font,
                     config.language,
@@ -122,7 +123,7 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
                 ))
                 .spacing(10),
         )
-        .on_press(Message::DragWindow),
+        .on_press(MessageCategory::Window(WindowMessage::Drag)),
     )
     .height(70)
     .align_y(Alignment::Center)
@@ -130,14 +131,11 @@ pub fn header<'a>(app: &DomainManager) -> Container<'a, Message, StyleType> {
 }
 
 fn get_button_reset<'a>(
-    app: &DomainManager,
+    app: &DomainManagerV2,
     font: Font,
     language: Language,
-) -> Tooltip<'a, Message, StyleType> {
-    let last_page: Page = match &app.last_page {
-        None => Page::DomainPage,
-        Some(last_page) => last_page.clone(),
-    };
+) -> Tooltip<'a, MessageCategory, StyleType> {
+    let last_page: Page = app.last_page.clone();
 
     let content = button(
         Icon::ArrowBack
@@ -150,7 +148,7 @@ fn get_button_reset<'a>(
     .padding(10)
     .height(40)
     .width(60)
-    .on_press(Message::ChangePage(last_page));
+    .on_press(MessageCategory::Navigation(PageChanged(last_page)));
 
     Tooltip::new(
         content,
@@ -165,11 +163,11 @@ pub fn get_custom_button<'a>(
     font: Font,
     language: Language,
     open_overlay: SettingsPage,
-    message: Option<Message>,
+    message: Option<MessageCategory>,
     icon: Icon,
     title: String,
-) -> Tooltip<'a, Message, StyleType> {
-    let content: Button<Message, StyleType> = button(
+) -> Tooltip<'a, MessageCategory, StyleType> {
+    let content: Button<MessageCategory, StyleType> = button(
         icon.to_text()
             .size(20)
             .align_x(Alignment::Center)
@@ -189,7 +187,7 @@ pub fn get_button_exit<'a>(
     font: Font,
     language: Language,
     open_overlay: SettingsPage,
-) -> Tooltip<'a, Message, StyleType> {
+) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::Error
             .to_text()
@@ -200,7 +198,7 @@ pub fn get_button_exit<'a>(
     .padding(0)
     .height(40)
     .width(60)
-    .on_press(Message::Quit);
+    .on_press(MessageCategory::Window(WindowMessage::CloseRequest));
 
     Tooltip::new(content, Text::new(get_text("exit")), Position::Top)
         .gap(5)
@@ -208,14 +206,14 @@ pub fn get_button_exit<'a>(
 }
 
 /// 创建最小化按钮
-/// 
+///
 /// # 参数
 /// * `font` - 字体
 /// * `language` - 语言
 pub fn get_button_window_minimize<'a>(
     font: Font,
     language: Language,
-) -> Tooltip<'a, Message, StyleType> {
+) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::Minimize
             .to_text()
@@ -226,7 +224,7 @@ pub fn get_button_window_minimize<'a>(
     .padding(0)
     .height(40)
     .width(60)
-    .on_press(Message::WindowMinimize);
+    .on_press(MessageCategory::Window(WindowMessage::WindowMinimize));
 
     Tooltip::new(content, Text::new(get_text("minimize")), Position::Top)
         .gap(5)
@@ -234,14 +232,14 @@ pub fn get_button_window_minimize<'a>(
 }
 
 /// 创建最大化按钮
-/// 
+///
 /// # 参数
 /// * `font` - 字体
 /// * `language` - 语言
 pub fn get_button_window_maximize<'a>(
     font: Font,
     language: Language,
-) -> Tooltip<'a, Message, StyleType> {
+) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::Maximize
             .to_text()
@@ -252,7 +250,7 @@ pub fn get_button_window_maximize<'a>(
     .padding(0)
     .height(40)
     .width(60)
-    .on_press(Message::WindowMaximize);
+    .on_press(MessageCategory::Window(WindowMessage::Maximize));
 
     Tooltip::new(content, Text::new(get_text("maximize")), Position::Top)
         .gap(5)
@@ -260,7 +258,7 @@ pub fn get_button_window_maximize<'a>(
 }
 
 /// 创建背景切换按钮
-/// 
+///
 /// # 参数
 /// * `font` - 字体
 /// * `language` - 语言
@@ -269,7 +267,7 @@ pub fn get_background_button<'a>(
     font: Font,
     language: Language,
     current_background: &BackgroundType,
-) -> Tooltip<'a, Message, StyleType> {
+) -> Tooltip<'a, MessageCategory, StyleType> {
     let (icon, tooltip, next_background) = match current_background {
         BackgroundType::None => (
             Icon::Image,
@@ -297,7 +295,7 @@ pub fn get_background_button<'a>(
     .padding(0)
     .height(40)
     .width(60)
-    .on_press(Message::ChangeBackground(next_background));
+    .on_press(MessageCategory::Window(WindowMessage::BackgroundToggle));
 
     Tooltip::new(content, Text::new(tooltip), Position::Top)
         .gap(5)
@@ -308,7 +306,7 @@ pub fn get_button_minimize<'a>(
     font: Font,
     language: Language,
     thumbnail: bool,
-) -> Tooltip<'a, Message, StyleType> {
+) -> Tooltip<'a, MessageCategory, StyleType> {
     let size = if thumbnail { 20 } else { 24 };
     let button_size = if thumbnail { 30 } else { 40 };
     let icon = if thumbnail {
@@ -351,7 +349,7 @@ fn thumbnail_header<'a>(
     language: Language,
     color_gradient: GradientType,
     unread_notifications: usize,
-) -> Container<'a, Message, StyleType> {
+) -> Container<'a, MessageCategory, StyleType> {
     Container::new(
         Row::new()
             .align_y(Alignment::Center)

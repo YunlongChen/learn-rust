@@ -17,7 +17,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, error, warn, debug};
-use validator::Validate;
 use chrono;
 
 /// DNS服务提供商类型

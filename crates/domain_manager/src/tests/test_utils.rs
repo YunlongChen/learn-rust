@@ -11,7 +11,7 @@ use tracing::info;
 static INIT: Once = Once::new();
 
 /// 初始化测试环境
-/// 
+///
 /// 确保日志系统只初始化一次，避免Once poisoned错误
 pub fn init_test_env() {
     INIT.call_once(|| {

@@ -9,7 +9,6 @@ pub struct Model {
     pub name: String,
     pub created_at: DateTime,
     pub updated_at: Option<DateTime>,
-
     pub salt: String,
     pub last_login: Option<DateTime>,
     pub provider_type: String,
@@ -25,7 +24,7 @@ pub enum Relation {
 
 impl Related<super::domain::Entity> for Entity {
     fn to() -> RelationDef {
-        crate::storage::dns_record::Relation::Domain.def()
+        super::dns_record::Relation::Domain.def()
     }
 }
 

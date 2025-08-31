@@ -1,7 +1,6 @@
 use crate::models::account::{Account, ApiKey, NewAccount};
 use crate::storage::encryption::encrypt_data;
-use crate::storage::entities;
-use crate::storage::entities::account::Entity as AccountEntity;
+use crate::storage::{entities, AccountActiveModel, AccountEntity};
 use iced::futures::TryFutureExt;
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait, QueryOrder};
 use secrecy::SecretString;
@@ -13,7 +12,7 @@ pub async fn create_account(
     conn: DatabaseConnection,
     new_account: NewAccount,
 ) -> Result<Account, String> {
-    let active_model = entities::account::ActiveModel {
+    let active_model = AccountActiveModel {
         id: Default::default(),
         name: ActiveValue::Set(new_account.username),
         salt: ActiveValue::Set("123123".into()),
@@ -247,8 +246,8 @@ mod tests {
     use crate::gui::model::domain::DnsProvider;
     use crate::gui::types::credential::{Credential, UsernamePasswordCredential};
     use crate::storage::init_memory_database;
-use crate::tests::test_utils::init_test_env;
-use secrecy::ExposeSecret;
+    use crate::tests::test_utils::init_test_env;
+    use secrecy::ExposeSecret;
 
     #[tokio::test]
     async fn it_works() {

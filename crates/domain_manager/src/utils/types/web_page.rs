@@ -19,6 +19,9 @@ pub enum WebPage {
     Wiki,
     /// My GitHub profile
     MyGitHub,
+
+    // 自定义网址
+    Custom(String),
 }
 
 impl WebPage {
@@ -33,6 +36,8 @@ impl WebPage {
             WebPage::IssueLanguages => "https://github.com/YunlongChen/learn-rust/issues/60",
             WebPage::Wiki => "https://github.com/YunlongChen/learn-rust/wiki",
             WebPage::MyGitHub => "https://github.com/YunlongChen",
+            // 自定义地址
+            WebPage::Custom(_url) => todo!(),
         }
     }
 }
