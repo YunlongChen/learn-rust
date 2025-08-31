@@ -6,9 +6,9 @@ use iced::border::Radius;
 use iced::widget::container::{Catalog, Style};
 use iced::{Background, Border, Color, Shadow};
 
+use crate::configs::gui_config::BackgroundType;
 use crate::gui::styles::style_constants::{BORDER_ROUNDED_RADIUS, BORDER_WIDTH};
 use crate::gui::styles::types::gradient_type::{get_gradient_headers, GradientType};
-use crate::configs::gui_config::BackgroundType;
 use crate::StyleType;
 
 #[derive(Debug, Clone, Copy)]
@@ -29,7 +29,6 @@ impl Default for ContainerStyle {
         }
     }
 }
-
 
 #[derive(Default)]
 pub enum ContainerType {

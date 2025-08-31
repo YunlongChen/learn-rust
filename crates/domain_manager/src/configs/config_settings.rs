@@ -3,9 +3,9 @@
 
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
+use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE};
 use serde::{Deserialize, Serialize};
 use tracing::info;
-use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct ConfigSettings {

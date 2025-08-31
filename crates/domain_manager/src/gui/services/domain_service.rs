@@ -3,8 +3,8 @@
 //! 提供域名管理功能
 
 use super::{AsyncService, DomainServiceTrait, ServiceResult};
-use sea_orm::prelude::async_trait::async_trait;
 use crate::storage::DomainModal;
+use sea_orm::prelude::async_trait::async_trait;
 
 /// 域名服务实现
 #[derive(Debug)]

@@ -1,6 +1,4 @@
-use crate::countries::flags_pictures::{
-    CN, DE, FLAGS_WIDTH_BIG, FR, GB, JP, KR, UNKNOWN,
-};
+use crate::countries::flags_pictures::{CN, DE, FLAGS_WIDTH_BIG, FR, GB, JP, KR, UNKNOWN};
 use crate::StyleType;
 use iced::widget::svg::Handle;
 use iced::widget::Svg;

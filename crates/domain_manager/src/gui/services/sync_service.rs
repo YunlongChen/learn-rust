@@ -2,7 +2,7 @@
 //!
 //! 提供数据同步功能
 
-use super::{ServiceResult, AsyncService, SyncServiceTrait, SyncStatus};
+use super::{AsyncService, ServiceResult, SyncServiceTrait, SyncStatus};
 use crate::storage::entities::dns_record::Model as DnsRecordModel;
 use sea_orm::prelude::async_trait::async_trait;
 use std::collections::HashMap;
@@ -49,7 +49,10 @@ impl SyncServiceTrait for SyncService {
         ServiceResult::Success(vec![])
     }
 
-    async fn sync_all_domains(&self, domains: Vec<String>) -> ServiceResult<HashMap<String, Vec<DnsRecordModel>>> {
+    async fn sync_all_domains(
+        &self,
+        domains: Vec<String>,
+    ) -> ServiceResult<HashMap<String, Vec<DnsRecordModel>>> {
         // TODO: 实现所有域名同步
         ServiceResult::Success(HashMap::new())
     }

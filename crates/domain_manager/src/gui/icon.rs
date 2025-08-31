@@ -4,7 +4,7 @@
 use iced::widget::{text, Text};
 use iced::Font;
 
-pub const FONT:  &[u8] = include_bytes!("../../resources/icons/Icons for Domain Manager.ttf");
+pub const FONT: &[u8] = include_bytes!("../../resources/icons/Icons for Domain Manager.ttf");
 
 pub fn add<'a>() -> Text<'a> {
     icon("\u{2B}")
