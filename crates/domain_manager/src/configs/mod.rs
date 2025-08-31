@@ -1,7 +1,7 @@
 use crate::configs::database::DatabaseConfig;
 use crate::configs::server::ServerConfig;
-use anyhow::{anyhow, Context};
 use ::config::{Config, FileFormat};
+use anyhow::{anyhow, Context};
 use directories::ProjectDirs;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::Deserialize;

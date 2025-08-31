@@ -1,9 +1,9 @@
 // YApi QuickType插件生成，具体参考文档:https://plugins.jetbrains.com/plugin/18847-yapi-quicktype/documentation
 
+use chrono;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{Display, Formatter};
-use chrono;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DnsRecordResponse {
@@ -70,7 +70,7 @@ pub struct Record {
     pub(crate) update_timestamp: Option<i64>,
 
     #[serde(rename = "TTL")]
-   pub ttl: i32,
+    pub ttl: i32,
 
     #[serde(rename = "CreateTimestamp")]
     pub(crate) create_timestamp: i64,
@@ -179,8 +179,8 @@ pub enum TimeUnit {
 
 #[cfg(test)]
 mod tests {
-    use tracing::info;
     use crate::model::dns_record_response::{DnsRecordResponse, Status};
+    use tracing::info;
 
     #[tokio::test]
     async fn test_get_text() {

@@ -135,7 +135,9 @@ impl ButtonType {
                 },
             },
             background: Some(match self {
-                ButtonType::Primary => Background::Color(mix_colors(colors.primary, colors.secondary)),
+                ButtonType::Primary => {
+                    Background::Color(mix_colors(colors.primary, colors.secondary))
+                }
                 ButtonType::Starred => Background::Color(colors.starred),
                 ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail => {
                     Background::Color(Color::TRANSPARENT)

@@ -1,9 +1,6 @@
 use crate::entities::dns_record::{self, Entity as DnsRecord};
 use actix_web::{get, post, web, HttpResponse, Responder};
-use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait,
-    QueryOrder, Set,
-};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

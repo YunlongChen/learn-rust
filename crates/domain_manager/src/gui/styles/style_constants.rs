@@ -8,13 +8,13 @@ use iced::{Color, Font};
 
 // night theme - 优化后的深色主题
 const PRIMARY_NIGHT: Color = Color {
-    r: 0.11,  // #1c1c1c - 更深的背景色
+    r: 0.11, // #1c1c1c - 更深的背景色
     g: 0.11,
     b: 0.11,
     a: 1.0,
 };
 const SECONDARY_NIGHT: Color = Color {
-    r: 0.25,  // #404040 - 更柔和的次要色
+    r: 0.25, // #404040 - 更柔和的次要色
     g: 0.25,
     b: 0.25,
     a: 1.0,
@@ -34,7 +34,7 @@ pub const NIGHT_PALETTE: Palette = Palette {
 };
 
 pub const BUTTONS_NIGHT: Color = Color {
-    r: 0.18,  // #2e2e2e - 更明显的按钮背景
+    r: 0.18, // #2e2e2e - 更明显的按钮背景
     g: 0.18,
     b: 0.18,
     a: 1.0,
@@ -53,13 +53,13 @@ pub const NIGHT_PALETTE_EXTENSION: PaletteExtension = PaletteExtension {
 
 // day theme - 优化后的浅色主题
 const PRIMARY_DAY: Color = Color {
-    r: 0.98,  // #fafafa - 更柔和的白色背景
+    r: 0.98, // #fafafa - 更柔和的白色背景
     g: 0.98,
     b: 0.98,
     a: 1.0,
 };
 const SECONDARY_DAY: Color = Color {
-    r: 0.13,  // #2196f3 - 现代化的蓝色
+    r: 0.13, // #2196f3 - 现代化的蓝色
     g: 0.59,
     b: 0.95,
     a: 1.0,
@@ -79,7 +79,7 @@ pub const DAY_PALETTE: Palette = Palette {
 };
 
 pub const BUTTONS_DAY: Color = Color {
-    r: 0.95,  // #f2f2f2 - 更柔和的按钮背景
+    r: 0.95, // #f2f2f2 - 更柔和的按钮背景
     g: 0.95,
     b: 0.95,
     a: 1.0,
