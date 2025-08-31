@@ -1071,7 +1071,7 @@ dependencies = [
  "rust-ini",
  "serde",
  "serde_json",
- "toml 0.9.1",
+ "toml 0.9.5",
  "winnow",
  "yaml-rust2",
 ]
@@ -1617,7 +1617,7 @@ dependencies = [
  "serde_test",
  "serial_test",
  "tokio",
- "toml 0.9.1",
+ "toml 0.9.5",
  "tracing",
  "tracing-subscriber",
  "tracing-test",
@@ -6751,9 +6751,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.9.1"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0207d6ed1852c2a124c1fbec61621acb8330d2bf969a5d0643131e9affd985a5"
+checksum = "75129e1dc5000bfbaa9fee9d1b21f974f9fbad9daec557a521ee6e080825f6e8"
 dependencies = [
  "serde",
  "serde_spanned 1.0.0",
@@ -6796,9 +6796,9 @@ dependencies = [
 
 [[package]]
 name = "toml_parser"
-version = "1.0.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5c1c469eda89749d2230d8156a5969a69ffe0d6d01200581cdc6110674d293e"
+checksum = "b551886f449aa90d4fe2bdaa9f4a2577ad2dde302c61ecf262d80b116db95c10"
 dependencies = [
  "winnow",
 ]
