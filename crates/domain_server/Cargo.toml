@@ -12,7 +12,7 @@ actix-web = "4"
 serde = { version = "1.0", features = ["derive"] }
 tera = "1"
 dotenv = "0.15"
-uuid = { version = "1.1", features = ["v4"] }
+uuid = { version = "1.18", features = ["v4"] }
 async-trait = "0.1.88"
 serde_json = "1.0.134"
 sea-orm = { version = "1.1.12", features = ["sqlx-postgres", "macros", "with-uuid", "with-chrono", "runtime-tokio", "debug-print", "with-json", "with-rust_decimal"] }
