@@ -32,7 +32,7 @@ anyhow = { version = "1.0.98" }
 base64 = { version = "0.22.1" }
 mockall = "0.13.1"
 sea-orm = { version = "2.0.0-rc.1", features = ["sqlx-sqlite", "sqlx-postgres", "macros", "with-uuid", "with-chrono", "runtime-tokio", "with-json"], default-features = false }
-sea-orm-migration = "2.0.0-rc.1"
+sea-orm-migration = "2.0.0-rc.7"
 tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"], default-features = false }
 # tracing-test = { version = "0.2.5" }  # 仅开发时需要，生产环境禁用
