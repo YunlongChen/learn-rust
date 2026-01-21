@@ -49,8 +49,8 @@ pub async fn add_record(
 
 /// 更新域名信息
 pub fn update_domain(
-    conn: &DatabaseConnection,
-    domain: &DomainEntity,
+    _conn: &DatabaseConnection,
+    _domain: &DomainEntity,
 ) -> Result<(), Box<dyn Error>> {
     // conn.execute(
     //     "UPDATE domains SET
@@ -146,7 +146,7 @@ pub async fn get_records_by_domain(
 }
 
 /// 删除域名
-pub fn delete_domain(conn: &DatabaseConnection, domain_id: i32) -> Result<(), Box<dyn Error>> {
+pub fn delete_domain(_conn: &DatabaseConnection, _domain_id: i32) -> Result<(), Box<dyn Error>> {
     // conn.execute("DELETE FROM domains WHERE id = ?1", [domain_id])?;
     Ok(())
 }

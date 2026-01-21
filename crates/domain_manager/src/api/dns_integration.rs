@@ -412,7 +412,7 @@ impl DnsApiManager {
     pub async fn test_connection(&self) -> Result<bool, DnsApiError> {
         info!("测试DNS API连接");
 
-        let config = self.get_config().await;
+        let _config = self.get_config().await;
 
         // 创建一个简单的查询来测试连接
         let test_query = DnsRecordQuery {

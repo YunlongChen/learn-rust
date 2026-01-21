@@ -48,15 +48,15 @@ impl AsyncService for DatabaseService {
 
 #[async_trait]
 impl DatabaseServiceTrait for DatabaseService {
-    async fn save_domain(&self, domain: &DomainModel) -> ServiceResult<()> {
+    async fn save_domain(&self, _domain: &DomainModel) -> ServiceResult<()> {
         // TODO: 实现保存域名
         ServiceResult::Success(())
     }
 
     async fn save_dns_records(
         &self,
-        domain: &str,
-        records: &[DnsRecordModel],
+        _domain: &str,
+        _records: &[DnsRecordModel],
     ) -> ServiceResult<()> {
         // TODO: 实现保存DNS记录
         ServiceResult::Success(())
@@ -66,11 +66,11 @@ impl DatabaseServiceTrait for DatabaseService {
         todo!()
     }
 
-    async fn load_dns_records(&self, domain: &str) -> ServiceResult<Vec<DnsRecordModel>> {
+    async fn load_dns_records(&self, _domain: &str) -> ServiceResult<Vec<DnsRecordModel>> {
         todo!()
     }
 
-    async fn delete_domain_data(&self, domain: &str) -> ServiceResult<()> {
+    async fn delete_domain_data(&self, _domain: &str) -> ServiceResult<()> {
         todo!()
     }
 

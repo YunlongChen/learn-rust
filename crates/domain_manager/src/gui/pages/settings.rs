@@ -70,7 +70,7 @@ pub fn settings_page(
 fn appearance_settings<'a>(
     app: &DomainManagerV2,
     font: Font,
-    language: Language,
+    _language: Language,
 ) -> Element<'a, MessageCategory, StyleType> {
     let background_config = &app.config.background_config;
 
@@ -190,7 +190,7 @@ fn background_type_button(
 fn notifications_settings<'a>(
     _app: &DomainManagerV2,
     font: Font,
-    language: Language,
+    _language: Language,
 ) -> Element<'a, MessageCategory, StyleType> {
     Column::new()
         .spacing(20)
@@ -245,7 +245,7 @@ fn notifications_settings<'a>(
 fn general_settings<'a>(
     app: &DomainManagerV2,
     font: Font,
-    language: Language,
+    _language: Language,
 ) -> Element<'a, MessageCategory, StyleType> {
     Column::new()
         .spacing(20)

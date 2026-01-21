@@ -162,7 +162,7 @@ impl DnsRecordsComponent {
     }
 
     /// 渲染过滤器栏
-    fn render_filter_bar(&self, _state: &State) -> Element<MessageCategory, StyleType> {
+    fn render_filter_bar(&self, _state: &State) -> Element<'_, MessageCategory, StyleType> {
         let filters = vec![
             DnsRecordFilter::All,
             DnsRecordFilter::A,
@@ -176,7 +176,7 @@ impl DnsRecordsComponent {
         let filter_buttons: Vec<Element<MessageCategory, StyleType>> = filters
             .into_iter()
             .map(|filter| {
-                let is_active = match &self.filter_type {
+                let _is_active = match &self.filter_type {
                     Some(current) => current == filter.as_str(),
                     None => filter == DnsRecordFilter::All,
                 };
@@ -243,7 +243,7 @@ impl DnsRecordsComponent {
             .spacing(10);
 
         // 记录类型
-        let type_color = match record.record_type.as_str() {
+        let _type_color = match record.record_type.as_str() {
             "A" => iced::Color::from_rgb(0.2, 0.7, 0.3),
             "AAAA" => iced::Color::from_rgb(0.3, 0.6, 0.8),
             "CNAME" => iced::Color::from_rgb(0.8, 0.6, 0.2),
@@ -317,7 +317,7 @@ impl DnsRecordsComponent {
 
         // 记录类型
         if config.show_type {
-            let type_color = match record.record_type.as_str() {
+            let _type_color = match record.record_type.as_str() {
                 "A" => iced::Color::from_rgb(0.2, 0.7, 0.3),
                 "AAAA" => iced::Color::from_rgb(0.3, 0.6, 0.8),
                 "CNAME" => iced::Color::from_rgb(0.8, 0.6, 0.2),
@@ -332,7 +332,7 @@ impl DnsRecordsComponent {
 
         // 状态指示器
         if config.show_status {
-            let status_color = if record.enabled {
+            let _status_color = if record.enabled {
                 iced::Color::from_rgb(0.2, 0.7, 0.3)
             } else {
                 iced::Color::from_rgb(0.6, 0.6, 0.6)
@@ -423,7 +423,7 @@ impl DnsRecordsComponent {
     }
 
     /// 渲染空状态
-    fn render_empty_state(&self, domain: Option<&str>) -> Element<MessageCategory, StyleType> {
+    fn render_empty_state(&self, domain: Option<&str>) -> Element<'_, MessageCategory, StyleType> {
         let message = if let Some(domain) = domain {
             format!("域名 {} 暂无DNS记录", domain)
         } else {
@@ -449,7 +449,7 @@ impl DnsRecordsComponent {
     }
 
     /// 渲染加载状态
-    fn render_loading_state(&self) -> Element<MessageCategory, StyleType> {
+    fn render_loading_state(&self) -> Element<'_, MessageCategory, StyleType> {
         container(text("正在加载DNS记录...").size(16))
             .width(Length::Fill)
             .height(Length::Fixed(100.0))

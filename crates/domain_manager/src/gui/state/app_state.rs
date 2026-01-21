@@ -196,8 +196,12 @@ impl AppState {
         let mut state = Self::new();
         state.config = config;
 
-        // TODO 根据配置初始化UI状态
-        // state.ui.theme = Theme::;
+        // 根据配置初始化UI状态
+        state.ui.theme = match state.config.style_type {
+            crate::gui::styles::types::style_type::StyleType::Day => iced::Theme::TokyoNightLight,
+            crate::gui::styles::types::style_type::StyleType::Night => iced::Theme::SolarizedDark,
+            _ => iced::Theme::TokyoNightLight,
+        };
         // state.ui.locale = state.config.locale.clone();
 
         state
@@ -290,7 +294,7 @@ impl AppState {
             UiUpdate::SetSelectedDomain(model) => {
                 self.ui.selected_domain = model;
             }
-            UiUpdate::SetSelectedProvider(dns_provider) => {
+            UiUpdate::SetSelectedProvider(_dns_provider) => {
                 // 处理选中的DNS提供商
             }
             UiUpdate::SetToastMessage(message) => {
@@ -358,7 +362,7 @@ impl AppState {
 
     /// 更新窗口状态
     ///
-    pub fn update_window_state(&mut self, x: f32, y: f32, width: f32, height: f32) {
+    pub fn update_window_state(&mut self, _x: f32, _y: f32, _width: f32, _height: f32) {
         // self.ui.update_window_state();
         self.config.save_to_file("config.json").unwrap();
     }
@@ -369,7 +373,7 @@ impl AppState {
             ConfigUpdate::SetLocale(locale) => {
                 self.ui.locale = locale;
             }
-            ConfigUpdate::SetTheme(theme) => {
+            ConfigUpdate::SetTheme(_theme) => {
                 // self.config.theme = theme.clone();
                 // self.ui.theme = theme;
             }

@@ -89,7 +89,7 @@ impl DomainListComponent {
 
         // 添加状态指示器
         if item_config.show_status {
-            let status_color = match domain.status.as_str() {
+            let _status_color = match domain.status.as_str() {
                 "Active" => iced::Color::from_rgb(0.2, 0.7, 0.3),
                 "Inactive" => iced::Color::from_rgb(0.6, 0.6, 0.6),
                 "Error" => iced::Color::from_rgb(0.8, 0.2, 0.2),
@@ -164,7 +164,7 @@ impl DomainListComponent {
     }
 
     /// 渲染空状态
-    fn render_empty_state(&self) -> Element<MessageCategory, StyleType> {
+    fn render_empty_state(&self) -> Element<'_, MessageCategory, StyleType> {
         container(
             column![
                 text("暂无域名").size(18),
@@ -184,7 +184,7 @@ impl DomainListComponent {
     }
 
     /// 渲染加载状态
-    fn render_loading_state(&self) -> Element<MessageCategory, StyleType> {
+    fn render_loading_state(&self) -> Element<'_, MessageCategory, StyleType> {
         container(
             column![
                 text("正在加载域名...").size(16),
@@ -201,7 +201,7 @@ impl DomainListComponent {
     }
 
     /// 渲染错误状态
-    fn render_error_state(&self, error: &str) -> Element<MessageCategory, StyleType> {
+    fn render_error_state(&self, error: &str) -> Element<'_, MessageCategory, StyleType> {
         container(
             column![
                 text("加载域名失败").size(16),

@@ -5,17 +5,15 @@
 
 use super::{EventHandler, HandlerResult};
 use crate::gui::handlers::message_handler::{
-    MessageCategory, NavigationMessage, NotificationMessage, ProviderMessage, SyncMessage,
-    UiMessage, WindowMessage,
+    MessageCategory, NotificationMessage, ProviderMessage, SyncMessage,
 };
 use crate::gui::model::domain::DnsProvider;
 use crate::gui::pages::domain::AddDomainProviderForm;
-use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
+use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::gui::types::credential::Credential;
 use crate::models::account::NewAccount;
 use iced::Task;
-use std::collections::HashMap;
 use tracing::{debug, error, info, warn};
 
 /// 托管商处理器

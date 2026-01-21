@@ -6,14 +6,13 @@
 use super::message_handler::{MessageCategory, NotificationMessage, SyncMessage};
 use super::{AsyncEventHandler, EventHandler, HandlerResult};
 use crate::gui::model::domain;
-use crate::gui::model::domain::{DnsProvider, Domain, DomainStatus};
+use crate::gui::model::domain::DnsProvider;
 use crate::gui::model::gui::ReloadModel;
 use crate::gui::pages::domain::DomainProvider;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::gui::types::credential::{Credential, TokenCredential};
 use crate::storage::{DnsRecordModal, DomainModal};
-use domain::DnsRecord;
 use iced::Task;
 use std::collections::HashMap;
 use tokio::time::{sleep, Duration};
@@ -375,7 +374,7 @@ impl SyncHandler {
         // 等待所有任务完成
         for task in tasks {
             match task.await {
-                Ok((domain, result)) => match result {
+                Ok((_domain, result)) => match result {
                     Ok(records) => {
                         let count = records.len();
                         total_records += count;

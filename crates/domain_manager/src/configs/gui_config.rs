@@ -2,7 +2,6 @@ use crate::gui::model::domain::Domain;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
 use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE, VERSION};
-use iced::Theme;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Display;

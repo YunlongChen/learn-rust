@@ -55,12 +55,12 @@ impl DomainServiceTrait for DomainService {
         }])
     }
 
-    async fn get_domain_by_id(&self, domain_id: &str) -> ServiceResult<Option<DomainModal>> {
+    async fn get_domain_by_id(&self, _domain_id: &str) -> ServiceResult<Option<DomainModal>> {
         // TODO: 实现根据ID获取域名
         ServiceResult::Success(None)
     }
 
-    async fn get_domain_by_name(&self, domain_name: &str) -> ServiceResult<Option<DomainModal>> {
+    async fn get_domain_by_name(&self, _domain_name: &str) -> ServiceResult<Option<DomainModal>> {
         // TODO: 实现根据名称获取域名
         ServiceResult::Success(None)
     }
@@ -75,12 +75,12 @@ impl DomainServiceTrait for DomainService {
         ServiceResult::Success(domain)
     }
 
-    async fn delete_domain(&self, domain_id: &str) -> ServiceResult<()> {
+    async fn delete_domain(&self, _domain_id: &str) -> ServiceResult<()> {
         // TODO: 实现删除域名
         ServiceResult::Success(())
     }
 
-    async fn search_domains(&self, query: &str) -> ServiceResult<Vec<DomainModal>> {
+    async fn search_domains(&self, _query: &str) -> ServiceResult<Vec<DomainModal>> {
         // TODO: 实现搜索域名
         ServiceResult::Success(vec![])
     }

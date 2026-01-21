@@ -17,7 +17,7 @@ use std::error::Error;
 // };
 
 /// 哈希密码
-pub fn hash_password(password: &SecretString) -> (SecretString, String) {
+pub fn hash_password(_password: &SecretString) -> (SecretString, String) {
     let mut salt = [0u8; 16];
     rand::thread_rng().fill_bytes(&mut salt);
 
@@ -28,7 +28,7 @@ pub fn hash_password(password: &SecretString) -> (SecretString, String) {
 }
 
 /// 验证密码
-pub fn verify_password(password: &SecretString, stored_hash: &String, salt: &String) -> bool {
+pub fn verify_password(_password: &SecretString, _stored_hash: &String, _salt: &String) -> bool {
     // argon2::verify_encoded_ext(
     //     stored_hash.expose_secret(),
     //     password.expose_secret().as_bytes(),
@@ -42,7 +42,7 @@ pub fn verify_password(password: &SecretString, stored_hash: &String, salt: &Str
 /// 加密数据
 pub fn encrypt_data(
     data: &SecretString,
-    key: &SecretString,
+    _key: &SecretString,
 ) -> Result<SecretString, Box<dyn Error>> {
     // 在实际应用中，应使用AES-GCM等加密算法
     // 这里简化为base64编码
@@ -52,8 +52,8 @@ pub fn encrypt_data(
 
 /// 解密数据
 pub fn decrypt_data(
-    encrypted_data: &SecretBox<String>,
-    key: &SecretBox<String>,
+    _encrypted_data: &SecretBox<String>,
+    _key: &SecretBox<String>,
 ) -> Result<SecretString> {
     // 实际应用中应使用对应加密算法的解密
     // let decoded = base64::decode(encrypted_data.expose_secret()).map_err(|e| {

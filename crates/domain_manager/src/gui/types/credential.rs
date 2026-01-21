@@ -18,7 +18,7 @@ pub enum Credential {
 }
 
 impl Credential {
-    pub fn view(&self) -> Element<CredentialMessage, StyleType> {
+    pub fn view(&self) -> Element<'_, CredentialMessage, StyleType> {
         match self {
             Credential::UsernamePassword(credential) => credential.view(),
             Credential::Token(cre) => cre.view(),

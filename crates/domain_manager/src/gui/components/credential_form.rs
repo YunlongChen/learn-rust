@@ -8,13 +8,13 @@ use iced::Element;
 
 // 凭证表单组件的trait
 pub trait CredentialForm {
-    fn view(&self) -> Element<CredentialMessage, StyleType>;
+    fn view(&self) -> Element<'_, CredentialMessage, StyleType>;
     fn update(&mut self, message: CredentialMessage) -> Option<Credential>;
 }
 
 // 用户名密码凭证表单实现
 impl CredentialForm for UsernamePasswordCredential {
-    fn view(&self) -> Element<CredentialMessage, StyleType> {
+    fn view(&self) -> Element<'_, CredentialMessage, StyleType> {
         Column::new()
             .spacing(10)
             .push(
@@ -60,7 +60,7 @@ impl CredentialForm for UsernamePasswordCredential {
 
 // API令牌凭证表单实现
 impl CredentialForm for TokenCredential {
-    fn view(&self) -> Element<CredentialMessage, StyleType> {
+    fn view(&self) -> Element<'_, CredentialMessage, StyleType> {
         Column::new()
             .spacing(10)
             .push(
@@ -88,7 +88,7 @@ impl CredentialForm for TokenCredential {
 
 // API密钥凭证表单实现
 impl CredentialForm for ApiKeyCredential {
-    fn view(&self) -> Element<CredentialMessage, StyleType> {
+    fn view(&self) -> Element<'_, CredentialMessage, StyleType> {
         Column::new()
             .spacing(10)
             .push(

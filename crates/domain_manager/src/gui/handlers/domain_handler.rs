@@ -16,7 +16,7 @@ use crate::gui::types::credential::{ApiKeyCredential, Credential};
 use crate::model::dns_record_response::{Line, Record};
 use crate::storage::DomainModal;
 use iced::Task;
-use tracing::{debug, error, info, warn};
+use tracing::{info, warn};
 
 /// 域名处理器
 ///
@@ -223,7 +223,7 @@ impl DomainHandler {
             Self::query_domain_async(domain_name.clone()),
             move |result| match result {
                 Ok(domains) => {
-                    let provider = DomainProvider {
+                    let _provider = DomainProvider {
                         account_id: 1,
                         provider_name: "阿里云".to_string(),
                         provider: DnsProvider::Aliyun,

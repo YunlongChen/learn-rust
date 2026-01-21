@@ -9,7 +9,7 @@ use crate::gui::state::app_state::{ConfigUpdate, StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use iced::window::Id;
 use iced::{window, Point, Size, Task};
-use tracing::{error, info};
+use tracing::info;
 
 /// 窗口处理器
 ///
@@ -59,7 +59,7 @@ impl WindowHandler {
     }
 
     /// 处理开始拖拽窗口
-    fn handle_start_drag(&mut self, state: &mut AppState, id: Id) -> HandlerResult {
+    fn handle_start_drag(&mut self, state: &mut AppState, _id: Id) -> HandlerResult {
         self.is_dragging = true;
 
         // 记录当前窗口位置
@@ -308,9 +308,9 @@ impl EventHandler<WindowMessage> for WindowHandler {
                 )));
                 HandlerResult::StateUpdated
             }
-            WindowMessage::Resized(size) => HandlerResult::StateUpdated,
+            WindowMessage::Resized(_size) => HandlerResult::StateUpdated,
             WindowMessage::Maximize => HandlerResult::StateUpdated,
-            WindowMessage::DragWindow(position) => {
+            WindowMessage::DragWindow(_position) => {
                 HandlerResult::Task(
                     // 获取最旧的窗口并拖动
                     window::get_oldest().then(|id_option| {
@@ -326,18 +326,41 @@ impl EventHandler<WindowMessage> for WindowHandler {
                 // 这里需要可变引用，实际实现时需要调整
                 HandlerResult::Task(window::drag(id))
             }
-            WindowMessage::WindowResized(size) => HandlerResult::StateUpdated,
+            WindowMessage::WindowResized(_size) => HandlerResult::StateUpdated,
             WindowMessage::WindowMinimize => {
                 state.ui.set_message("窗口最小化".to_string());
                 info!("窗口最小化");
                 state.ui.window_minimize = true;
-                HandlerResult::StateUpdated
+                HandlerResult::Task(window::get_oldest().then(|id| {
+                    if let Some(id) = id {
+                        window::minimize(id, true)
+                    } else {
+                        Task::none()
+                    }
+                }))
             }
-            WindowMessage::WindowMaximize(is_maximized) => HandlerResult::StateUpdated,
+            WindowMessage::WindowMaximize(_is_maximized) => HandlerResult::StateUpdated,
             WindowMessage::ToggleFloating => HandlerResult::StateUpdated,
-            WindowMessage::BackgroundOpacityChange(opacity) => HandlerResult::StateUpdated,
+            WindowMessage::BackgroundOpacityChange(_opacity) => HandlerResult::StateUpdated,
             WindowMessage::BackgroundToggle => HandlerResult::StateUpdated,
-            WindowMessage::CloseRequest => HandlerResult::StateUpdated,
+            WindowMessage::CloseRequest => {
+                // 检查是否有未完成的后台任务
+                if state.ui.is_syncing || state.ui.is_loading {
+                     state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                        "正在执行后台任务，请稍后退出".to_string(),
+                    )));
+                     return HandlerResult::StateUpdated;
+                }
+                
+                state.ui.set_message("准备关闭应用程序".to_string());
+                HandlerResult::Task(window::get_oldest().then(|id| {
+                    if let Some(id) = id {
+                        window::close(id)
+                    } else {
+                        Task::none()
+                    }
+                }))
+            }
             WindowMessage::WindowFocused => HandlerResult::StateUpdated,
             WindowMessage::WindowId(_) => HandlerResult::StateUpdated,
         }

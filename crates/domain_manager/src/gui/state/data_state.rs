@@ -260,8 +260,8 @@ impl DataState {
         }
 
         // TODO 按提供商过滤
-        if let Some(provider) = &self.filter.provider {
-            filtered.retain(|d| true);
+        if let Some(_provider) = &self.filter.provider {
+            filtered.retain(|_d| true);
         }
 
         filtered

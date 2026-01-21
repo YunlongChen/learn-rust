@@ -6,4 +6,4 @@ pub mod settings;
 pub mod types;
 
 // 重新导出Page枚举
-pub use names::{DemoPage, Page};
+pub use names::Page;

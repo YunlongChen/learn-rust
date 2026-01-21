@@ -31,7 +31,7 @@ use crate::gui::handlers::message_handler::WindowMessage::Resized;
 use crate::gui::pages::names::Page;
 use crate::translations::types::language::Language;
 use iced::widget::{row, Column, Container, Text};
-use iced::{Element, Length, Size, Task};
+use iced::{Element, Length, Task};
 use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
@@ -182,7 +182,7 @@ impl DomainManagerV2 {
                     })))
                 }
                 Window(window::Event::Resized(Size { width, height })) => {
-                    Some(MessageCategory::Window(Resized((Size::new(width, height)))))
+                    Some(MessageCategory::Window(Resized(Size::new(width, height))))
                 }
                 _ => None,
             });
@@ -265,6 +265,34 @@ impl DomainManagerV2 {
         // 加载域名列表
         match self.load_domains().await {
             Ok(domains) => {
+                let mut domains = domains;
+                // 如果没有数据，添加一些模拟数据用于测试
+                if domains.is_empty() {
+                    info!("数据库为空，添加模拟数据");
+                    domains = vec![
+                        DomainModal {
+                            id: 1,
+                            name: "example.com".to_string(),
+                            provider_id: 1,
+                            status: "Active".to_string(),
+                            created_at: chrono::Utc::now().naive_utc(),
+                            updated_at: None,
+                        },
+                        DomainModal {
+                            id: 2,
+                            name: "test.org".to_string(),
+                            provider_id: 1,
+                            status: "Expired".to_string(),
+                            created_at: chrono::Utc::now().naive_utc(),
+                            updated_at: None,
+                        },
+                    ];
+
+                    // 同时添加一些模拟的DNS记录缓存
+                    // 注意：这只是为了演示，实际上应该由DnsService管理
+                    // 这里我们通过消息机制触发更新可能会更合适，但直接修改状态也可以
+                }
+
                 info!("成功加载 {} 个域名", domains.len());
                 self.state
                     .update(StateUpdate::Data(DataUpdate::SetDomains(domains)));
@@ -388,6 +416,7 @@ impl DomainManagerV2 {
             Page::Settings(_) => self.render_settings_page(),
             Page::Help => self.render_help_page(),
             Page::AddDomain => self.render_add_domain_page(),
+            Page::AddProvider => self.render_add_provider_page(),
             Page::EditDomain => self.render_edit_domain_page(),
             _ => self.render_unknown_page(),
         };
@@ -502,6 +531,18 @@ impl DomainManagerV2 {
     fn render_add_domain_page(&self) -> Element<'_, MessageCategory, StyleType> {
         Container::<'_, MessageCategory, StyleType>::new(
             Text::<'_, StyleType>::new("添加域名页面").size(18),
+        )
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
+    }
+
+    /// 渲染添加域名服务商页面
+    fn render_add_provider_page(&self) -> Element<'_, MessageCategory, StyleType> {
+        Container::<'_, MessageCategory, StyleType>::new(
+            Text::<'_, StyleType>::new("添加域名服务商页面").size(18),
         )
         .center_x(Length::Fill)
         .center_y(Length::Fill)

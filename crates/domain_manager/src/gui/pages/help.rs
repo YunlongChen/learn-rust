@@ -8,7 +8,7 @@ use iced::widget::{button, row, text, Column, Container};
 use iced::Length;
 use std::sync::OnceLock;
 
-pub fn help<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
+pub fn help<'a>(_app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
     let title = button(
         text(get_text("help.title"))
             .width(Length::Shrink)

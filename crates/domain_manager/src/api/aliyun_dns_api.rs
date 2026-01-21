@@ -160,12 +160,12 @@ impl AliyunDnsApi {
             .and_then(|v| v.as_u64())
             .unwrap_or(600) as i32;
 
-        let priority = record_value
+        let _priority = record_value
             .get("Priority")
             .and_then(|v| v.as_u64())
             .map(|v| v as u32);
 
-        let line = record_value
+        let _line = record_value
             .get("Line")
             .and_then(|v| v.as_str())
             .unwrap_or("default")
@@ -173,7 +173,7 @@ impl AliyunDnsApi {
 
         let status = Status::Enable; // 阿里云DNS记录默认启用
 
-        let weight = record_value
+        let _weight = record_value
             .get("Weight")
             .and_then(|v| v.as_u64())
             .map(|v| v as u32);

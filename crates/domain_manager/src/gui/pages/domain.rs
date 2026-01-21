@@ -56,7 +56,7 @@ fn domain_list_view<'a>(domains: &[Domain]) -> Column<'a, MessageCategory, Style
 }
 
 /// 域名管理界面
-pub fn domain_page(app: &DomainManagerV2) -> Container<MessageCategory, StyleType> {
+pub fn domain_page(app: &DomainManagerV2) -> Container<'_, MessageCategory, StyleType> {
     // let scrollable = optimized_list(&app.domain_names);
     Container::new(
         Column::new()
@@ -111,7 +111,7 @@ pub fn domain_page(app: &DomainManagerV2) -> Container<MessageCategory, StyleTyp
 }
 
 /// 添加域名页面
-pub fn add_domain_page<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
+pub fn add_domain_page<'a>(_app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
     let state = AddDomainField {
         domain_name: String::from("www.example.com"),
         provider: None, // TODO: 需要从DomainManagerV2中获取

@@ -132,7 +132,7 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
 
 fn get_button_reset<'a>(
     app: &DomainManagerV2,
-    font: Font,
+    _font: Font,
     language: Language,
 ) -> Tooltip<'a, MessageCategory, StyleType> {
     let last_page: Page = app.last_page.clone();
@@ -160,9 +160,9 @@ fn get_button_reset<'a>(
 }
 
 pub fn get_custom_button<'a>(
-    font: Font,
-    language: Language,
-    open_overlay: SettingsPage,
+    _font: Font,
+    _language: Language,
+    _open_overlay: SettingsPage,
     message: Option<MessageCategory>,
     icon: Icon,
     title: String,
@@ -184,9 +184,9 @@ pub fn get_custom_button<'a>(
 }
 
 pub fn get_button_exit<'a>(
-    font: Font,
-    language: Language,
-    open_overlay: SettingsPage,
+    _font: Font,
+    _language: Language,
+    _open_overlay: SettingsPage,
 ) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::Error
@@ -211,8 +211,8 @@ pub fn get_button_exit<'a>(
 /// * `font` - 字体
 /// * `language` - 语言
 pub fn get_button_window_minimize<'a>(
-    font: Font,
-    language: Language,
+    _font: Font,
+    _language: Language,
 ) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::Minimize
@@ -237,8 +237,8 @@ pub fn get_button_window_minimize<'a>(
 /// * `font` - 字体
 /// * `language` - 语言
 pub fn get_button_window_maximize<'a>(
-    font: Font,
-    language: Language,
+    _font: Font,
+    _language: Language,
 ) -> Tooltip<'a, MessageCategory, StyleType> {
     let content = button(
         Icon::Maximize
@@ -264,11 +264,11 @@ pub fn get_button_window_maximize<'a>(
 /// * `language` - 语言
 /// * `current_background` - 当前背景类型
 pub fn get_background_button<'a>(
-    font: Font,
-    language: Language,
+    _font: Font,
+    _language: Language,
     current_background: &BackgroundType,
 ) -> Tooltip<'a, MessageCategory, StyleType> {
-    let (icon, tooltip, next_background) = match current_background {
+    let (icon, tooltip, _next_background) = match current_background {
         BackgroundType::None => (
             Icon::Image,
             get_text("background.china_red"),

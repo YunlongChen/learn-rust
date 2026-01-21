@@ -75,7 +75,7 @@ pub async fn add_domain_many(
         })
         .collect();
 
-    let result = domain::Entity::insert_many(domain_entity_list)
+    let _result = domain::Entity::insert_many(domain_entity_list)
         .exec(conn)
         .await
         .map_err(|err| {
@@ -92,8 +92,8 @@ pub async fn add_domain_many(
 
 /// 更新域名信息
 pub async fn update_domain(
-    conn: &DatabaseConnection,
-    domain: &DnsRecord,
+    _conn: &DatabaseConnection,
+    _domain: &DnsRecord,
 ) -> Result<(), Box<dyn Error>> {
     // let pear: Option<DnsRecord::Model> = DnsRecord::find_by_id("28").one(conn).await?;
     //
@@ -250,8 +250,8 @@ pub async fn count_all_domains(conn: &DatabaseConnection) -> Result<u64, Box<dyn
 
 /// 获取即将过期的域名
 pub fn get_expiring_domains(
-    conn: &DatabaseConnection,
-    days: i32,
+    _conn: &DatabaseConnection,
+    _days: i32,
 ) -> Result<Vec<DomainEntity>, Box<dyn Error>> {
     // let expiration_threshold = Utc::now() + chrono::Duration::days(days);
     //
@@ -297,7 +297,7 @@ pub fn get_expiring_domains(
 }
 
 /// 删除域名
-pub fn delete_domain(conn: &DatabaseConnection, domain_id: i32) -> Result<(), Box<dyn Error>> {
+pub fn delete_domain(_conn: &DatabaseConnection, _domain_id: i32) -> Result<(), Box<dyn Error>> {
     // conn.execute("DELETE FROM domains WHERE id = ?1", [domain_id])?;
     Ok(())
 }

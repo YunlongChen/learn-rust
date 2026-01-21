@@ -60,7 +60,7 @@ pub async fn main() -> iced::Result {
     info!("配置文件信息：应用名称：{:?}", &config.name);
 
     // kill the main thread as soon as a secondary thread panics
-    let orig_hook = panic::take_hook();
+    let _orig_hook = panic::take_hook();
 
     // 确保数据库配置已加载（虽然这里不直接连接，但确保配置可用）
     let _ = &configs::get().database;

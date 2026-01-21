@@ -8,11 +8,10 @@ use super::{
     UiHandler, WindowHandler,
 };
 use crate::gui::components::console::ConsoleTab;
-use crate::gui::model::domain::{DnsProvider, DnsRecord, Domain};
+use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::model::gui::ReloadModel;
-use crate::gui::pages::domain::AddDomainProviderForm;
 use crate::gui::pages::Page;
-use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
+use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::gui::types::credential::Credential;
 use crate::model::dns_record_response::{Record, Type};
@@ -24,7 +23,7 @@ use crate::utils::types::web_page::WebPage;
 use iced::{window, Point, Size, Task};
 use sea_orm::DatabaseConnection;
 use std::process;
-use tracing::{debug, info};
+use tracing::info;
 use window::Id;
 
 /// 消息分类枚举

@@ -19,7 +19,7 @@ use iced::{Alignment, Element, Length, Padding};
 pub fn toast_notification(
     message: &str,
     show: bool,
-) -> Option<Element<MessageCategory, StyleType>> {
+) -> Option<Element<'_, MessageCategory, StyleType>> {
     if !show || message.is_empty() {
         return None;
     }

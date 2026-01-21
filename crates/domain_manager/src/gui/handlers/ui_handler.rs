@@ -13,7 +13,7 @@ use crate::gui::state::AppState;
 use crate::storage::DomainModal;
 use crate::translations::types::locale::Locale;
 use iced::{Task, Theme};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// UI处理器
 ///

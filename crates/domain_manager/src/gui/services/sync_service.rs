@@ -44,25 +44,25 @@ impl AsyncService for SyncService {
 
 #[async_trait]
 impl SyncServiceTrait for SyncService {
-    async fn sync_domain(&self, domain: &str) -> ServiceResult<Vec<DnsRecordModel>> {
+    async fn sync_domain(&self, _domain: &str) -> ServiceResult<Vec<DnsRecordModel>> {
         // TODO: 实现单个域名同步
         ServiceResult::Success(vec![])
     }
 
     async fn sync_all_domains(
         &self,
-        domains: Vec<String>,
+        _domains: Vec<String>,
     ) -> ServiceResult<HashMap<String, Vec<DnsRecordModel>>> {
         // TODO: 实现所有域名同步
         ServiceResult::Success(HashMap::new())
     }
 
-    async fn get_sync_status(&self, domain: &str) -> ServiceResult<SyncStatus> {
+    async fn get_sync_status(&self, _domain: &str) -> ServiceResult<SyncStatus> {
         // TODO: 实现获取同步状态
         ServiceResult::Success(SyncStatus::Idle)
     }
 
-    async fn cancel_sync(&self, domain: Option<String>) -> ServiceResult<()> {
+    async fn cancel_sync(&self, _domain: Option<String>) -> ServiceResult<()> {
         // TODO: 实现取消同步
         ServiceResult::Success(())
     }

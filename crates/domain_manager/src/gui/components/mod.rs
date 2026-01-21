@@ -56,7 +56,7 @@ pub trait Component<State> {
 /// 可主题化组件特征
 pub trait ThemeableComponent<State>: Component<State> {
     /// 使用指定主题渲染组件
-    fn view_with_theme(&self, state: &State, theme: &Theme) -> Element<MessageCategory>;
+    fn view_with_theme(&self, state: &State, theme: &Theme) -> Element<'_, MessageCategory>;
 }
 
 /// 可配置组件特征

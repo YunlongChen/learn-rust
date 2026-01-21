@@ -43,7 +43,7 @@ impl AsyncService for DnsService {
 
 #[async_trait]
 impl DnsServiceTrait for DnsService {
-    async fn query_dns_records(&self, domain: &str) -> ServiceResult<Vec<DnsRecordModel>> {
+    async fn query_dns_records(&self, _domain: &str) -> ServiceResult<Vec<DnsRecordModel>> {
         // TODO: 实现获取DNS记录
         ServiceResult::Success(vec![])
     }
@@ -58,14 +58,14 @@ impl DnsServiceTrait for DnsService {
         ServiceResult::Success(record)
     }
 
-    async fn delete_dns_record(&self, domain: &str, record_id: &str) -> ServiceResult<()> {
+    async fn delete_dns_record(&self, _domain: &str, _record_id: &str) -> ServiceResult<()> {
         // TODO: 实现删除DNS记录
         ServiceResult::Success(())
     }
 
     async fn batch_dns_operations(
         &self,
-        operations: Vec<DnsOperation>,
+        _operations: Vec<DnsOperation>,
     ) -> ServiceResult<Vec<DnsOperationResult>> {
         // TODO: 实现批量更新DNS记录
         ServiceResult::Success(vec![])

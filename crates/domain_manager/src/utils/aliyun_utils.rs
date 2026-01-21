@@ -21,11 +21,11 @@ use tracing::debug;
 /// # 返回值
 /// 返回API响应的JSON字符串
 pub async fn call_api(
-    client: &Client,
-    access_key_id: &str,
-    access_key_secret: &str,
+    _client: &Client,
+    _access_key_id: &str,
+    _access_key_secret: &str,
     action: &str,
-    version: &str,
+    _version: &str,
     params: HashMap<String, String>,
 ) -> Result<String> {
     debug!("调用阿里云API: {}, 参数: {:?}", action, params);
@@ -49,7 +49,7 @@ pub async fn call_api(
 ///
 /// # 返回值
 /// 返回签名字符串
-pub fn generate_signature(access_key_secret: &str, string_to_sign: &str) -> String {
+pub fn generate_signature(_access_key_secret: &str, string_to_sign: &str) -> String {
     // 这里应该实现阿里云的签名算法
     // 目前返回一个模拟的签名
     format!("mock-signature-{}", string_to_sign.len())

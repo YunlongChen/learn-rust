@@ -335,7 +335,7 @@ impl DnsHandler {
     }
 
     /// 异步删除DNS记录
-    async fn delete_dns_record_async(domain_id: usize, record_id: usize) -> Result<(), String> {
+    async fn delete_dns_record_async(_domain_id: usize, _record_id: usize) -> Result<(), String> {
         // 模拟网络延迟
         tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
 
@@ -435,7 +435,7 @@ impl EventHandler<DnsMessage> for DnsHandler {
     }
 
     /// 检查是否可以处理该消息
-    fn can_handle(&self, event: &DnsMessage) -> bool {
+    fn can_handle(&self, _event: &DnsMessage) -> bool {
         // DNS处理器可以处理所有DNS相关的消息
         true
     }

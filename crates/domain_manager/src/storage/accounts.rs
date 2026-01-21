@@ -113,9 +113,9 @@ pub async fn list_accounts(
 
 /// 验证用户登录
 pub fn verify_login(
-    conn: &DatabaseConnection,
-    username: &str,
-    password: &SecretString,
+    _conn: &DatabaseConnection,
+    _username: &str,
+    _password: &SecretString,
 ) -> Result<Option<Account>, Box<dyn Error>> {
     // let account: Option<(i32, String, String, String, String, Option<String>)> = conn
     //     .query_row(
@@ -169,7 +169,7 @@ pub fn verify_login(
 }
 
 /// 获取账户的API密钥
-fn get_api_keys(conn: &DatabaseConnection, account_id: i32) -> Result<Vec<ApiKey>, Box<dyn Error>> {
+fn get_api_keys(_conn: &DatabaseConnection, _account_id: i32) -> Result<Vec<ApiKey>, Box<dyn Error>> {
     // let mut stmt =
     //     conn.prepare("SELECT id, key_name, encrypted_key FROM api_keys WHERE account_id = ?1")?;
     //
@@ -194,7 +194,7 @@ fn get_api_keys(conn: &DatabaseConnection, account_id: i32) -> Result<Vec<ApiKey
 }
 
 /// 更新账户信息
-pub fn update_account(conn: &DatabaseConnection, account: &Account) -> Result<(), Box<dyn Error>> {
+pub fn update_account(_conn: &DatabaseConnection, _account: &Account) -> Result<(), Box<dyn Error>> {
     // conn.execute(
     //     "UPDATE accounts SET email = ?1, last_login = ?2 WHERE id = ?3",
     //     params![account.email, account.last_login, account.id],
@@ -204,13 +204,13 @@ pub fn update_account(conn: &DatabaseConnection, account: &Account) -> Result<()
 
 /// 添加API密钥
 pub fn add_api_key(
-    conn: &DatabaseConnection,
-    account_id: i32,
-    key_name: &str,
+    _conn: &DatabaseConnection,
+    _account_id: i32,
+    _key_name: &str,
     key_value: &SecretString,
     master_key: &SecretString,
 ) -> Result<ApiKey, Box<dyn Error>> {
-    let encrypted_key = encrypt_data(key_value, master_key)?;
+    let _encrypted_key = encrypt_data(key_value, master_key)?;
 
     // conn.execute(
     //     "INSERT INTO api_keys (account_id, key_name, encrypted_key)
@@ -234,7 +234,7 @@ pub fn add_api_key(
 }
 
 /// 删除账户
-pub fn delete_account(conn: &DatabaseConnection, account_id: i32) -> Result<(), Box<dyn Error>> {
+pub fn delete_account(_conn: &DatabaseConnection, _account_id: i32) -> Result<(), Box<dyn Error>> {
     // 外键设置为CASCADE，会自动删除关联域名和API密钥
     // conn.execute("DELETE FROM accounts WHERE id = ?1", [account_id])?;
     Ok(())

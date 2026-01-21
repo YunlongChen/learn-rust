@@ -95,27 +95,27 @@ impl ConfigServiceTrait for ConfigService {
         // TODO: 实现保存配置到文件
     }
 
-    async fn get_config_string(&self, key: &str) -> ServiceResult<Option<String>> {
+    async fn get_config_string(&self, _key: &str) -> ServiceResult<Option<String>> {
         // TODO: 实现获取字符串配置
         ServiceResult::Success(None)
     }
 
-    async fn set_config_string(&self, key: &str, value: &str) -> ServiceResult<()> {
+    async fn set_config_string(&self, _key: &str, _value: &str) -> ServiceResult<()> {
         // TODO: 实现设置字符串配置
         ServiceResult::Success(())
     }
 
-    async fn get_config_json(&self, key: &str) -> ServiceResult<Option<serde_json::Value>> {
+    async fn get_config_json(&self, _key: &str) -> ServiceResult<Option<serde_json::Value>> {
         // TODO: 实现获取JSON配置
         ServiceResult::Success(None)
     }
 
-    async fn set_config_json(&self, key: &str, value: &serde_json::Value) -> ServiceResult<()> {
+    async fn set_config_json(&self, _key: &str, _value: &serde_json::Value) -> ServiceResult<()> {
         // TODO: 实现设置JSON配置
         ServiceResult::Success(())
     }
 
-    async fn remove_config(&self, key: &str) -> ServiceResult<()> {
+    async fn remove_config(&self, _key: &str) -> ServiceResult<()> {
         // TODO: 实现删除配置
         ServiceResult::Success(())
     }
@@ -125,12 +125,12 @@ impl ConfigServiceTrait for ConfigService {
         ServiceResult::Success(HashMap::new())
     }
 
-    async fn save_to_file(&self, path: &str) -> ServiceResult<()> {
+    async fn save_to_file(&self, _path: &str) -> ServiceResult<()> {
         // TODO: 实现保存到文件
         ServiceResult::Success(())
     }
 
-    async fn load_from_file(&self, path: &str) -> ServiceResult<()> {
+    async fn load_from_file(&self, _path: &str) -> ServiceResult<()> {
         // TODO: 实现从文件加载
         ServiceResult::Success(())
     }
