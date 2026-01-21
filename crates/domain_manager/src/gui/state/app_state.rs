@@ -205,6 +205,7 @@ impl AppState {
             _ => Theme::TokyoNightLight,
         };
         state.ui.locale = state.config.locale.clone().into();
+        rust_i18n::set_locale(state.ui.locale.code());
         state
     }
 
@@ -325,6 +326,7 @@ impl AppState {
             }
             UiUpdate::ToggleLocale => {
                 self.ui.locale = self.ui.locale.next();
+                rust_i18n::set_locale(self.ui.locale.code());
             }
         }
     }
@@ -373,6 +375,7 @@ impl AppState {
         match update {
             ConfigUpdate::SetLocale(locale) => {
                 self.ui.locale = locale;
+                rust_i18n::set_locale(self.ui.locale.code());
             }
             ConfigUpdate::SetTheme(_theme) => {
                 // self.config.theme = theme.clone();

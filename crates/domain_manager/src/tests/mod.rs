@@ -10,5 +10,6 @@
 
 pub mod dns_sync_tests;
 pub mod iced_integration_tests;
+pub mod i18n_tests;
 pub mod mock_aliyun_client;
 pub mod test_utils;

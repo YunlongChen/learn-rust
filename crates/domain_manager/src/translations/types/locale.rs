@@ -20,6 +20,12 @@ impl Locale {
             }
         }
     }
+    pub fn code(&self) -> &str {
+        match self {
+            Self::Chinese => "zh_CN",
+            Self::English => "en",
+        }
+    }
 }
 
 impl From<String> for Locale {
