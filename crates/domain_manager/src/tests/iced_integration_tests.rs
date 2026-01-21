@@ -20,6 +20,7 @@ use crate::models::record::NewRecord;
 use crate::storage::records::add_record;
 use crate::storage::{
     add_domain, create_account, get_account_domains, init_memory_database, list_accounts,
+    DnsRecordModal, DomainModal,
 };
 use crate::tests::test_utils::init_test_env;
 use anyhow::Result;
@@ -59,24 +60,24 @@ fn create_mock_dns_records() -> Vec<Record> {
     ]
 }
 
-/// 创建模拟的域名数据
-fn create_mock_domains() -> Vec<Domain> {
+/// 创建模拟的域名数据(DB实体)
+fn create_mock_domain_modals() -> Vec<DomainModal> {
     vec![
-        Domain {
+        DomainModal {
             id: 1,
             name: "example.com".to_string(),
-            provider: DnsProvider::Aliyun,
-            status: DomainStatus::Active,
-            expiry: "2025-12-31".to_string(),
-            records: vec![],
+            provider_id: 1,
+            status: "Active".to_string(),
+            created_at: Utc::now().naive_utc(),
+            updated_at: None,
         },
-        Domain {
+        DomainModal {
             id: 2,
             name: "test.com".to_string(),
-            provider: DnsProvider::Aliyun,
-            status: DomainStatus::Active,
-            expiry: "2025-11-30".to_string(),
-            records: vec![],
+            provider_id: 1,
+            status: "Active".to_string(),
+            created_at: Utc::now().naive_utc(),
+            updated_at: None,
         },
     ]
 }
@@ -94,26 +95,44 @@ fn create_mock_providers() -> Vec<DomainProvider> {
     }]
 }
 
-/// 创建模拟的DNS记录数据（用于界面显示）
-fn create_mock_dns_records_for_ui() -> Vec<DnsRecord> {
+/// 创建模拟的DNS记录数据(DB实体)
+fn create_mock_dns_record_modals() -> Vec<DnsRecordModal> {
     vec![
-        DnsRecord {
+        DnsRecordModal {
+            id: 1,
+            domain_id: 1,
             name: "www".to_string(),
             record_type: "A".to_string(),
             value: "192.168.1.100".to_string(),
-            ttl: "600".to_string(),
+            ttl: 600,
+            priority: None,
+            enabled: true,
+            created_at: Utc::now().naive_utc(),
+            updated_at: None,
         },
-        DnsRecord {
+        DnsRecordModal {
+            id: 2,
+            domain_id: 1,
             name: "mail".to_string(),
             record_type: "A".to_string(),
             value: "192.168.1.101".to_string(),
-            ttl: "3600".to_string(),
+            ttl: 3600,
+            priority: None,
+            enabled: true,
+            created_at: Utc::now().naive_utc(),
+            updated_at: None,
         },
-        DnsRecord {
+        DnsRecordModal {
+            id: 3,
+            domain_id: 1,
             name: "@".to_string(),
             record_type: "A".to_string(),
             value: "192.168.1.102".to_string(),
-            ttl: "600".to_string(),
+            ttl: 600,
+            priority: None,
+            enabled: true,
+            created_at: Utc::now().naive_utc(),
+            updated_at: None,
         },
     ]
 }
@@ -201,11 +220,12 @@ mod tests {
         info!("开始测试Message::ReloadComplete消息处理");
 
         let mut app = DomainManagerV2::default();
+        app.initialized = true;
 
         // 准备测试数据
         let providers = create_mock_providers();
-        let domains = create_mock_domains();
-        let records = create_mock_dns_records_for_ui();
+        let domains = create_mock_domain_modals();
+        let records = create_mock_dns_record_modals();
         let total_count = domains.len();
 
         info!(
@@ -223,7 +243,9 @@ mod tests {
             total_count,
         );
 
-        let _task = app.update(MessageCategory::Sync(SyncMessage::Reload));
+        let _task = app.update(MessageCategory::Sync(SyncMessage::DataReloaded(
+            reload_model,
+        )));
 
         let data_state = &app.state.data;
 
@@ -248,10 +270,7 @@ mod tests {
 
         // 验证具体数据
         let first_provider = data_state.domain_providers.get(0).unwrap();
-        assert_eq!(
-            *first_provider.provider_name,
-            DnsProvider::Aliyun.name().to_string()
-        );
+        assert_eq!(*first_provider.provider_name, "阿里云测试账户".to_string());
 
         let first_domain = data_state.domain_list.get(0).unwrap();
         assert_eq!(first_domain.name, "example.com");
@@ -282,6 +301,7 @@ mod tests {
 
         // 创建DomainManager实例并设置数据库连接
         let mut app = DomainManagerV2::default();
+        app.initialized = true;
 
         let clone_connection = connection.clone();
 
@@ -324,6 +344,7 @@ mod tests {
 
         // 创建DomainManager实例并设置数据库连接
         let mut app = DomainManagerV2::default();
+        app.initialized = true;
         app.database = Some(Arc::new(RwLock::new(connection)));
 
         // 创建模拟的DNS客户端
@@ -356,6 +377,7 @@ mod tests {
         let connection = init_memory_database().await.expect("初始化内存数据库失败");
 
         let mut app = DomainManagerV2::default();
+        app.initialized = true;
         app.database = Some(Arc::new(RwLock::new(connection)));
         app.state.ui.set_syncing(true);
         app.state.ui.set_message("同步中...".to_string());
@@ -365,7 +387,10 @@ mod tests {
 
         // 验证应用程序状态
         assert!(!app.state.ui.is_syncing, "同步状态应该被重置为false");
-        assert_eq!(app.state.ui.message, "", "错误消息应该被清除");
+        assert_eq!(
+            app.state.ui.message, "所有域名同步完成",
+            "同步完成消息应正确设置"
+        );
 
         info!("Message::SyncAllDomainsComplete成功场景测试通过");
     }
@@ -376,6 +401,7 @@ mod tests {
         info!("开始测试Message::SyncAllDomainsComplete失败场景");
 
         let mut app = DomainManagerV2::default();
+        app.initialized = true;
         app.state.ui.set_syncing(true);
 
         let error_message = "网络连接失败";
@@ -389,7 +415,7 @@ mod tests {
         assert!(!app.state.ui.is_syncing, "同步状态应该被重置为false");
         assert_eq!(
             app.state.ui.message,
-            format!("同步失败: {}", error_message),
+            error_message.to_string(),
             "错误消息应该被正确设置"
         );
 
@@ -408,6 +434,7 @@ mod tests {
 
         // 2. 创建DomainManager实例
         let mut app = DomainManagerV2::default();
+        app.initialized = true;
         app.database = Some(Arc::new(RwLock::new(connection.clone())));
 
         // 3. 执行Reload消息，模拟应用启动时的数据加载
@@ -416,8 +443,8 @@ mod tests {
 
         // 4. 模拟ReloadComplete消息，验证界面数据更新
         let providers = create_mock_providers();
-        let domains = create_mock_domains();
-        let records = create_mock_dns_records_for_ui();
+        let domains = create_mock_domain_modals();
+        let records = create_mock_dns_record_modals();
 
         let reload_model = ReloadModel::new_from(
             providers.clone(),
@@ -426,17 +453,16 @@ mod tests {
             domains.len() as usize,
         );
 
-        let domains: Vec<DomainModal> = vec![];
-
-        let _reload_complete_task =
-            app.update(MessageCategory::Sync(SyncMessage::Complete(Ok(domains))));
+        let _reload_complete_task = app.update(MessageCategory::Sync(SyncMessage::DataReloaded(
+            reload_model,
+        )));
         info!("执行ReloadComplete消息完成");
 
         // 5. 验证界面状态
         assert_eq!(
             app.state.data.domain_providers.len(),
-            2,
-            "域名提供商数量应该为2（DataState默认包含Aliyun和CloudFlare）"
+            1,
+            "域名提供商数量应该为1"
         );
         assert_eq!(app.state.data.domain_list.len(), 2, "域名列表数量应该为2");
         let dns_records = &app.state.data.current_dns_records;
@@ -455,10 +481,10 @@ mod tests {
         assert!(app.state.ui.is_syncing, "同步状态应该为true");
         info!("执行SyncAllDomains消息完成");
 
-        let domains: Vec<DomainModal> = vec![];
+        // let domains: Vec<DomainModal> = vec![];
         // 7. 模拟同步完成
         let _sync_complete_task =
-            app.update(MessageCategory::Sync(SyncMessage::Complete(Ok(domains))));
+            app.update(MessageCategory::Sync(SyncMessage::AllComplete(Ok(()))));
         assert!(!app.state.ui.is_syncing, "同步状态应该被重置为false");
         info!("执行SyncAllDomainsComplete消息完成");
 
@@ -481,6 +507,7 @@ mod tests {
         info!("开始测试错误处理场景");
 
         let mut app = DomainManagerV2::default();
+        app.initialized = true;
         // 不设置数据库连接，模拟数据库连接失败
 
         // 执行Reload消息，应该处理数据库连接失败的情况

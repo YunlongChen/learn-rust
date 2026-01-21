@@ -198,6 +198,7 @@ impl MockAliyunDnsClient {
     }
 }
 
+#[async_trait]
 impl DnsClientTrait for MockAliyunDnsClient {
     /// 模拟查询域名列表
     async fn list_domains(&self, _page_num: u32, _page_size: u32) -> Result<Vec<DomainName>> {
@@ -241,7 +242,7 @@ impl DnsClientTrait for MockAliyunDnsClient {
         Ok(domain_names)
     }
 
-    fn query_domain(
+    async fn query_domain(
         &self,
         _domain: &crate::gui::model::domain::Domain,
     ) -> Result<DomainQueryResponse> {
@@ -269,7 +270,7 @@ impl DnsClientTrait for MockAliyunDnsClient {
         Ok(records)
     }
 
-    fn add_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
+    async fn add_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
         if self.simulate_failure {
             return Err(anyhow::anyhow!("模拟API调用失败"));
         }
@@ -277,7 +278,7 @@ impl DnsClientTrait for MockAliyunDnsClient {
         Ok(())
     }
 
-    fn delete_dns_record(&self, _domain_name: &DomainName, _record_id: &str) -> Result<()> {
+    async fn delete_dns_record(&self, _domain_name: &DomainName, _record_id: &str) -> Result<()> {
         if self.simulate_failure {
             return Err(anyhow::anyhow!("模拟API调用失败"));
         }
@@ -285,7 +286,7 @@ impl DnsClientTrait for MockAliyunDnsClient {
         Ok(())
     }
 
-    fn update_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
+    async fn update_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
         if self.simulate_failure {
             return Err(anyhow::anyhow!("模拟API调用失败"));
         }

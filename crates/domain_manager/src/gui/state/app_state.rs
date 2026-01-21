@@ -13,6 +13,7 @@ use crate::gui::pages::names::Page;
 use crate::storage::entities::domain::Model as DomainModel;
 use crate::translations::types::locale::Locale;
 use iced::{Point, Size, Theme};
+use tracing::info;
 
 /// 应用程序状态结构体
 ///
@@ -124,6 +125,9 @@ pub enum UiUpdate {
 
     /// 切换缩略图模式
     ToggleThumbnail,
+
+    /// 切换语言
+    ToggleLocale(Locale),
 
     /// 设置背景透明度
     SetBackgroundOpacity(f32),
@@ -306,12 +310,16 @@ impl AppState {
             }
             UiUpdate::ClearConsoleLogs => {
                 // 清除控制台日志的逻辑
+                info!("清除控制台日志！");
             }
             UiUpdate::ToggleFloatingWindow => {
                 self.ui.floating_window_enabled = !self.ui.floating_window_enabled;
             }
             UiUpdate::ToggleThumbnail => {
                 self.ui.thumbnail_mode = !self.ui.thumbnail_mode;
+            }
+            UiUpdate::ToggleLocale(local) => {
+                self.ui.locale = local;
             }
         }
     }

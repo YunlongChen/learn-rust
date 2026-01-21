@@ -121,6 +121,9 @@ impl SyncHandler {
             return HandlerResult::StateUpdated;
         }
 
+        // 设置全局同步状态
+        state.ui.is_syncing = true;
+
         // 设置所有域名为同步状态
         for domain in &domains {
             state.data.set_syncing(domain, true);
@@ -189,6 +192,9 @@ impl SyncHandler {
         state: &mut AppState,
         result: BatchSyncResult,
     ) -> HandlerResult {
+        // 重置全局同步状态
+        state.ui.is_syncing = false;
+
         // 清除所有同步状态
         let domain_names: Vec<String> = state
             .data
@@ -264,32 +270,10 @@ impl SyncHandler {
         HandlerResult::StateUpdatedWithTask(Task::perform(Self::reload_data_async(), |result| {
             match result {
                 Ok((domains, records_map)) => {
-                    // 将数据库实体转换为GUI模型
-                    let gui_domains: Vec<Domain> = domains
+                    // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecordModal>
+                    let records: Vec<DnsRecordModal> = records_map
                         .into_iter()
-                        .map(|d| {
-                            Domain {
-                                id: d.id.clone(),
-                                name: d.name,
-                                provider: DnsProvider::Aliyun, // 简化处理
-                                status: DomainStatus::Active,  // 简化处理
-                                expiry: "2025-12-31".to_string(), // 简化处理
-                                records: vec![],               // 简化处理
-                            }
-                        })
-                        .collect();
-
-                    // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecord>
-                    let gui_records: Vec<DnsRecord> = records_map
-                        .into_iter()
-                        .flat_map(|(_, records)| {
-                            records.into_iter().map(|r| DnsRecord {
-                                name: r.name,
-                                record_type: r.record_type,
-                                value: r.value,
-                                ttl: r.ttl.to_string(),
-                            })
-                        })
+                        .flat_map(|(_, records)| records)
                         .collect();
 
                     // 创建提供商列表（使用默认的两个提供商）
@@ -308,13 +292,11 @@ impl SyncHandler {
                         },
                     ];
 
+                    let total_count = domains.len() + records.len();
+
                     // 创建ReloadModel
-                    let reload_model = ReloadModel::new_from(
-                        providers,
-                        gui_domains.clone(),
-                        gui_records.clone(),
-                        gui_domains.len() + gui_records.len(),
-                    );
+                    let reload_model =
+                        ReloadModel::new_from(providers, domains, records, total_count);
 
                     MessageCategory::Sync(SyncMessage::DataReloaded(reload_model))
                 }
@@ -481,16 +463,44 @@ impl EventHandler<SyncMessage> for SyncHandler {
                 info!("同步完成",);
                 self.handle_sync_complete(state, result)
             }
-            SyncMessage::AllComplete(_) => {
+            SyncMessage::AllComplete(result) => {
                 info!("所有同步完成");
+                // 重置全局同步状态
+                state.ui.is_syncing = false;
+
+                // 清除所有域名的同步状态
+                let domain_names: Vec<String> = state
+                    .data
+                    .domain_list
+                    .iter()
+                    .map(|d| d.name.clone())
+                    .collect();
+                for domain_name in domain_names {
+                    state.data.set_syncing(&domain_name, false);
+                }
+
+                match result {
+                    Ok(_) => {
+                        state.ui.set_message("所有域名同步完成".to_string());
+                    }
+                    Err(e) => {
+                        state.ui.set_message(e.clone());
+                        state.update(StateUpdate::Ui(UiUpdate::ShowToast(e)));
+                    }
+                }
                 HandlerResult::StateUpdated
             }
             SyncMessage::Cancel => {
                 info!("取消同步");
                 HandlerResult::StateUpdated
             }
-            SyncMessage::DataReloaded(_) => {
+            SyncMessage::DataReloaded(model) => {
                 info!("数据加载完成");
+                // 更新应用状态
+                state.data.domain_providers = model.providers;
+                state.data.domain_list = model.domains;
+                state.data.current_dns_records = model.records;
+                state.ui.set_message("数据加载完成".to_string());
                 HandlerResult::StateUpdated
             }
             SyncMessage::DomainSyncComplete(_, _) => todo!(),
@@ -527,39 +537,35 @@ impl AsyncEventHandler<SyncMessage> for SyncHandler {
             SyncMessage::Reload => {
                 Task::perform(Self::reload_data_async(), |result| match result {
                     Ok((domains, records_map)) => {
-                        // 将数据库实体转换为GUI模型
-                        let gui_domains: Vec<Domain> = domains
+                        // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecordModal>
+                        let records: Vec<DnsRecordModal> = records_map
                             .into_iter()
-                            .map(|d| {
-                                Domain {
-                                    id: d.id.clone(),
-                                    name: d.name,
-                                    provider: DnsProvider::Aliyun, // 简化处理
-                                    status: DomainStatus::Active,  // 简化处理
-                                    expiry: "2025-12-31".to_string(), // 简化处理
-                                    records: vec![],               // 简化处理
-                                }
-                            })
+                            .flat_map(|(_, records)| records)
                             .collect();
 
-                        // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecord>
-                        let gui_records: Vec<DnsRecord> = records_map
-                            .into_iter()
-                            .flat_map(|(_, records)| {
-                                records.into_iter().map(|r| DnsRecord {
-                                    name: r.name,
-                                    record_type: r.record_type,
-                                    value: r.value,
-                                    ttl: r.ttl.to_string(),
-                                })
-                            })
-                            .collect();
+                        // 创建提供商列表（使用默认的两个提供商）
+                        let providers = vec![
+                            DomainProvider {
+                                account_id: 0,
+                                provider_name: "CloudFlare".to_string(),
+                                provider: DnsProvider::CloudFlare,
+                                credential: Credential::Token(TokenCredential::default()),
+                            },
+                            DomainProvider {
+                                account_id: 0,
+                                provider_name: "CloudFlare".to_string(),
+                                provider: DnsProvider::CloudFlare,
+                                credential: Credential::Token(TokenCredential::default()),
+                            },
+                        ];
+
+                        let total_count = domains.len() + records.len();
 
                         MessageCategory::Sync(SyncMessage::DataReloaded(ReloadModel::new_from(
-                            vec![],
-                            gui_domains,
-                            gui_records,
-                            1,
+                            providers,
+                            domains,
+                            records,
+                            total_count,
                         )))
                     }
                     Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(

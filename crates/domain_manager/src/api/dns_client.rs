@@ -4,18 +4,20 @@ use crate::gui::model::domain::DnsProvider::Aliyun;
 use crate::gui::model::domain::{DnsProvider, Domain, DomainName, DomainStatus};
 use crate::model::dns_record_response::Record;
 use anyhow::Result;
+use async_trait::async_trait;
 use reqwest::Client;
 use tracing::error;
 
 /// DNS客户端
+#[async_trait]
 pub trait DnsClientTrait {
-    async fn list_domains(self: &Self, page_num: u32, page_size: u32) -> Result<Vec<DomainName>>;
+    async fn list_domains(&self, page_num: u32, page_size: u32) -> Result<Vec<DomainName>>;
 
-    fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse>;
-    async fn list_dns_records(self: &Self, domain_name: String) -> Result<Vec<Record>>;
-    fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
-    fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()>;
-    fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
+    async fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse>;
+    async fn list_dns_records(&self, domain_name: String) -> Result<Vec<Record>>;
+    async fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
+    async fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()>;
+    async fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
 }
 
 #[derive(Debug, Clone)]

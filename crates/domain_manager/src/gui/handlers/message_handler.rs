@@ -22,6 +22,7 @@ use crate::translations::types::locale::Locale;
 use crate::utils::types::file_info::FileInfo;
 use crate::utils::types::web_page::WebPage;
 use iced::{window, Point, Size, Task};
+use sea_orm::DatabaseConnection;
 use std::process;
 use tracing::{debug, info};
 use window::Id;
@@ -53,6 +54,8 @@ pub enum MessageCategory {
     Console(ConsoleMessage),
     /// 通知消息
     Notification(NotificationMessage),
+    /// 数据库消息
+    Database(DatabaseMessage),
     /// 其他消息
     Other(OtherMessage),
 }
@@ -63,6 +66,12 @@ pub enum AppMessage {
     Started,
     Initialize,
     Shutdown,
+}
+
+/// 数据库消息
+#[derive(Debug, Clone)]
+pub enum DatabaseMessage {
+    Connected(Result<DatabaseConnection, String>),
 }
 
 /// 导航消息
@@ -312,6 +321,7 @@ impl MessageHandler {
             },
             MessageCategory::Console(_) => Task::none(),
             MessageCategory::Notification(_) => Task::none(),
+            MessageCategory::Database(_) => Task::none(), // 由DomainManagerV2直接处理
             MessageCategory::Other(_) => Task::none(),
         }
     }
@@ -414,67 +424,6 @@ impl MessageHandler {
                 ));
                 Task::none()
             }
-        }
-    }
-
-    /// 处理UI消息
-    fn handle_ui(&self, state: &mut AppState, message: UiMessage) -> Task<MessageCategory> {
-        match message {
-            UiMessage::SearchContentChanged(content) => {
-                state.update(StateUpdate::Data(DataUpdate::SetSearchContent(content)));
-                Task::none()
-            }
-            UiMessage::ShowToast(message) => {
-                state.update(StateUpdate::Ui(UiUpdate::ShowToast(message)));
-                Task::none()
-            }
-            UiMessage::HideToast => {
-                state.update(StateUpdate::Ui(UiUpdate::HideToast));
-                Task::none()
-            }
-            UiMessage::ToggleConsole => {
-                state.update(StateUpdate::Ui(UiUpdate::ToggleConsole));
-                Task::none()
-            }
-            UiMessage::ClearConsoleLog => {
-                // 清除控制台日志的逻辑
-                state.ui.set_message("控制台日志已清除".to_string());
-                Task::none()
-            }
-            UiMessage::ConsoleTabChanged(tab) => {
-                state.ui.switch_console_tab(tab);
-                Task::none()
-            }
-            UiMessage::ChangePage(page) => {
-                state.update(StateUpdate::Ui(UiUpdate::SetCurrentPage(page)));
-                Task::none()
-            }
-            UiMessage::ToggleTheme => {
-                state.update(StateUpdate::Ui(UiUpdate::ToggleTheme));
-                Task::none()
-            }
-            UiMessage::Reset => {
-                // 重置应用状态的逻辑
-                Task::none()
-            }
-            UiMessage::Mock => {
-                // 模拟数据的逻辑
-                Task::none()
-            }
-            UiMessage::MockDataGenerated(domains) => {
-                // 处理生成的模拟数据
-                state.update(StateUpdate::Data(DataUpdate::SetDomains(domains)));
-                Task::none()
-            }
-            UiMessage::ToggleFloatingWindow => {
-                state.update(StateUpdate::Ui(UiUpdate::ToggleFloatingWindow));
-                Task::none()
-            }
-            UiMessage::ToggleThumbnail => {
-                state.update(StateUpdate::Ui(UiUpdate::ToggleThumbnail));
-                Task::none()
-            }
-            UiMessage::ToggleLocale(_) => todo!(),
         }
     }
 }

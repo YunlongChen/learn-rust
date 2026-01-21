@@ -11,6 +11,7 @@ use crate::gui::pages::Page;
 use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::storage::DomainModal;
+use crate::translations::types::locale::Locale;
 use iced::{Task, Theme};
 use tracing::{debug, info, warn};
 
@@ -270,14 +271,20 @@ impl UiHandler {
         state.update(StateUpdate::Ui(UiUpdate::ToggleConsole));
         HandlerResult::StateUpdated
     }
+
+    /// 处理控制台标签页切换
+    ///
+    /// # 参数
+    /// * `state` - 应用状态
+    /// * `tab` - 目标标签页
+    fn handle_toggle_locale(&self, state: &mut AppState, locale: Locale) -> HandlerResult {
+        info!("切换语言标签页: {:?}", locale);
+        state.update(StateUpdate::Ui(UiUpdate::ToggleLocale(locale)));
+        HandlerResult::StateUpdated
+    }
 }
 
 impl EventHandler<UiMessage> for UiHandler {
-    /// 检查是否可以处理该消息
-    fn can_handle(&self, _event: &UiMessage) -> bool {
-        true // UiHandler可以处理所有UiMessage
-    }
-
     fn handle(&self, state: &mut AppState, message: UiMessage) -> HandlerResult {
         match message {
             UiMessage::ChangePage(page) => self.handle_change_page(state, page),
@@ -297,7 +304,12 @@ impl EventHandler<UiMessage> for UiHandler {
             UiMessage::ToggleConsole => self.handle_toggle_console(state),
             UiMessage::ClearConsoleLog => self.handle_clear_console_log(state),
             UiMessage::ConsoleTabChanged(tab) => self.handle_console_tab_changed(state, tab),
-            UiMessage::ToggleLocale(_) => todo!(),
+            UiMessage::ToggleLocale(locale) => self.handle_toggle_locale(state, locale),
         }
+    }
+
+    /// 检查是否可以处理该消息
+    fn can_handle(&self, _event: &UiMessage) -> bool {
+        true // UiHandler可以处理所有UiMessage
     }
 }

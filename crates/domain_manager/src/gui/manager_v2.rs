@@ -2,29 +2,33 @@
 //!
 //! 采用模块化架构，分离UI渲染、业务逻辑、数据管理和事件处理
 
+use crate::configs;
 use crate::configs::gui_config::{BackgroundConfig, Config, WindowState, LICENCE};
 use crate::gui::components::{
     dns_records::DnsRecordsComponent, domain_list::DomainListComponent, footer, header, Component,
 };
 // TODO: 实现Component trait
+use crate::gui::handlers::message_handler::{
+    AppMessage, DatabaseMessage, MessageCategory, SyncMessage, WindowMessage,
+};
 use crate::gui::handlers::{DnsHandler, DomainHandler, MessageHandler, SyncHandler, WindowHandler};
-use crate::gui::services::{ServiceManager, ServiceResult};
-use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
-use crate::gui::state::AppState;
-use crate::StyleType;
-// TODO: 实现DatabaseConnection
-use sea_orm::DatabaseConnection;
-
-use crate::gui::handlers::message_handler::WindowMessage::Resized;
-use crate::gui::handlers::message_handler::{MessageCategory, SyncMessage, WindowMessage};
-use crate::gui::pages::names::Page;
 use crate::gui::services::config_service::ConfigService;
 use crate::gui::services::database_service::DatabaseService;
 use crate::gui::services::dns_service::DnsService;
 use crate::gui::services::domain_service::DomainService;
 use crate::gui::services::sync_service::SyncService;
+use crate::gui::services::{ServiceManager, ServiceResult};
+use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
+use crate::gui::state::AppState;
 use crate::gui::styles::types::gradient_type::GradientType;
+use crate::gui::styles::types::style_type::StyleType;
+use crate::storage::init_database;
 use crate::storage::{DnsRecordModal, DomainModal};
+// TODO: 实现DatabaseConnection
+use sea_orm::DatabaseConnection;
+
+use crate::gui::handlers::message_handler::WindowMessage::Resized;
+use crate::gui::pages::names::Page;
 use crate::translations::types::language::Language;
 use iced::widget::{row, Column, Container, Text};
 use iced::{Element, Length, Size, Task};
@@ -104,7 +108,7 @@ pub struct DomainManagerV2 {
 
 impl DomainManagerV2 {
     /// 创建新的域名管理器实例
-    pub fn new(_config: Config, connection: DatabaseConnection) -> Self {
+    pub fn new(_config: Config) -> Self {
         info!("创建新的域名管理器实例 (V2)");
         Self {
             state: AppState::new(),
@@ -126,7 +130,7 @@ impl DomainManagerV2 {
             ),
             domain_list_component: DomainListComponent::new(),
             dns_records_component: DnsRecordsComponent::new(),
-            database: Some(Arc::new(RwLock::new(connection))),
+            database: None,
             initialized: false,
         }
     }
@@ -301,19 +305,25 @@ impl DomainManagerV2 {
     /// 处理消息
     pub fn update(&mut self, message: MessageCategory) -> Task<MessageCategory> {
         // 特殊处理Started消息，用于初始化
-        if let MessageCategory::App(App) = message {
+        if let MessageCategory::App(AppMessage::Started) = message {
             if !self.initialized {
                 info!("收到Started消息，开始初始化管理器");
-                self.initialized = true;
 
-                // 启动异步初始化任务
+                // 启动异步初始化任务（数据库连接）
                 return Task::perform(
                     async {
-                        // 这里可以执行一些异步初始化逻辑
-                        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-                        info!("异步初始化完成");
+                        info!("正在后台连接数据库...");
+                        let database_config = &configs::get().database;
+                        match init_database(database_config).await {
+                            Ok(conn) => {
+                                MessageCategory::Database(DatabaseMessage::Connected(Ok(conn)))
+                            }
+                            Err(e) => MessageCategory::Database(DatabaseMessage::Connected(Err(
+                                e.to_string()
+                            ))),
+                        }
                     },
-                    |_| MessageCategory::Sync(SyncMessage::Reload), // 初始化完成后加载数据
+                    |msg| msg,
                 );
             } else {
                 info!("管理器已初始化，忽略重复的Started消息");
@@ -321,7 +331,30 @@ impl DomainManagerV2 {
             }
         }
 
-        // 对于非Started消息，如果未初始化则忽略
+        // 处理数据库连接消息
+        if let MessageCategory::Database(DatabaseMessage::Connected(result)) = &message {
+            match result {
+                Ok(conn) => {
+                    info!("数据库连接成功");
+                    self.database = Some(Arc::new(RwLock::new(conn.clone())));
+                    self.initialized = true; // 标记初始化完成
+
+                    // 触发数据重载
+                    return Task::done(MessageCategory::Sync(SyncMessage::Reload));
+                }
+                Err(e) => {
+                    error!("数据库连接失败: {}", e);
+                    self.state
+                        .update(StateUpdate::Ui(UiUpdate::SetError(Some(format!(
+                            "数据库连接失败: {}",
+                            e
+                        )))));
+                    return Task::none();
+                }
+            }
+        }
+
+        // 对于非Started/Database消息，如果未初始化则忽略
         if !self.initialized {
             warn!("管理器未初始化，忽略消息: {:?}", message);
             return Task::none();
@@ -386,9 +419,16 @@ impl DomainManagerV2 {
 
     /// 渲染加载屏幕
     fn render_loading_screen(&self) -> Element<'_, MessageCategory, StyleType> {
+        // 检查是否有错误
+        let error_msg = if let Some(err) = &self.state.ui.error_message {
+            Text::<'_, StyleType>::new(format!("错误: {}", err)).size(16)
+        } else {
+            Text::<'_, StyleType>::new("正在初始化数据库...").size(18)
+        };
+
         Container::<'_, MessageCategory, StyleType>::new(
             Column::<'_, MessageCategory, StyleType>::new()
-                .push(Text::<'_, StyleType>::new("正在初始化...").size(18))
+                .push(error_msg)
                 // 这里可以添加加载动画
                 .align_x(iced::Alignment::Center)
                 .spacing(10),
