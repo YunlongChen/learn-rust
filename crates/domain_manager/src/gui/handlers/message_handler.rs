@@ -13,8 +13,9 @@ use crate::gui::model::gui::ReloadModel;
 use crate::gui::pages::Page;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
-use crate::gui::types::credential::Credential;
+use crate::gui::types::credential::{Credential, CredentialMessage};
 use crate::model::dns_record_response::{Record, Type};
+use crate::models::account::NewAccount;
 use crate::storage::{DnsRecordModal, DomainModal};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
@@ -71,6 +72,8 @@ pub enum AppMessage {
 #[derive(Debug, Clone)]
 pub enum DatabaseMessage {
     Connected(Result<DatabaseConnection, String>),
+    AddAccount(NewAccount),
+    AccountAdded(Result<crate::models::account::Account, String>),
 }
 
 /// 导航消息
@@ -195,7 +198,7 @@ pub enum ProviderMessage {
     Selected(Option<DnsProvider>),
     AddFormProviderChanged(String),
     AddFormNameChanged(String),
-    AddFormCredentialChanged(Credential),
+    AddFormCredentialChanged(CredentialMessage),
     ValidateCredential,
     AddCredential,
     ProviderChange,

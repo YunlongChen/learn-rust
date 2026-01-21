@@ -18,6 +18,7 @@ pub struct Account {
 }
 
 /// 新账户创建模型
+#[derive(Debug, Clone)]
 pub struct NewAccount {
     pub username: String,
     pub email: String,

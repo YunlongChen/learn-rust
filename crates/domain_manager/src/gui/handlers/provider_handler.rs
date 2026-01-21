@@ -5,13 +5,13 @@
 
 use super::{EventHandler, HandlerResult};
 use crate::gui::handlers::message_handler::{
-    MessageCategory, NotificationMessage, ProviderMessage, SyncMessage,
+    DatabaseMessage, MessageCategory, NotificationMessage, ProviderMessage, SyncMessage,
 };
 use crate::gui::model::domain::DnsProvider;
 use crate::gui::pages::domain::AddDomainProviderForm;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
-use crate::gui::types::credential::Credential;
+use crate::gui::types::credential::{Credential, CredentialMessage};
 use crate::models::account::NewAccount;
 use iced::Task;
 use tracing::{debug, error, info, warn};
@@ -132,15 +132,43 @@ impl ProviderHandler {
     fn handle_add_form_credential_changed(
         &self,
         state: &mut AppState,
-        credential_info: Credential,
+        message: CredentialMessage,
     ) -> HandlerResult {
-        // 这里可以根据实际需要处理凭证信息的更新
-        // 由于凭证结构比较复杂，这里先做简单处理
-        debug!(
-            "添加托管商表单凭证信息已更新：「{}」",
-            credential_info.credential_type()
-        );
-        state.ui.set_message("凭证信息已更新".to_string());
+        use crate::gui::types::credential::{ApiKeyMessage, TokenMessage, UsernamePasswordMessage};
+
+        if let Some(credential) = &mut state.data.add_domain_provider_form.credential {
+            match (credential, message) {
+                (
+                    Credential::UsernamePassword(cred),
+                    CredentialMessage::UsernamePasswordChanged(msg),
+                ) => match msg {
+                    UsernamePasswordMessage::UsernameChanged(new_cred) => {
+                        cred.username = new_cred.username;
+                    }
+                    UsernamePasswordMessage::PasswordChanged(new_cred) => {
+                        cred.password = new_cred.password;
+                    }
+                },
+                (Credential::Token(cred), CredentialMessage::TokenChanged(msg)) => match msg {
+                    TokenMessage::TokenChanged(token) => {
+                        cred.token = token;
+                    }
+                },
+                (Credential::ApiKey(cred), CredentialMessage::ApiKeyChanged(msg)) => match msg {
+                    ApiKeyMessage::ApiKeyChanged(new_cred) => {
+                        cred.api_key = new_cred.api_key;
+                    }
+                    ApiKeyMessage::ApiSecretChanged(new_cred) => {
+                        cred.api_secret = new_cred.api_secret;
+                    }
+                },
+                _ => {
+                    tracing::warn!("凭证类型与消息类型不匹配");
+                }
+            }
+        }
+
+        debug!("添加托管商表单凭证信息已更新");
         HandlerResult::StateUpdated
     }
 
@@ -232,23 +260,11 @@ impl ProviderHandler {
 
         state.ui.set_loading(true);
 
-        // 启动异步添加托管商任务
-        HandlerResult::StateUpdatedWithTask(Task::perform(
-            Self::add_credential_async(new_account),
-            |result| match result {
-                Ok(_) => {
-                    info!("托管商添加成功，准备刷新界面");
-                    MessageCategory::Sync(SyncMessage::Reload)
-                }
-                Err(err) => {
-                    error!("托管商添加失败: {:?}", err);
-                    MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                        "添加托管商失败: {}",
-                        err
-                    )))
-                }
-            },
-        ))
+        // 发送数据库消息，请求创建账户
+        // 注意：实际的数据库操作将在DomainManagerV2中处理
+        HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Database(
+            DatabaseMessage::AddAccount(new_account),
+        )))
     }
 
     /// 处理托管商变更
@@ -279,13 +295,55 @@ impl ProviderHandler {
 
     /// 异步添加托管商凭证
     async fn add_credential_async(new_account: NewAccount) -> Result<(), String> {
-        // 模拟数据库操作
-        tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+        // 获取全局数据库连接
+        // 注意：由于ProviderHandler没有持有数据库连接，这里我们需要一种方式获取连接
+        // 实际上，应该在DomainManagerV2中注入数据库服务或连接到Handler
+        // 这里我们假设可以通过某种全局方式或参数传递获取连接，但为了简单起见，
+        // 我们需要重新思考架构。正确的方式是通过ServiceManager或DatabaseService。
+        // 但由于HandlerResult::Task限制，我们只能在闭包中使用拥有的数据。
 
-        // 这里应该调用实际的数据库操作
-        // 目前返回模拟结果
-        info!("模拟添加托管商到数据库: {}", new_account.username);
-        Ok(())
+        // 临时解决方案：由于无法直接访问DomainManagerV2的数据库连接，
+        // 我们需要通过消息传递将操作委托给主线程，或者重构Handler以支持数据库访问。
+        // 但为了快速修复，我们先尝试建立一个新的临时连接（不推荐）或者
+        // 更好的方式是：在add_credential中不直接执行异步任务，而是返回一个包含数据库操作请求的消息，
+        // 由主循环处理。
+
+        // 鉴于现有架构，我们实际上无法在这里直接访问数据库连接，因为它是Arc<RwLock<DatabaseConnection>>
+        // 且存储在AppState或DomainManagerV2中。
+
+        // 我们修改策略：handle_add_credential 不直接 spawn task，
+        // 而是返回一个 Task，该 Task 会发送一个包含数据库操作的闭包给主循环？不对。
+
+        // 正确的做法是：ProviderHandler 需要访问数据库连接。
+        // 现有的 handle 方法签名是 `fn handle(&self, state: &mut AppState, ...)`
+        // AppState 中并没有数据库连接（它在 DomainManagerV2 中）。
+        // 这意味着当前的架构将数据库连接与 UI 状态分离了。
+
+        // 让我们看看 SyncHandler 是怎么做的。
+        // SyncHandler 也是返回 Task，但它似乎主要处理逻辑。
+
+        // 考虑到 DomainManagerV2 拥有 `database: Option<Arc<RwLock<DatabaseConnection>>>`
+        // 我们可能需要引入一个新的消息类型 DatabaseMessage::CreateAccount(NewAccount)
+        // 让 DomainManagerV2 处理这个消息，因为它有数据库连接。
+
+        // 但是为了保持 ProviderHandler 的内聚性，我们可以在 AppState 中不做处理，
+        // 而是修改 MessageCategory，添加一个 DatabaseMessage 变体来请求创建账户。
+
+        // 实际上，我们可以在 ProviderHandler 中构造一个 Task，该 Task 并不直接执行数据库操作，
+        // 而是发送一个 MessageCategory::Database(DatabaseMessage::AddAccount(new_account))。
+        // 然后在 DomainManagerV2 的 update 方法中处理这个 DatabaseMessage。
+
+        // 不过，为了遵循现有的模式（如果其他 Handler 也是这样的话），我们看看 DomainManagerV2 的 update 方法。
+        // 现在的 DomainManagerV2::update 主要是调用 message_handler.handle_message。
+
+        // 方案 B：修改 add_credential_async 签名，接受数据库连接配置，并建立新的连接？太慢。
+
+        // 方案 C（推荐）：
+        // 1. 在 DatabaseMessage 中添加 AddAccount(NewAccount)
+        // 2. ProviderHandler 返回 Task::done(MessageCategory::Database(DatabaseMessage::AddAccount(new_account)))
+        // 3. DomainManagerV2 在处理 DatabaseMessage 时执行实际的数据库操作。
+
+        Err("架构限制：请通过 DatabaseMessage::AddAccount 处理数据库操作".to_string())
     }
 }
 

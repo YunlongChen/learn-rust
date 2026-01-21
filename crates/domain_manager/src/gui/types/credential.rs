@@ -141,46 +141,10 @@ impl From<ApiKeyMessage> for CredentialMessage {
 // 实现从 CredentialMessage 到顶层 Message 的转换
 impl From<CredentialMessage> for MessageCategory {
     fn from(credential_message: CredentialMessage) -> Self {
-        match credential_message {
-            CredentialMessage::UsernamePasswordChanged(username_password_message) => {
-                match username_password_message {
-                    UsernamePasswordMessage::UsernameChanged(credential) => {
-                        MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
-                            Credential::UsernamePassword(credential),
-                        ))
-                    }
-                    UsernamePasswordMessage::PasswordChanged(credential) => {
-                        MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
-                            Credential::UsernamePassword(credential),
-                        ))
-                    }
-                }
-            }
-            CredentialMessage::TokenChanged(token) => match token {
-                TokenMessage::TokenChanged(token) => {
-                    MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
-                        Credential::Token(TokenCredential { token }),
-                    ))
-                }
-            },
-            CredentialMessage::ApiKeyChanged(apikey_message) => match apikey_message {
-                ApiKeyMessage::ApiKeyChanged(credential) => {
-                    MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
-                        Credential::ApiKey(ApiKeyCredential {
-                            api_key: credential.api_key,
-                            api_secret: credential.api_secret,
-                        }),
-                    ))
-                }
-                ApiKeyMessage::ApiSecretChanged(credential) => {
-                    MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
-                        Credential::ApiKey(ApiKeyCredential {
-                            api_key: credential.api_key,
-                            api_secret: credential.api_secret,
-                        }),
-                    ))
-                }
-            },
-        }
+        // 直接将 CredentialMessage 包装在 ProviderMessage::AddFormCredentialChanged 中
+        // 因为我们修改了 ProviderMessage 定义，现在它接受 CredentialMessage
+        MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
+            credential_message,
+        ))
     }
 }

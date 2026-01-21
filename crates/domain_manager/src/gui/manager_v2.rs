@@ -9,7 +9,7 @@ use crate::gui::components::{
 };
 // TODO: 实现Component trait
 use crate::gui::handlers::message_handler::{
-    AppMessage, DatabaseMessage, MessageCategory, SyncMessage, WindowMessage,
+    AppMessage, DatabaseMessage, MessageCategory, NotificationMessage, SyncMessage, WindowMessage,
 };
 use crate::gui::handlers::{DnsHandler, DomainHandler, MessageHandler, SyncHandler, WindowHandler};
 use crate::gui::services::config_service::ConfigService;
@@ -353,27 +353,90 @@ impl DomainManagerV2 {
             }
         }
 
-        // 处理数据库连接消息
-        if let MessageCategory::Database(DatabaseMessage::Connected(result)) = &message {
-            return match result {
-                Ok(conn) => {
-                    info!("数据库连接成功");
-                    self.database = Some(Arc::new(RwLock::new(conn.clone())));
-                    self.initialized = true; // 标记初始化完成
+        // 处理数据库消息
+        if let MessageCategory::Database(msg) = &message {
+            match msg {
+                DatabaseMessage::Connected(result) => {
+                    return match result {
+                        Ok(conn) => {
+                            info!("数据库连接成功");
+                            self.database = Some(Arc::new(RwLock::new(conn.clone())));
+                            self.initialized = true; // 标记初始化完成
 
-                    // 触发数据重载
-                    Task::done(MessageCategory::Sync(SyncMessage::Reload))
+                            // 触发数据重载
+                            Task::done(MessageCategory::Sync(SyncMessage::Reload))
+                        }
+                        Err(e) => {
+                            error!("数据库连接失败: {}", e);
+                            self.state
+                                .update(StateUpdate::Ui(UiUpdate::SetError(Some(format!(
+                                    "数据库连接失败: {}",
+                                    e
+                                )))));
+                            Task::none()
+                        }
+                    };
                 }
-                Err(e) => {
-                    error!("数据库连接失败: {}", e);
+                DatabaseMessage::AddAccount(new_account) => {
+                    info!("收到添加账户请求: {}", new_account.username);
+                    if let Some(db) = &self.database {
+                        let conn_arc = db.clone();
+                        let account = new_account.clone();
+
+                        // 启动异步任务执行数据库操作
+                        return Task::perform(
+                            async move {
+                                use crate::storage::create_account;
+                                let conn = conn_arc.read().await;
+                                match create_account(conn.clone(), account).await {
+                                    Ok(acc) => MessageCategory::Database(
+                                        DatabaseMessage::AccountAdded(Ok(acc)),
+                                    ),
+                                    Err(e) => MessageCategory::Database(
+                                        DatabaseMessage::AccountAdded(Err(e)),
+                                    ),
+                                }
+                            },
+                            |msg| msg,
+                        );
+                    } else {
+                        error!("数据库未连接，无法添加账户");
+                        return Task::done(MessageCategory::Database(
+                            DatabaseMessage::AccountAdded(Err("数据库未连接".to_string())),
+                        ));
+                    }
+                }
+                DatabaseMessage::AccountAdded(result) => {
+                    // 处理添加账户结果
                     self.state
-                        .update(StateUpdate::Ui(UiUpdate::SetError(Some(format!(
-                            "数据库连接失败: {}",
-                            e
-                        )))));
-                    Task::none()
+                        .update(StateUpdate::Ui(UiUpdate::SetLoading(false)));
+                    match result {
+                        Ok(acc) => {
+                            info!("账户添加成功: {}", acc.username);
+                            // 清空表单
+                            self.state.data.add_domain_provider_form.clear();
+                            // 提示成功
+                            self.state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                                "服务商添加成功".to_string(),
+                            )));
+                            // 重新加载数据并返回列表页
+                            return Task::batch(vec![
+                                Task::done(MessageCategory::Sync(SyncMessage::Reload)),
+                                Task::done(MessageCategory::Navigation(crate::gui::handlers::message_handler::NavigationMessage::PageChanged(Page::DomainPage)))
+                            ]);
+                        }
+                        Err(e) => {
+                            error!("账户添加失败: {}", e);
+                            self.state
+                                .update(StateUpdate::Ui(UiUpdate::ShowToast(format!(
+                                    "添加失败: {}",
+                                    e
+                                ))));
+                            return Task::none();
+                        }
+                    }
                 }
-            };
+            }
         }
 
         // 对于非Started/Database消息，如果未初始化则忽略
@@ -535,14 +598,74 @@ impl DomainManagerV2 {
 
     /// 渲染添加域名服务商页面
     fn render_add_provider_page(&self) -> Element<'_, MessageCategory, StyleType> {
-        Container::<'_, MessageCategory, StyleType>::new(
-            Text::<'_, StyleType>::new("添加域名服务商页面").size(18),
-        )
-        .center_x(Length::Fill)
-        .center_y(Length::Fill)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+        use crate::gui::handlers::message_handler::{NavigationMessage, ProviderMessage};
+        use crate::gui::model::domain::DnsProvider;
+        use iced::widget::{button, pick_list, text_input, Row};
+        use iced::Alignment;
+
+        let state = &self.state.data.add_domain_provider_form;
+
+        // 动态生成凭证表单
+        let dyn_form: Option<Element<MessageCategory, StyleType>> =
+            state.credential.as_ref().and_then(|credential| {
+                Some(credential.view().map(|credential_message| {
+                    MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
+                        credential_message,
+                    ))
+                }))
+            });
+
+        let content = Column::new()
+            .push(Text::new("添加域名服务商").size(24))
+            .push(
+                text_input("服务商名称", &state.provider_name)
+                    .on_input(|name| {
+                        MessageCategory::Provider(ProviderMessage::AddFormNameChanged(name))
+                    })
+                    .padding(10),
+            )
+            .push(
+                pick_list(&DnsProvider::ALL[..], state.provider.clone(), |provider| {
+                    MessageCategory::Provider(ProviderMessage::AddFormProviderChanged(
+                        provider.name().to_string(),
+                    ))
+                })
+                .width(Length::Fill)
+                .placeholder("选择域名托管商..."),
+            )
+            .push_maybe(dyn_form) // 动态添加凭证表单
+            .push(
+                Row::new()
+                    .push(
+                        button(Text::new("验证凭证").align_x(Alignment::Center))
+                            .on_press(MessageCategory::Provider(
+                                ProviderMessage::ValidateCredential,
+                            ))
+                            .width(Length::FillPortion(1)),
+                    )
+                    .push(
+                        button(Text::new("添加").align_x(Alignment::Center))
+                            .on_press(MessageCategory::Provider(ProviderMessage::AddCredential))
+                            .width(Length::FillPortion(1)),
+                    )
+                    .push(
+                        button(Text::new("返回").align_x(Alignment::Center))
+                            .on_press(MessageCategory::Navigation(NavigationMessage::PageChanged(
+                                Page::DomainPage,
+                            )))
+                            .width(Length::FillPortion(1)),
+                    )
+                    .spacing(20),
+            )
+            .spacing(20)
+            .padding(20);
+
+        Container::new(content)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .into()
     }
 
     /// 渲染编辑域名页面
