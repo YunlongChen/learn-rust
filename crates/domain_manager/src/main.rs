@@ -29,7 +29,7 @@ pub use crate::gui::styles::types::style_type::StyleType;
 pub use crate::utils::i18_utils::get_text;
 use iced::window::icon::from_rgba;
 use iced::window::Position;
-use iced::{application, window, Font, Pixels, Settings, Task};
+use iced::{application, window, Font, Pixels, Settings, Size, Task};
 use rust_i18n::i18n;
 use std::{panic, process};
 use tracing::{error, info};
@@ -120,13 +120,13 @@ pub async fn main() -> iced::Result {
     )
     .theme(DomainManagerV2::theme)
     .window(window::Settings {
-        size: iced::Size::new(config.window_state.width, config.window_state.height),
+        size: Size::new(config.window_state.width, config.window_state.height),
         position: Position::Specific(iced::Point::new(
             config.window_state.x,
             config.window_state.y,
         )),
         icon,
-        decorations: true, // 禁用窗口装饰器以实现自定义拖动
+        decorations: false, // 禁用窗口装饰器以实现自定义拖动
         ..Default::default()
     })
     .subscription(DomainManagerV2::subscription)

@@ -298,7 +298,16 @@ impl EventHandler<WindowMessage> for WindowHandler {
         // 由于需要修改self，这里需要特殊处理
         // 在实际实现中，可能需要使用RefCell或其他方式
         match event {
-            WindowMessage::Drag => HandlerResult::StateUpdated,
+            WindowMessage::Drag => {
+                // 触发窗口拖拽操作
+                HandlerResult::Task(window::get_oldest().then(|id_option| {
+                    if let Some(id) = id_option {
+                        window::drag(id)
+                    } else {
+                        Task::none()
+                    }
+                }))
+            }
             WindowMessage::Moved(position) => {
                 // 处理窗口移动事件，更新配置中的窗口位置
                 info!("窗口移动到位置: ({}, {})", position.x, position.y);
