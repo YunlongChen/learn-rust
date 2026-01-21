@@ -108,26 +108,20 @@ pub struct DomainManagerV2 {
 
 impl DomainManagerV2 {
     /// 创建新的域名管理器实例
-    pub fn new(_config: Config) -> Self {
+    pub fn new(config: Config) -> Self {
         info!("创建新的域名管理器实例 (V2)");
         Self {
-            state: AppState::new(),
-            config: crate::configs::gui_config::Config::default(),
+            state: AppState::with_config(config),
+            config: Config::default(),
             floating_window_enabled: false,
             message: String::new(),
-            last_page: crate::gui::pages::names::Page::DomainPage,
+            last_page: Page::DomainPage,
             message_handler: MessageHandler::new(),
             domain_handler: DomainHandler::new(),
             dns_handler: DnsHandler::new(),
             sync_handler: SyncHandler::new(),
             window_handler: WindowHandler::new(),
-            service_manager: ServiceManager::new(
-                Box::new(DomainService::new()),
-                Box::new(DnsService::new()),
-                Box::new(SyncService::new()),
-                Box::new(DatabaseService::new()),
-                Box::new(ConfigService::new()),
-            ),
+            service_manager: ServiceManager::default(),
             domain_list_component: DomainListComponent::new(),
             dns_records_component: DnsRecordsComponent::new(),
             database: None,
@@ -361,14 +355,14 @@ impl DomainManagerV2 {
 
         // 处理数据库连接消息
         if let MessageCategory::Database(DatabaseMessage::Connected(result)) = &message {
-            match result {
+            return match result {
                 Ok(conn) => {
                     info!("数据库连接成功");
                     self.database = Some(Arc::new(RwLock::new(conn.clone())));
                     self.initialized = true; // 标记初始化完成
 
                     // 触发数据重载
-                    return Task::done(MessageCategory::Sync(SyncMessage::Reload));
+                    Task::done(MessageCategory::Sync(SyncMessage::Reload))
                 }
                 Err(e) => {
                     error!("数据库连接失败: {}", e);
@@ -377,9 +371,9 @@ impl DomainManagerV2 {
                             "数据库连接失败: {}",
                             e
                         )))));
-                    return Task::none();
+                    Task::none()
                 }
-            }
+            };
         }
 
         // 对于非Started/Database消息，如果未初始化则忽略
@@ -674,13 +668,7 @@ impl Default for DomainManagerV2 {
             dns_handler: Default::default(),
             sync_handler: Default::default(),
             window_handler: Default::default(),
-            service_manager: ServiceManager::new(
-                Box::new(DomainService::new()),
-                Box::new(DnsService::new()),
-                Box::new(SyncService::new()),
-                Box::new(DatabaseService::new()),
-                Box::new(ConfigService::new()),
-            ),
+            service_manager: ServiceManager::default(),
             domain_list_component: Default::default(),
             dns_records_component: Default::default(),
             database: None,

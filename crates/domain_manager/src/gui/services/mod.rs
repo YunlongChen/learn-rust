@@ -10,7 +10,11 @@ pub mod dns_service;
 pub mod domain_service;
 pub mod sync_service;
 
-use crate::gui::services::config_service::AppConfig;
+use crate::gui::services::config_service::{AppConfig, ConfigService};
+use crate::gui::services::database_service::DatabaseService;
+use crate::gui::services::dns_service::DnsService;
+use crate::gui::services::domain_service::DomainService;
+use crate::gui::services::sync_service::SyncService;
 use crate::storage::{DnsRecordModal, DomainModal};
 use sea_orm::prelude::async_trait::async_trait;
 use std::collections::HashMap;
@@ -256,6 +260,18 @@ pub struct ServiceManager {
     sync_service: Box<dyn SyncServiceTrait + Send + Sync>,
     database_service: Box<dyn DatabaseServiceTrait + Send + Sync>,
     config_service: Box<dyn ConfigServiceTrait + Send + Sync>,
+}
+
+impl Default for ServiceManager {
+    fn default() -> Self {
+        ServiceManager {
+            domain_service: Box::new(DomainService::new()),
+            dns_service: Box::new(DnsService::new()),
+            sync_service: Box::new(SyncService::new()),
+            database_service: Box::new(DatabaseService::new()),
+            config_service: Box::new(ConfigService::new()),
+        }
+    }
 }
 
 impl ServiceManager {

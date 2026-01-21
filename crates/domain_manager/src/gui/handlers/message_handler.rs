@@ -212,7 +212,7 @@ pub enum UiMessage {
     ConsoleTabChanged(ConsoleTab),
     ChangePage(Page),
     ToggleTheme,
-    ToggleLocale(Locale),
+    ToggleLocale,
     Reset,
     Mock,
     MockDataGenerated(Vec<DomainModal>),

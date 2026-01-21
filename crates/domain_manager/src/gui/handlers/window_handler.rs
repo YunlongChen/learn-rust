@@ -346,12 +346,12 @@ impl EventHandler<WindowMessage> for WindowHandler {
             WindowMessage::CloseRequest => {
                 // 检查是否有未完成的后台任务
                 if state.ui.is_syncing || state.ui.is_loading {
-                     state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                    state.update(StateUpdate::Ui(UiUpdate::ShowToast(
                         "正在执行后台任务，请稍后退出".to_string(),
                     )));
-                     return HandlerResult::StateUpdated;
+                    return HandlerResult::StateUpdated;
                 }
-                
+
                 state.ui.set_message("准备关闭应用程序".to_string());
                 HandlerResult::Task(window::get_oldest().then(|id| {
                     if let Some(id) = id {

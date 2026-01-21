@@ -69,7 +69,7 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(MessageCategory::Navigation(NavigationMessage::Back)),
+                    Some(MessageCategory::Navigation(PageChanged(Page::AddProvider))),
                     Icon::Add,
                     get_text("provider.add"),
                 ))
@@ -85,9 +85,7 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(MessageCategory::Ui(UiMessage::ToggleLocale(
-                        Locale::Chinese,
-                    ))),
+                    Some(MessageCategory::Ui(UiMessage::ToggleLocale)),
                     Icon::Language,
                     get_text("change_locale"),
                 ))

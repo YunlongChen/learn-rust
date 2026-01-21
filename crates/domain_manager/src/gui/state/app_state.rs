@@ -10,9 +10,11 @@ use crate::configs::gui_config::Config;
 
 use crate::gui::pages::names::Page;
 // TODO: 定义Language类型
+use crate::gui::styles::types::style_type;
 use crate::storage::entities::domain::Model as DomainModel;
 use crate::translations::types::locale::Locale;
 use iced::{Point, Size, Theme};
+use style_type::StyleType;
 use tracing::info;
 
 /// 应用程序状态结构体
@@ -127,7 +129,7 @@ pub enum UiUpdate {
     ToggleThumbnail,
 
     /// 切换语言
-    ToggleLocale(Locale),
+    ToggleLocale,
 
     /// 设置背景透明度
     SetBackgroundOpacity(f32),
@@ -198,12 +200,11 @@ impl AppState {
 
         // 根据配置初始化UI状态
         state.ui.theme = match state.config.style_type {
-            crate::gui::styles::types::style_type::StyleType::Day => iced::Theme::TokyoNightLight,
-            crate::gui::styles::types::style_type::StyleType::Night => iced::Theme::SolarizedDark,
-            _ => iced::Theme::TokyoNightLight,
+            StyleType::Day => Theme::TokyoNightLight,
+            StyleType::Night => Theme::SolarizedDark,
+            _ => Theme::TokyoNightLight,
         };
-        // state.ui.locale = state.config.locale.clone();
-
+        state.ui.locale = state.config.locale.clone().into();
         state
     }
 
@@ -322,8 +323,8 @@ impl AppState {
             UiUpdate::ToggleThumbnail => {
                 self.ui.thumbnail_mode = !self.ui.thumbnail_mode;
             }
-            UiUpdate::ToggleLocale(local) => {
-                self.ui.locale = local;
+            UiUpdate::ToggleLocale => {
+                self.ui.locale = self.ui.locale.next();
             }
         }
     }

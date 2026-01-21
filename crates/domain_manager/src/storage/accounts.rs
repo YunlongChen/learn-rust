@@ -169,7 +169,10 @@ pub fn verify_login(
 }
 
 /// 获取账户的API密钥
-fn get_api_keys(_conn: &DatabaseConnection, _account_id: i32) -> Result<Vec<ApiKey>, Box<dyn Error>> {
+fn get_api_keys(
+    _conn: &DatabaseConnection,
+    _account_id: i32,
+) -> Result<Vec<ApiKey>, Box<dyn Error>> {
     // let mut stmt =
     //     conn.prepare("SELECT id, key_name, encrypted_key FROM api_keys WHERE account_id = ?1")?;
     //
@@ -194,7 +197,10 @@ fn get_api_keys(_conn: &DatabaseConnection, _account_id: i32) -> Result<Vec<ApiK
 }
 
 /// 更新账户信息
-pub fn update_account(_conn: &DatabaseConnection, _account: &Account) -> Result<(), Box<dyn Error>> {
+pub fn update_account(
+    _conn: &DatabaseConnection,
+    _account: &Account,
+) -> Result<(), Box<dyn Error>> {
     // conn.execute(
     //     "UPDATE accounts SET email = ?1, last_login = ?2 WHERE id = ?3",
     //     params![account.email, account.last_login, account.id],

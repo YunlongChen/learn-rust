@@ -277,9 +277,9 @@ impl UiHandler {
     /// # 参数
     /// * `state` - 应用状态
     /// * `tab` - 目标标签页
-    fn handle_toggle_locale(&self, state: &mut AppState, locale: Locale) -> HandlerResult {
-        info!("切换语言标签页: {:?}", locale);
-        state.update(StateUpdate::Ui(UiUpdate::ToggleLocale(locale)));
+    fn handle_toggle_locale(&self, state: &mut AppState) -> HandlerResult {
+        info!("切换语言!");
+        state.update(StateUpdate::Ui(UiUpdate::ToggleLocale));
         HandlerResult::StateUpdated
     }
 }
@@ -304,7 +304,7 @@ impl EventHandler<UiMessage> for UiHandler {
             UiMessage::ToggleConsole => self.handle_toggle_console(state),
             UiMessage::ClearConsoleLog => self.handle_clear_console_log(state),
             UiMessage::ConsoleTabChanged(tab) => self.handle_console_tab_changed(state, tab),
-            UiMessage::ToggleLocale(locale) => self.handle_toggle_locale(state, locale),
+            UiMessage::ToggleLocale => self.handle_toggle_locale(state),
         }
     }
 

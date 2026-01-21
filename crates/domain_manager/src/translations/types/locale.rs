@@ -1,9 +1,25 @@
 use serde::{Deserialize, Serialize};
+use tracing::info;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Locale {
     Chinese,
     English,
+}
+
+impl Locale {
+    pub fn next(self) -> Self {
+        match self {
+            Self::Chinese => {
+                info!("Switching to English");
+                Self::English
+            }
+            Self::English => {
+                info!("Switching to Chinese");
+                Self::Chinese
+            }
+        }
+    }
 }
 
 impl From<String> for Locale {
