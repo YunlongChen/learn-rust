@@ -26,13 +26,11 @@ use crate::gui::styles::style_constants::{
     SARASA_MONO_BYTES,
 };
 pub use crate::gui::styles::types::style_type::StyleType;
-use crate::storage::init_database;
 pub use crate::utils::i18_utils::get_text;
 use iced::window::icon::from_rgba;
 use iced::window::Position;
 use iced::{application, window, Font, Pixels, Settings, Task};
 use rust_i18n::i18n;
-use sea_orm::DatabaseConnection;
 use std::{panic, process};
 use tracing::{error, info};
 
@@ -64,13 +62,14 @@ pub async fn main() -> iced::Result {
     // kill the main thread as soon as a secondary thread panics
     let orig_hook = panic::take_hook();
 
-    let database_config = &configs::get().database;
+    // 确保数据库配置已加载（虽然这里不直接连接，但确保配置可用）
+    let _ = &configs::get().database;
 
-    panic::set_hook(Box::new(move |panic_info| {
+    panic::set_hook(Box::new(move |_panic_info| {
         // invoke the default handler and exit the process
         error!("程序崩溃了，退出程序！");
-        orig_hook(panic_info);
-        process::exit(1);
+        // orig_hook(panic_info);
+        process::exit(0);
     }));
 
     info!("读取图标！");
@@ -96,9 +95,10 @@ pub async fn main() -> iced::Result {
         }
     };
 
-    let connection: DatabaseConnection = init_database(database_config)
-        .await
-        .expect("Cannot connect to database.");
+    // 移除同步数据库连接代码
+    // let connection: DatabaseConnection = init_database(database_config)
+    //     .await
+    //     .expect("Cannot connect to database.");
 
     let settings = Settings {
         id: Some(String::from(DOMAIN_MANAGER_LOWERCASE)),
@@ -133,7 +133,7 @@ pub async fn main() -> iced::Result {
     .settings(settings);
     app.run_with(move || {
         (
-            DomainManagerV2::new(config, connection),
+            DomainManagerV2::new(config),
             Task::done(MessageCategory::App(AppMessage::Started)),
         )
     })

@@ -44,8 +44,8 @@ settings:
   image: 图片
   light: 浅色
   dark: 深色
-  chinese: 中文
-  english: 英文
+  Chinese: 中文
+  English: 英文
   enable_notifications: 启用通知
   auto_sync: 自动同步
   sync_interval: 同步间隔
@@ -53,7 +53,6 @@ settings:
   china_red: 中国红
   qipao_girl: 旗袍少女
   toggle_theme: 切换主题
-  enable_notifications: 启用通知
   notification_preferences: 通知偏好设置
   auto_start: 开机自启
   check_updates: 检查更新

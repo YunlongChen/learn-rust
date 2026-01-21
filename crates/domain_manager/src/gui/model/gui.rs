@@ -1,5 +1,6 @@
-use crate::gui::model::domain::{DnsRecord, Domain};
 use crate::gui::pages::domain::DomainProvider;
+use crate::storage::{DnsRecordModal, DomainModal};
+
 #[derive(Debug, Clone)]
 pub enum ReloadType {
     Account,
@@ -11,8 +12,8 @@ pub enum ReloadType {
 pub struct ReloadModel {
     pub reload_types: Vec<ReloadType>,
     pub providers: Vec<DomainProvider>,
-    pub domains: Vec<Domain>,
-    pub records: Vec<DnsRecord>,
+    pub domains: Vec<DomainModal>,
+    pub records: Vec<DnsRecordModal>,
     pub message: String,
     pub total_count: usize,
 }
@@ -20,8 +21,8 @@ pub struct ReloadModel {
 impl ReloadModel {
     pub fn new_from(
         providers: Vec<DomainProvider>,
-        domains: Vec<Domain>,
-        dns_records: Vec<DnsRecord>,
+        domains: Vec<DomainModal>,
+        dns_records: Vec<DnsRecordModal>,
         total_count: usize,
     ) -> Self {
         ReloadModel {

@@ -17,7 +17,7 @@ pub mod gui_config;
 pub mod server;
 
 static CONFIG: LazyLock<AppConfig> = LazyLock::new(|| {
-    info!("Loading Config");
+    info!("加载数据库配置。。。");
     let config = AppConfig::load()
         .map_err(|err| {
             error!("读取配置文件发生异常,错误信息：{:?}", err);

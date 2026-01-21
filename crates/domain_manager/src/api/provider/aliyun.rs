@@ -4,6 +4,7 @@ use crate::gui::model::domain::DnsProvider::Aliyun;
 use crate::gui::model::domain::{Domain, DomainName};
 use crate::model::dns_record_response::{DnsRecordResponse, Record};
 use anyhow::Result;
+use async_trait::async_trait;
 use domain_client::RequestBody;
 use reqwest::{Client, Method};
 use serde_json::json;
@@ -68,6 +69,7 @@ impl AliyunDnsClient {
     }
 }
 
+#[async_trait]
 impl DnsClientTrait for AliyunDnsClient {
     /// 查询域名列表
     async fn list_domains(&self, page_num: u32, page_size: u32) -> Result<Vec<DomainName>> {
@@ -119,7 +121,7 @@ impl DnsClientTrait for AliyunDnsClient {
         }
     }
 
-    fn query_domain(&self, _domain: &Domain) -> Result<DomainQueryResponse> {
+    async fn query_domain(&self, _domain: &Domain) -> Result<DomainQueryResponse> {
         todo!()
     }
 
@@ -164,7 +166,7 @@ impl DnsClientTrait for AliyunDnsClient {
     }
 
     /// 添加DNS记录
-    fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+    async fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
         let query_params = &[
             ("RegionId", self.region_id.as_str()),
             ("DomainName", domain_name.name.as_str()),
@@ -181,9 +183,8 @@ impl DnsClientTrait for AliyunDnsClient {
         body.insert("Value".to_string(), json!(record.value));
         body.insert("TTL".to_string(), json!(record.ttl));
 
-        let rt = tokio::runtime::Runtime::new()?;
-        let response = rt.block_on(async {
-            self.call_ali_api(
+        let response = self
+            .call_ali_api(
                 Method::POST,
                 "dns.aliyuncs.com",
                 "/",
@@ -192,15 +193,14 @@ impl DnsClientTrait for AliyunDnsClient {
                 "2015-01-09",
                 RequestBody::Json(body),
             )
-            .await
-        })?;
+            .await?;
 
         info!("添加DNS记录结果：{:?}", response);
         Ok(())
     }
 
     /// 删除DNS记录
-    fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()> {
+    async fn delete_dns_record(&self, _domain_name: &DomainName, record_id: &str) -> Result<()> {
         let query_params = &[
             ("RegionId", self.region_id.as_str()),
             ("RecordId", record_id),
@@ -209,9 +209,8 @@ impl DnsClientTrait for AliyunDnsClient {
         let mut body = HashMap::new();
         body.insert("RecordId".to_string(), json!(record_id));
 
-        let rt = tokio::runtime::Runtime::new()?;
-        let response = rt.block_on(async {
-            self.call_ali_api(
+        let response = self
+            .call_ali_api(
                 Method::POST,
                 "dns.aliyuncs.com",
                 "/",
@@ -220,15 +219,14 @@ impl DnsClientTrait for AliyunDnsClient {
                 "2015-01-09",
                 RequestBody::Json(body),
             )
-            .await
-        })?;
+            .await?;
 
         info!("删除DNS记录结果：{:?}", response);
         Ok(())
     }
 
     /// 更新DNS记录
-    fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+    async fn update_dns_record(&self, _domain_name: &DomainName, record: &Record) -> Result<()> {
         let query_params = &[
             ("RegionId", self.region_id.as_str()),
             ("RecordId", record.record_id.as_str()),
@@ -245,9 +243,8 @@ impl DnsClientTrait for AliyunDnsClient {
         body.insert("Value".to_string(), json!(record.value));
         body.insert("TTL".to_string(), json!(record.ttl));
 
-        let rt = tokio::runtime::Runtime::new()?;
-        let response = rt.block_on(async {
-            self.call_ali_api(
+        let response = self
+            .call_ali_api(
                 Method::POST,
                 "dns.aliyuncs.com",
                 "/",
@@ -256,8 +253,7 @@ impl DnsClientTrait for AliyunDnsClient {
                 "2015-01-09",
                 RequestBody::Json(body),
             )
-            .await
-        })?;
+            .await?;
 
         info!("更新DNS记录结果：{:?}", response);
         Ok(())

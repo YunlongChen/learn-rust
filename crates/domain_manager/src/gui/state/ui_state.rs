@@ -85,6 +85,9 @@ pub struct UiState {
 
     // 窗口标识
     pub id: Option<Id>,
+
+    /// 错误消息
+    pub error_message: Option<String>,
 }
 
 impl Default for UiState {
@@ -114,6 +117,7 @@ impl Default for UiState {
             thumbnail_mode: false,
             window_state: WindowState::default(),
             id: None,
+            error_message: None,
         }
     }
 }

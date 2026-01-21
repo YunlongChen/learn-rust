@@ -3,6 +3,7 @@ use crate::api::model::domain::DomainQueryResponse;
 use crate::gui::model::domain::{DnsProvider, Domain, DomainName};
 use crate::model::dns_record_response::{Record, Status, Type};
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tracing::info;
@@ -158,6 +159,7 @@ impl CloudflareDnsClient {
     }
 }
 
+#[async_trait]
 impl DnsClientTrait for CloudflareDnsClient {
     /// 获取域名列表（Cloudflare中为Zone列表）
     async fn list_domains(&self, _page_num: u32, _page_size: u32) -> Result<Vec<DomainName>> {
@@ -196,7 +198,7 @@ impl DnsClientTrait for CloudflareDnsClient {
     }
 
     /// 查询域名信息
-    fn query_domain(&self, _domain_name: &Domain) -> Result<DomainQueryResponse> {
+    async fn query_domain(&self, _domain_name: &Domain) -> Result<DomainQueryResponse> {
         // Cloudflare的域名查询功能暂未实现
         // 可以根据需要实现Zone详细信息查询
         todo!("Cloudflare域名查询功能待实现")
@@ -239,112 +241,103 @@ impl DnsClientTrait for CloudflareDnsClient {
     }
 
     /// 添加DNS记录
-    fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+    async fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
         info!("正在添加DNS记录: {} -> {}", record.rr, record.value);
 
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(async {
-            // 获取Zone ID
-            let zone_id = self.get_zone_id(&domain_name.name).await?;
+        // 获取Zone ID
+        let zone_id = self.get_zone_id(&domain_name.name).await?;
 
-            // 转换记录
-            let cf_record = Self::convert_internal_to_cf_record(record);
+        // 转换记录
+        let cf_record = Self::convert_internal_to_cf_record(record);
 
-            // 创建DNS记录
-            let url = format!("{}/zones/{}/dns_records", self.base_url, zone_id);
-            let response = self
-                .client
-                .post(&url)
-                .header("Authorization", format!("Bearer {}", self.api_token))
-                .header("Content-Type", "application/json")
-                .json(&cf_record)
-                .send()
-                .await?;
+        // 创建DNS记录
+        let url = format!("{}/zones/{}/dns_records", self.base_url, zone_id);
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_token))
+            .header("Content-Type", "application/json")
+            .json(&cf_record)
+            .send()
+            .await?;
 
-            if !response.status().is_success() {
-                return Err(anyhow!("添加DNS记录失败: HTTP {}", response.status()));
-            }
+        if !response.status().is_success() {
+            return Err(anyhow!("添加DNS记录失败: HTTP {}", response.status()));
+        }
 
-            let cf_response: CloudflareResponse<CloudflareDnsRecord> = response.json().await?;
+        let cf_response: CloudflareResponse<CloudflareDnsRecord> = response.json().await?;
 
-            if !cf_response.success {
-                return Err(anyhow!("Cloudflare API错误: {:?}", cf_response.errors));
-            }
+        if !cf_response.success {
+            return Err(anyhow!("Cloudflare API错误: {:?}", cf_response.errors));
+        }
 
-            info!("DNS记录添加成功: {:?}", cf_response.result.id);
-            Ok(())
-        })
+        info!("DNS记录添加成功: {:?}", cf_response.result.id);
+        Ok(())
     }
 
     /// 删除DNS记录
-    fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()> {
+    async fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()> {
         info!("正在删除DNS记录: {}", record_id);
 
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(async {
-            // 获取Zone ID
-            let zone_id = self.get_zone_id(&domain_name.name).await?;
+        // 获取Zone ID
+        let zone_id = self.get_zone_id(&domain_name.name).await?;
 
-            // 删除DNS记录
-            let url = format!(
-                "{}/zones/{}/dns_records/{}",
-                self.base_url, zone_id, record_id
-            );
-            let response = self
-                .client
-                .delete(&url)
-                .header("Authorization", format!("Bearer {}", self.api_token))
-                .header("Content-Type", "application/json")
-                .send()
-                .await?;
+        // 删除DNS记录
+        let url = format!(
+            "{}/zones/{}/dns_records/{}",
+            self.base_url, zone_id, record_id
+        );
+        let response = self
+            .client
+            .delete(&url)
+            .header("Authorization", format!("Bearer {}", self.api_token))
+            .header("Content-Type", "application/json")
+            .send()
+            .await?;
 
-            if !response.status().is_success() {
-                return Err(anyhow!("删除DNS记录失败: HTTP {}", response.status()));
-            }
+        if !response.status().is_success() {
+            return Err(anyhow!("删除DNS记录失败: HTTP {}", response.status()));
+        }
 
-            info!("DNS记录删除成功");
-            Ok(())
-        })
+        info!("DNS记录删除成功");
+        Ok(())
     }
 
     /// 更新DNS记录
-    fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+    async fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
         info!("正在更新DNS记录: {} -> {}", record.rr, record.value);
 
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(async {
-            // 获取Zone ID
-            let zone_id = self.get_zone_id(&domain_name.name).await?;
+        // 获取Zone ID
+        let zone_id = self.get_zone_id(&domain_name.name).await?;
 
-            // 转换记录
-            let cf_record = Self::convert_internal_to_cf_record(record);
+        // 转换记录
+        let cf_record = Self::convert_internal_to_cf_record(record);
 
-            // 更新DNS记录
-            let url = format!(
-                "{}/zones/{}/dns_records/{}",
-                self.base_url, zone_id, record.record_id
-            );
-            let response = self
-                .client
-                .put(&url)
-                .header("Authorization", format!("Bearer {}", self.api_token))
-                .header("Content-Type", "application/json")
-                .json(&cf_record)
-                .send()
-                .await?;
+        // 更新DNS记录
+        let url = format!(
+            "{}/zones/{}/dns_records/{}",
+            self.base_url, zone_id, record.record_id
+        );
+        let response = self
+            .client
+            .put(&url)
+            .header("Authorization", format!("Bearer {}", self.api_token))
+            .header("Content-Type", "application/json")
+            .json(&cf_record)
+            .send()
+            .await?;
 
-            if !response.status().is_success() {
-                return Err(anyhow!("更新DNS记录失败: HTTP {}", response.status()));
-            }
+        if !response.status().is_success() {
+            return Err(anyhow!("更新DNS记录失败: HTTP {}", response.status()));
+        }
 
-            let cf_response: CloudflareResponse<CloudflareDnsRecord> = response.json().await?;
+        let cf_response: CloudflareResponse<CloudflareDnsRecord> = response.json().await?;
 
-            if !cf_response.success {
-                return Err(anyhow!("Cloudflare API错误: {:?}", cf_response.errors));
-            }
+        if !cf_response.success {
+            return Err(anyhow!("Cloudflare API错误: {:?}", cf_response.errors));
+        }
 
-            info!("DNS记录更新成功: {:?}", cf_response.result.id);
-            Ok(())
-        })
+        info!("DNS记录更新成功: {:?}", cf_response.result.id);
+        Ok(())
     }
 }
