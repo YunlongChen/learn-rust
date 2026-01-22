@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 domain_client = { path = "../domain_client" }
 
-iced = { version = "0.13.1", features = ["svg", "tokio", "wgpu", "advanced"], default-features = false }
+iced = { version = "0.14.0", features = ["svg", "tokio", "wgpu", "advanced"], default-features = false }
 iced_fontello = { version = "0.13.1" }
 image = { version = "0.25.6", default-features = false, features = ["png"] }
 maxminddb = { version = "0.26.0" }  # 地理位置数据库
