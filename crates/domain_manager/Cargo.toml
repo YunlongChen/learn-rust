@@ -41,7 +41,7 @@ config = { version = "0.15.13", features = ["yaml"] }
 num_cpus = "1.17.0"
 uuid = { version = "1.17.0", features = ["v4"] }
 async-trait = "0.1.83"
-validator = { version = "0.18.1", features = ["derive"] }
+validator = { version = "0.20.0", features = ["derive"] }
 
 [dev-dependencies]
 serde_test = "1.0.177"
