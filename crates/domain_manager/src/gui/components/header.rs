@@ -248,7 +248,7 @@ pub fn get_button_window_maximize<'a>(
     .padding(0)
     .height(40)
     .width(60)
-    .on_press(MessageCategory::Window(WindowMessage::Maximize));
+    .on_press(MessageCategory::Window(WindowMessage::WindowMaximize));
 
     Tooltip::new(content, Text::new(get_text("maximize")), Position::Top)
         .gap(5)

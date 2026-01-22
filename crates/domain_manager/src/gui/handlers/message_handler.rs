@@ -24,7 +24,7 @@ use crate::utils::types::web_page::WebPage;
 use iced::{window, Point, Size, Task};
 use sea_orm::DatabaseConnection;
 use std::process;
-use tracing::info;
+use tracing::{debug, info};
 use window::Id;
 
 /// 消息分类枚举
@@ -169,11 +169,10 @@ pub enum WindowMessage {
     Drag,
     Moved(Point),
     Resized(Size),
-    Maximize,
     ToggleFloating,
     WindowResized(Size),
     WindowMinimize,
-    WindowMaximize(bool),
+    WindowMaximize,
     BackgroundOpacityChange(f32),
     BackgroundToggle,
     DragWindow(Point),
@@ -306,13 +305,16 @@ impl MessageHandler {
                 HandlerResult::StateUpdatedWithTask(task) => task,
                 HandlerResult::NoChange => Task::none(),
             },
-            MessageCategory::Window(msg) => match self.window_handler.handle(state, msg) {
-                HandlerResult::None => Task::none(),
-                HandlerResult::Task(task) => task,
-                HandlerResult::StateUpdated => Task::none(),
-                HandlerResult::StateUpdatedWithTask(task) => task,
-                HandlerResult::NoChange => Task::none(),
-            },
+            MessageCategory::Window(window_message) => {
+                debug!("收到窗口消息");
+                match self.window_handler.handle(state, window_message) {
+                    HandlerResult::None => Task::none(),
+                    HandlerResult::Task(task) => task,
+                    HandlerResult::StateUpdated => Task::none(),
+                    HandlerResult::StateUpdatedWithTask(task) => task,
+                    HandlerResult::NoChange => Task::none(),
+                }
+            }
             MessageCategory::Config(msg) => self.handle_config(state, msg),
             MessageCategory::Ui(msg) => match self.ui_handler.handle(state, msg) {
                 HandlerResult::None => Task::none(),

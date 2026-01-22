@@ -152,6 +152,13 @@ impl WindowHandler {
         state: &mut AppState,
         is_maximized: bool,
     ) -> HandlerResult {
+        info!("处理窗口最大化事件！:{:?}", is_maximized);
+
+        // 防止循环调用：如果状态已经一致，说明是 Task 完成后的回调，不需要再次执行
+        if state.ui.window_maximized == is_maximized {
+            return HandlerResult::StateUpdated;
+        }
+
         let message = if is_maximized {
             "窗口已最大化"
         } else {
@@ -161,7 +168,20 @@ impl WindowHandler {
         state.ui.set_message(message.to_string());
         state.ui.window_maximized = is_maximized;
 
-        HandlerResult::StateUpdated
+        info!("执行窗口最大化操作: {}", is_maximized);
+
+        HandlerResult::Task(window::get_oldest().then(move |id_option| {
+            if let Some(id) = id_option {
+                info!("最大化窗口");
+                window::maximize(id, is_maximized)
+                // .map(move |_: ()| {
+                //     MessageCategory::Window(WindowMessage::WindowMaximize(is_maximized))
+                // })
+            } else {
+                info!("无法获取窗口ID，取消最大化操作");
+                Task::none()
+            }
+        }))
     }
 
     /// 处理切换悬浮窗模式
@@ -318,7 +338,6 @@ impl EventHandler<WindowMessage> for WindowHandler {
                 HandlerResult::StateUpdated
             }
             WindowMessage::Resized(_size) => HandlerResult::StateUpdated,
-            WindowMessage::Maximize => HandlerResult::StateUpdated,
             WindowMessage::DragWindow(_position) => {
                 HandlerResult::Task(
                     // 获取最旧的窗口并拖动
@@ -348,7 +367,18 @@ impl EventHandler<WindowMessage> for WindowHandler {
                     }
                 }))
             }
-            WindowMessage::WindowMaximize(_is_maximized) => HandlerResult::StateUpdated,
+            WindowMessage::WindowMaximize => {
+                state.ui.set_message("窗口最大化".to_string());
+                info!("窗口最大化");
+                state.ui.window_maximized = true;
+                HandlerResult::Task(window::get_oldest().then(|id| {
+                    if let Some(id) = id {
+                        window::toggle_maximize(id)
+                    } else {
+                        Task::none()
+                    }
+                }))
+            }
             WindowMessage::ToggleFloating => HandlerResult::StateUpdated,
             WindowMessage::BackgroundOpacityChange(_opacity) => HandlerResult::StateUpdated,
             WindowMessage::BackgroundToggle => HandlerResult::StateUpdated,
@@ -409,11 +439,11 @@ impl MutableWindowHandler {
             WindowMessage::StartDrag(id) => handler.handle_start_drag(state, id),
             WindowMessage::Moved(position) => handler.handle_window_moved(state, position),
             WindowMessage::Resized(size) => handler.handle_window_resized(state, size),
-            WindowMessage::Maximize => HandlerResult::StateUpdated,
             WindowMessage::DragWindow(position) => handler.handle_drag_window(state, position),
             WindowMessage::WindowResized(size) => handler.handle_window_resized(state, size),
             WindowMessage::WindowMinimize => handler.handle_window_minimize(state),
-            WindowMessage::WindowMaximize(is_maximized) => {
+            WindowMessage::WindowMaximize => {
+                let is_maximized = !state.ui.window_maximized;
                 handler.handle_window_maximize(state, is_maximized)
             }
             WindowMessage::ToggleFloating => handler.handle_toggle_floating(state),
