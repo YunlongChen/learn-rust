@@ -12,7 +12,7 @@ domain_client = { path = "../domain_client" }
 
 iced = { version = "0.13.1", features = ["svg", "tokio", "wgpu", "advanced"], default-features = false }
 iced_fontello = { version = "0.13.1" }
-image = { version = "0.25.6", default-features = false, features = ["png"] }
+image = { version = "0.25.9", default-features = false, features = ["png"] }
 maxminddb = { version = "0.26.0" }  # 地理位置数据库
 plotters = { version = "0.3.7", default-features = false, features = ["area_series", "line_series"] }  # 图表绘制
 rust-i18n = { version = "3.1.5" }
