@@ -36,7 +36,7 @@ sea-orm-migration = "2.0.0-rc.1"
 tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"], default-features = false }
 # tracing-test = { version = "0.2.5" }  # 仅开发时需要，生产环境禁用
-percent-encoding = "2.3.1"
+percent-encoding = "2.3.2"
 config = { version = "0.15.13", features = ["yaml"] }
 num_cpus = "1.17.0"
 uuid = { version = "1.17.0", features = ["v4"] }
