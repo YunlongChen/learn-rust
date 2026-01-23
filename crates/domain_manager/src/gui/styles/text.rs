@@ -17,6 +17,8 @@ pub enum TextType {
     Title,
     Subtitle,
     Danger,
+    Success,
+    Warning,
     Sponsor,
     Starred,
 }
@@ -75,6 +77,8 @@ pub fn highlight(style: &StyleType, element: TextType) -> Color {
         TextType::Incoming => colors.secondary,
         TextType::Outgoing => colors.outgoing,
         TextType::Danger | TextType::Sponsor => ext.red_alert_color,
+        TextType::Success => Color::from_rgb(0.0, 0.8, 0.0),
+        TextType::Warning => Color::from_rgb(1.0, 0.8, 0.0),
         TextType::Standard => colors.text_body,
         TextType::Starred => colors.starred,
     }

@@ -8,12 +8,14 @@ use crate::gui::handlers::message_handler::{
     DatabaseMessage, MessageCategory, NotificationMessage, ProviderMessage, SyncMessage,
 };
 use crate::gui::model::domain::DnsProvider;
-use crate::gui::pages::domain::AddDomainProviderForm;
+use crate::gui::pages::domain::{AddDomainProviderForm, VerificationStatus};
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::gui::types::credential::{Credential, CredentialMessage};
-use crate::models::account::NewAccount;
+use crate::models::account::{Account, NewAccount};
 use iced::Task;
+use tokio::time;
+use tokio::time::Duration;
 use tracing::{debug, error, info, warn};
 
 /// 托管商处理器
@@ -84,21 +86,17 @@ impl ProviderHandler {
     fn handle_add_form_provider_changed(
         &self,
         state: &mut AppState,
-        provider_type: String,
+        provider_type: DnsProvider,
     ) -> HandlerResult {
         // 根据提供商类型字符串查找对应的DnsProvider
-        let dns_provider = match provider_type.as_str() {
-            "Aliyun" => Some(DnsProvider::Aliyun),
-            "TencentCloud" => Some(DnsProvider::TencentCloud),
-            "CloudFlare" => Some(DnsProvider::CloudFlare),
-            "Tomato" => Some(DnsProvider::Tomato),
-            "Dnspod" => Some(DnsProvider::Dnspod),
-            "Aws" => Some(DnsProvider::Aws),
-            "Google" => Some(DnsProvider::Google),
-            _ => {
-                warn!("未知的托管商类型: {}", provider_type);
-                None
-            }
+        let dns_provider = match provider_type {
+            DnsProvider::Aliyun => Some(DnsProvider::Aliyun),
+            DnsProvider::TencentCloud => Some(DnsProvider::TencentCloud),
+            DnsProvider::CloudFlare => Some(DnsProvider::CloudFlare),
+            DnsProvider::Tomato => Some(DnsProvider::Tomato),
+            DnsProvider::Dnspod => Some(DnsProvider::Dnspod),
+            DnsProvider::Aws => Some(DnsProvider::Aws),
+            DnsProvider::Google => Some(DnsProvider::Google),
         };
 
         if let Some(provider) = dns_provider {
@@ -106,6 +104,26 @@ impl ProviderHandler {
             state.data.add_domain_provider_form.provider = Some(provider.clone());
             // 同时设置默认凭证
             state.data.add_domain_provider_form.credential = Some(provider.credential());
+
+            // 自动生成名称
+            let base_name = provider.name();
+            let mut new_name = base_name.to_string();
+            let mut counter = 1;
+
+            // 检查名称是否存在
+            let existing_names: Vec<String> = state
+                .data
+                .domain_providers
+                .iter()
+                .map(|p| p.provider_name.clone())
+                .collect();
+
+            while existing_names.contains(&new_name) {
+                new_name = format!("{} {}", base_name, counter);
+                counter += 1;
+            }
+
+            state.data.add_domain_provider_form.provider_name = new_name;
 
             debug!("添加托管商表单提供商类型已更新: {}", provider_type);
             state
@@ -174,7 +192,7 @@ impl ProviderHandler {
 
     /// 处理凭证验证
     fn handle_validate_credential(&self, state: &mut AppState) -> HandlerResult {
-        let form = &state.data.add_domain_provider_form;
+        let form = state.data.add_domain_provider_form.clone();
 
         // 检查表单完整性
         if form.provider.is_none() {
@@ -200,18 +218,18 @@ impl ProviderHandler {
 
         info!("开始验证托管商凭证: {}", form.provider_name);
         state.ui.set_loading(true);
+        state.data.add_domain_provider_form.verification_status = VerificationStatus::Pending;
 
         // 启动异步凭证验证任务
         HandlerResult::StateUpdatedWithTask(Task::perform(
-            Self::validate_credential_async(form.clone()),
+            Self::validate_credential_async(form),
             |result| match result {
-                Ok(_) => MessageCategory::Notification(NotificationMessage::ShowToast(
-                    "凭证验证成功".to_string(),
+                Ok(_) => MessageCategory::Provider(ProviderMessage::VerificationStatusChanged(
+                    VerificationStatus::Success,
                 )),
-                Err(err) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                    "凭证验证失败: {}",
-                    err
-                ))),
+                Err(err) => MessageCategory::Provider(ProviderMessage::VerificationStatusChanged(
+                    VerificationStatus::Failed(err),
+                )),
             },
         ))
     }
@@ -253,18 +271,36 @@ impl ProviderHandler {
         };
 
         info!(
-            "开始添加域名托管商: {}, 类型: {}",
+            "开始处理域名托管商: {}, 类型: {}",
             new_account.username,
             new_account.provider.name()
         );
 
         state.ui.set_loading(true);
 
-        // 发送数据库消息，请求创建账户
-        // 注意：实际的数据库操作将在DomainManagerV2中处理
-        HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Database(
-            DatabaseMessage::AddAccount(new_account),
-        )))
+        if let Some(id) = state.ui.editing_provider_id {
+            let account = Account {
+                id,
+                username: new_account.username.clone(),
+                provider_type: new_account.provider.name().to_string(),
+                email: new_account.email.clone(),
+                created_at: chrono::Local::now().naive_local().to_string(),
+                last_login: None,
+                credential_type: new_account.credential.credential_type(),
+                credential_data: new_account.credential.raw_data().into(),
+                salt: "salt".to_string(),
+                api_keys: vec![],
+            };
+
+            HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Database(
+                DatabaseMessage::UpdateAccount(account),
+            )))
+        } else {
+            debug!("新增托管商凭证：{:?}", new_account);
+            HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Database(
+                DatabaseMessage::AddAccount(new_account),
+            )))
+        }
     }
 
     /// 处理托管商变更
@@ -278,19 +314,53 @@ impl ProviderHandler {
         }))
     }
 
+    fn handle_verification_status_changed(
+        &self,
+        state: &mut AppState,
+        status: VerificationStatus,
+    ) -> HandlerResult {
+        state.data.add_domain_provider_form.verification_status = status;
+        match state.data.add_domain_provider_form.verification_status {
+            VerificationStatus::Success | VerificationStatus::Failed(_) => {
+                state.ui.set_loading(false);
+            }
+            _ => {}
+        }
+        HandlerResult::StateUpdated
+    }
+
     /// 异步验证凭证
     async fn validate_credential_async(form: AddDomainProviderForm) -> Result<(), String> {
-        // 模拟凭证验证过程
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        time::timeout(Duration::from_secs(10), async move {
+            // 获取提供商和凭证信息
+            let provider = form
+                .provider
+                .clone()
+                .ok_or("提供商类型未选择".to_string())?;
+            let credential = form
+                .credential
+                .clone()
+                .ok_or("凭证信息未提供".to_string())?;
 
-        // 这里应该调用实际的API进行凭证验证
-        // 目前返回模拟结果
-        if form.provider_name.contains("test") {
-            Err("测试凭证验证失败".to_string())
-        } else {
-            info!("凭证验证成功: {}", form.provider_name);
-            Ok(())
-        }
+            // 调用实际的API进行凭证验证
+            match crate::api::credential_service::CredentialService::validate_credentials(
+                provider,
+                &credential,
+            )
+            .await
+            {
+                Ok(_) => {
+                    info!("凭证验证成功: {}", form.provider_name);
+                    Ok(())
+                }
+                Err(err) => {
+                    error!("凭证验证失败: {:?}", err);
+                    Err(err.to_string())
+                }
+            }
+        })
+        .await
+        .unwrap_or_else(|_| Err("验证超时，请检查网络连接".to_string()))
     }
 
     /// 异步添加托管商凭证
@@ -345,13 +415,60 @@ impl ProviderHandler {
 
         Err("架构限制：请通过 DatabaseMessage::AddAccount 处理数据库操作".to_string())
     }
+
+    fn handle_toggle_form(&self, state: &mut AppState, visible: bool) -> HandlerResult {
+        state.ui.provider_form_visible = visible;
+        HandlerResult::StateUpdated
+    }
+
+    fn handle_delete_request(&self, state: &mut AppState, id: i64) -> HandlerResult {
+        state.ui.deleting_provider_id = Some(id);
+        HandlerResult::StateUpdated
+    }
+
+    fn handle_cancel_delete(&self, state: &mut AppState) -> HandlerResult {
+        state.ui.deleting_provider_id = None;
+        HandlerResult::StateUpdated
+    }
+
+    fn handle_confirm_delete(&self, state: &mut AppState, id: i64) -> HandlerResult {
+        state.ui.deleting_provider_id = None;
+        state.ui.set_loading(true);
+        HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Database(
+            DatabaseMessage::DeleteAccount(id),
+        )))
+    }
+
+    fn handle_edit_request(&self, state: &mut AppState, id: i64) -> HandlerResult {
+        if let Some(provider) = state
+            .data
+            .domain_providers
+            .iter()
+            .find(|p| p.account_id == id)
+        {
+            let form = &mut state.data.add_domain_provider_form;
+            form.provider_name = provider.provider_name.clone();
+            form.provider = Some(provider.provider.clone());
+            form.credential = Some(provider.credential.clone());
+
+            state.ui.editing_provider_id = Some(id);
+            state.ui.provider_form_visible = true;
+
+            HandlerResult::StateUpdated
+        } else {
+            state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                "未找到指定服务商".to_string(),
+            )));
+            HandlerResult::StateUpdated
+        }
+    }
 }
 
 impl EventHandler<ProviderMessage> for ProviderHandler {
     /// 处理托管商相关消息
     fn handle(&self, state: &mut AppState, message: ProviderMessage) -> HandlerResult {
         match message {
-            ProviderMessage::AddFormProviderChanged(provider_type) => {
+            ProviderMessage::Selected(provider_type) => {
                 self.handle_add_form_provider_changed(state, provider_type)
             }
             ProviderMessage::AddFormNameChanged(name) => {
@@ -363,7 +480,14 @@ impl EventHandler<ProviderMessage> for ProviderHandler {
             ProviderMessage::ValidateCredential => self.handle_validate_credential(state),
             ProviderMessage::AddCredential => self.handle_add_credential(state),
             ProviderMessage::ProviderChange => self.handle_provider_change(state),
-            _ => HandlerResult::NoChange,
+            ProviderMessage::VerificationStatusChanged(status) => {
+                self.handle_verification_status_changed(state, status)
+            }
+            ProviderMessage::ToggleForm(visible) => self.handle_toggle_form(state, visible),
+            ProviderMessage::Delete(id) => self.handle_delete_request(state, id),
+            ProviderMessage::ConfirmDelete(id) => self.handle_confirm_delete(state, id),
+            ProviderMessage::CancelDelete => self.handle_cancel_delete(state),
+            ProviderMessage::Edit(id) => self.handle_edit_request(state, id),
         }
     }
 

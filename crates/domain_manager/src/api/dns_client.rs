@@ -6,7 +6,7 @@ use crate::model::dns_record_response::Record;
 use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client;
-use tracing::error;
+use tracing::{error, info};
 
 /// DNS客户端
 #[async_trait]
@@ -18,6 +18,9 @@ pub trait DnsClientTrait {
     async fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
     async fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()>;
     async fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()>;
+
+    /// 验证凭证是否有效
+    async fn validate_credentials(&self) -> Result<()>;
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +83,69 @@ impl DnsClient {
         }
 
         Ok(domain_name_list)
+    }
+}
+
+#[async_trait]
+impl DnsClientTrait for DnsClient {
+    async fn list_domains(&self, page_num: u32, page_size: u32) -> Result<Vec<DomainName>> {
+        let domains = self.get_all_domain_info().await?;
+        let domain_names = domains
+            .into_iter()
+            .map(|domain| DomainName {
+                name: domain.name,
+                provider: domain.provider,
+                ..DomainName::default()
+            })
+            .collect();
+        Ok(domain_names)
+    }
+
+    async fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse> {
+        // 这里需要根据具体的提供商实现域名查询
+        // 目前暂不实现
+        todo!("query_domain not implemented for DnsClient")
+    }
+
+    async fn list_dns_records(&self, domain_name: String) -> Result<Vec<Record>> {
+        // 这里需要根据具体的提供商实现DNS记录查询
+        // 目前暂不实现
+        todo!("list_dns_records not implemented for DnsClient")
+    }
+
+    async fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+        // 这里需要根据具体的提供商实现添加DNS记录
+        // 目前暂不实现
+        todo!("add_dns_record not implemented for DnsClient")
+    }
+
+    async fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()> {
+        // 这里需要根据具体的提供商实现删除DNS记录
+        // 目前暂不实现
+        todo!("delete_dns_record not implemented for DnsClient")
+    }
+
+    async fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+        // 这里需要根据具体的提供商实现更新DNS记录
+        // 目前暂不实现
+        todo!("update_dns_record not implemented for DnsClient")
+    }
+
+    /// 验证凭证是否有效
+    async fn validate_credentials(&self) -> Result<()> {
+        // 通过查询域名列表来验证凭证
+        // 如果凭证有效，应该能够成功获取域名列表
+        // 如果凭证无效，API调用会失败
+        match self.get_all_domain_info().await {
+            Ok(_) => {
+                info!("凭证验证成功");
+                Ok(())
+            }
+            Err(err) => {
+                error!("凭证验证失败: {:?}", err);
+                Err(err)
+            }
+        }
     }
 }
 

@@ -46,14 +46,14 @@ pub const PERIOD_TICK: u64 = 1000;
 pub const FONT_FAMILY_NAME: &str = "Sarasa Mono SC for DomainManager";
 pub const ICON_FONT_FAMILY_NAME: &str = "Icons for Domain Manager";
 pub const FONT_CN_FAMILY_NAME: &str = "Maple Mono NF CN";
-
+// 初始化语言为英文
 i18n!("locales", fallback = "en");
 
 #[tokio::main]
 pub async fn main() -> iced::Result {
-    init_logging();
-    // 开始记录日志
     info!("Application Starting...");
+    // 开始记录日志
+    init_logging();
 
     // 读取配置文件
     let config: Config = Config::new_from_file("config.json");

@@ -4,16 +4,17 @@
 //! 分解为更小、更专门的处理器。
 
 use super::{
-    DnsHandler, DomainHandler, EventHandler, HandlerResult, ProviderHandler, SyncHandler,
-    UiHandler, WindowHandler,
+    DnsHandler, DomainHandler, EventHandler, ProviderHandler, SyncHandler, UiHandler, WindowHandler,
 };
 use crate::gui::components::console::ConsoleTab;
+use crate::gui::handlers::database_handler::DataStoreHandler;
 use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::model::gui::ReloadModel;
+use crate::gui::pages::domain::VerificationStatus;
 use crate::gui::pages::Page;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
-use crate::gui::types::credential::{Credential, CredentialMessage};
+use crate::gui::types::credential::CredentialMessage;
 use crate::model::dns_record_response::{Record, Type};
 use crate::models::account::NewAccount;
 use crate::storage::{DnsRecordModal, DomainModal};
@@ -24,7 +25,6 @@ use crate::utils::types::web_page::WebPage;
 use iced::{window, Point, Size, Task};
 use sea_orm::DatabaseConnection;
 use std::process;
-use tracing::{debug, info};
 use window::Id;
 
 /// 消息分类枚举
@@ -74,6 +74,10 @@ pub enum DatabaseMessage {
     Connected(Result<DatabaseConnection, String>),
     AddAccount(NewAccount),
     AccountAdded(Result<crate::models::account::Account, String>),
+    UpdateAccount(crate::models::account::Account),
+    AccountUpdated(Result<(), String>),
+    DeleteAccount(i64),
+    AccountDeleted(Result<i64, String>),
 }
 
 /// 导航消息
@@ -194,13 +198,19 @@ pub enum ConfigMessage {
 /// 托管商消息
 #[derive(Debug, Clone)]
 pub enum ProviderMessage {
-    Selected(Option<DnsProvider>),
-    AddFormProviderChanged(String),
+    Selected(DnsProvider),
     AddFormNameChanged(String),
     AddFormCredentialChanged(CredentialMessage),
     ValidateCredential,
     AddCredential,
     ProviderChange,
+    VerificationStatusChanged(VerificationStatus),
+    // 新增消息
+    ToggleForm(bool),
+    Delete(i64),
+    Edit(i64),
+    ConfirmDelete(i64),
+    CancelDelete,
 }
 
 /// UI消息
@@ -250,6 +260,7 @@ pub struct MessageHandler {
     window_handler: WindowHandler,
     provider_handler: ProviderHandler,
     ui_handler: UiHandler,
+    database_handler: DataStoreHandler,
 }
 
 impl MessageHandler {
@@ -262,6 +273,7 @@ impl MessageHandler {
             window_handler: WindowHandler::new(),
             provider_handler: ProviderHandler::new(),
             ui_handler: UiHandler::new(),
+            database_handler: DataStoreHandler::new(),
         }
     }
 
@@ -271,63 +283,27 @@ impl MessageHandler {
         state: &mut AppState,
         message: MessageCategory,
     ) -> Task<MessageCategory> {
-        match message {
+        let result_message = match message {
             MessageCategory::App(msg) => self.handle_app(state, msg),
             MessageCategory::Navigation(msg) => self.handle_navigation(state, msg),
-            MessageCategory::Domain(msg) => match self.domain_handler.handle(state, msg) {
-                HandlerResult::None => Task::none(),
-                HandlerResult::Task(task) => task,
-                HandlerResult::StateUpdated => Task::none(),
-                HandlerResult::StateUpdatedWithTask(task) => task,
-                HandlerResult::NoChange => Task::none(),
-            },
-            MessageCategory::Dns(msg) => match self.dns_handler.handle(state, msg) {
-                HandlerResult::None => Task::none(),
-                HandlerResult::Task(task) => task,
-                HandlerResult::StateUpdated => Task::none(),
-                HandlerResult::StateUpdatedWithTask(task) => task,
-                HandlerResult::NoChange => Task::none(),
-            },
-            MessageCategory::Sync(msg) => match self.sync_handler.handle(state, msg) {
-                HandlerResult::None => Task::none(),
-                HandlerResult::Task(task) => task,
-                HandlerResult::StateUpdated => {
-                    info!("同步状态发生了变化");
-                    Task::none()
-                }
-                HandlerResult::StateUpdatedWithTask(task) => task,
-                HandlerResult::NoChange => Task::none(),
-            },
-            MessageCategory::Provider(msg) => match self.provider_handler.handle(state, msg) {
-                HandlerResult::None => Task::none(),
-                HandlerResult::Task(task) => task,
-                HandlerResult::StateUpdated => Task::none(),
-                HandlerResult::StateUpdatedWithTask(task) => task,
-                HandlerResult::NoChange => Task::none(),
-            },
+            MessageCategory::Domain(msg) => self.domain_handler.handle(state, msg).into(),
+            MessageCategory::Dns(msg) => self.dns_handler.handle(state, msg).into(),
+            MessageCategory::Sync(msg) => self.sync_handler.handle(state, msg).into(),
+            MessageCategory::Provider(msg) => self.provider_handler.handle(state, msg).into(),
             MessageCategory::Window(window_message) => {
-                debug!("收到窗口消息");
-                match self.window_handler.handle(state, window_message) {
-                    HandlerResult::None => Task::none(),
-                    HandlerResult::Task(task) => task,
-                    HandlerResult::StateUpdated => Task::none(),
-                    HandlerResult::StateUpdatedWithTask(task) => task,
-                    HandlerResult::NoChange => Task::none(),
-                }
+                self.window_handler.handle(state, window_message).into()
             }
             MessageCategory::Config(msg) => self.handle_config(state, msg),
-            MessageCategory::Ui(msg) => match self.ui_handler.handle(state, msg) {
-                HandlerResult::None => Task::none(),
-                HandlerResult::Task(task) => task,
-                HandlerResult::StateUpdated => Task::none(),
-                HandlerResult::StateUpdatedWithTask(task) => task,
-                HandlerResult::NoChange => Task::none(),
-            },
+            MessageCategory::Ui(msg) => self.ui_handler.handle(state, msg).into(),
+            MessageCategory::Database(message) => {
+                self.database_handler.handle(state, message).into()
+            }
             MessageCategory::Console(_) => Task::none(),
             MessageCategory::Notification(_) => Task::none(),
-            MessageCategory::Database(_) => Task::none(), // 由DomainManagerV2直接处理
             MessageCategory::Other(_) => Task::none(),
-        }
+        };
+        // 检查 Task 是否为空
+        result_message
     }
 
     /// 处理应用程序消息

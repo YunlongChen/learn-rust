@@ -9,7 +9,7 @@ use crate::gui::handlers::message_handler::{
 use crate::gui::model::domain::{DnsProvider, Domain, DomainStatus};
 use crate::gui::pages::Page;
 use crate::gui::state::AppState;
-use crate::StyleType;
+use crate::{get_text, StyleType};
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Length, Padding};
 
@@ -187,7 +187,7 @@ impl DomainListComponent {
     fn render_loading_state(&self) -> Element<'_, MessageCategory, StyleType> {
         container(
             column![
-                text("正在加载域名...").size(16),
+                text(get_text("message.list_is_blank")).size(16),
                 // 这里可以添加加载动画
             ]
             .align_x(Alignment::Center)
@@ -204,9 +204,10 @@ impl DomainListComponent {
     fn render_error_state(&self, error: &str) -> Element<'_, MessageCategory, StyleType> {
         container(
             column![
-                text("加载域名失败").size(16),
+                text(get_text("message.list_is_blank")).size(16),
                 text(error.to_string()).size(12),
-                button("重试").on_press(MessageCategory::Sync(SyncMessage::Reload))
+                button(text(get_text("message.retry")))
+                    .on_press(MessageCategory::Sync(SyncMessage::Reload))
             ]
             .align_x(Alignment::Center)
             .spacing(10),

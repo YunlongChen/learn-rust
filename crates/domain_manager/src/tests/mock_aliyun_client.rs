@@ -293,6 +293,10 @@ impl DnsClientTrait for MockAliyunDnsClient {
         info!("模拟更新DNS记录");
         Ok(())
     }
+
+    async fn validate_credentials(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// 创建默认的模拟阿里云DNS客户端

@@ -2,7 +2,6 @@
 //!
 //! 采用模块化架构，分离UI渲染、业务逻辑、数据管理和事件处理
 
-use crate::configs;
 use crate::configs::gui_config::{BackgroundConfig, Config, WindowState, LICENCE};
 use crate::gui::components::{
     dns_records::DnsRecordsComponent, domain_list::DomainListComponent, footer, header, Component,
@@ -11,7 +10,9 @@ use crate::gui::components::{
 use crate::gui::handlers::message_handler::{
     AppMessage, DatabaseMessage, MessageCategory, NotificationMessage, SyncMessage, WindowMessage,
 };
-use crate::gui::handlers::{DnsHandler, DomainHandler, MessageHandler, SyncHandler, WindowHandler};
+use crate::gui::handlers::{
+    DnsHandler, DomainHandler, HandlerResult, MessageHandler, SyncHandler, WindowHandler,
+};
 use crate::gui::services::config_service::ConfigService;
 use crate::gui::services::database_service::DatabaseService;
 use crate::gui::services::dns_service::DnsService;
@@ -24,12 +25,15 @@ use crate::gui::styles::types::gradient_type::GradientType;
 use crate::gui::styles::types::style_type::StyleType;
 use crate::storage::init_database;
 use crate::storage::{DnsRecordModal, DomainModal};
+use crate::{configs, get_text};
 // TODO: 实现DatabaseConnection
 use sea_orm::DatabaseConnection;
 
+use crate::gui::handlers::message_handler::DomainMessage::Reload;
 use crate::gui::handlers::message_handler::WindowMessage::Resized;
 use crate::gui::pages::names::Page;
 use crate::translations::types::language::Language;
+use chrono::{DateTime, Utc};
 use iced::widget::{row, Column, Container, Text};
 use iced::{Element, Length, Task};
 use std::sync::{Arc, Mutex};
@@ -68,9 +72,6 @@ pub struct DomainManagerV2 {
     /// 应用配置
     pub config: Config,
 
-    /// 浮动窗口是否启用
-    pub floating_window_enabled: bool,
-
     /// 消息文本
     pub message: String,
 
@@ -97,13 +98,9 @@ pub struct DomainManagerV2 {
 
     /// UI组件
     domain_list_component: DomainListComponent,
+
+    /// dns 组件
     dns_records_component: DnsRecordsComponent,
-
-    /// 数据库连接
-    pub database: Option<Arc<RwLock<DatabaseConnection>>>,
-
-    /// 初始化状态
-    pub initialized: bool,
 }
 
 impl DomainManagerV2 {
@@ -113,7 +110,6 @@ impl DomainManagerV2 {
         Self {
             state: AppState::with_config(config),
             config: Config::default(),
-            floating_window_enabled: false,
             message: String::new(),
             last_page: Page::DomainPage,
             message_handler: MessageHandler::new(),
@@ -124,8 +120,6 @@ impl DomainManagerV2 {
             service_manager: ServiceManager::default(),
             domain_list_component: DomainListComponent::new(),
             dns_records_component: DnsRecordsComponent::new(),
-            database: None,
-            initialized: false,
         }
     }
 
@@ -219,7 +213,7 @@ impl DomainManagerV2 {
 
     /// 初始化管理器
     pub async fn initialize(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.initialized {
+        if self.is_initialized() {
             warn!("管理器已经初始化，跳过重复初始化");
             return Ok(());
         }
@@ -242,8 +236,6 @@ impl DomainManagerV2 {
         self.load_initial_data().await?;
 
         // 标记为已初始化
-        self.initialized = true;
-
         info!("域名管理器初始化完成");
         Ok(())
     }
@@ -269,7 +261,7 @@ impl DomainManagerV2 {
                             name: "example.com".to_string(),
                             provider_id: 1,
                             status: "Active".to_string(),
-                            created_at: chrono::Utc::now().naive_utc(),
+                            created_at: Utc::now().naive_utc(),
                             updated_at: None,
                         },
                         DomainModal {
@@ -277,7 +269,7 @@ impl DomainManagerV2 {
                             name: "test.org".to_string(),
                             provider_id: 1,
                             status: "Expired".to_string(),
-                            created_at: chrono::Utc::now().naive_utc(),
+                            created_at: Utc::now().naive_utc(),
                             updated_at: None,
                         },
                     ];
@@ -327,137 +319,64 @@ impl DomainManagerV2 {
     /// 处理消息
     pub fn update(&mut self, message: MessageCategory) -> Task<MessageCategory> {
         // 特殊处理Started消息，用于初始化
-        if let MessageCategory::App(AppMessage::Started) = message {
-            if !self.initialized {
-                info!("收到Started消息，开始初始化管理器");
-
-                // 启动异步初始化任务（数据库连接）
-                return Task::perform(
-                    async {
-                        info!("正在后台连接数据库...");
-                        let database_config = &configs::get().database;
-                        match init_database(database_config).await {
-                            Ok(conn) => {
-                                MessageCategory::Database(DatabaseMessage::Connected(Ok(conn)))
-                            }
-                            Err(e) => MessageCategory::Database(DatabaseMessage::Connected(Err(
-                                e.to_string()
-                            ))),
-                        }
-                    },
-                    |msg| msg,
-                );
-            } else {
-                info!("管理器已初始化，忽略重复的Started消息");
-                return Task::none();
-            }
-        }
-
-        // 处理数据库消息
-        if let MessageCategory::Database(msg) = &message {
-            match msg {
-                DatabaseMessage::Connected(result) => {
-                    return match result {
-                        Ok(conn) => {
-                            info!("数据库连接成功");
-                            self.database = Some(Arc::new(RwLock::new(conn.clone())));
-                            self.initialized = true; // 标记初始化完成
-
-                            // 触发数据重载
-                            Task::done(MessageCategory::Sync(SyncMessage::Reload))
-                        }
-                        Err(e) => {
-                            error!("数据库连接失败: {}", e);
-                            self.state
-                                .update(StateUpdate::Ui(UiUpdate::SetError(Some(format!(
-                                    "数据库连接失败: {}",
-                                    e
-                                )))));
+        match message {
+            MessageCategory::App(app_message) => {
+                match app_message {
+                    AppMessage::Started => {
+                        if self.is_initialized() {
+                            info!("管理器已初始化，忽略重复的Started消息");
                             Task::none()
+                        } else {
+                            info!("收到Started消息，开始初始化管理器");
+                            // 启动异步初始化任务（数据库连接）
+                            Task::perform(
+                                async {
+                                    info!("正在后台连接数据库...");
+                                    let database_config = &configs::get().database;
+                                    match init_database(database_config).await {
+                                        Ok(conn) => {
+                                            info!("数据库连接窗口成功！");
+                                            MessageCategory::Database(DatabaseMessage::Connected(
+                                                Ok(conn),
+                                            ))
+                                        }
+                                        Err(e) => {
+                                            error!("数据库连接创建失败:{:?}", e);
+                                            MessageCategory::Database(DatabaseMessage::Connected(
+                                                Err(e.to_string()),
+                                            ))
+                                        }
+                                    }
+                                },
+                                |msg| msg,
+                            )
                         }
-                    };
-                }
-                DatabaseMessage::AddAccount(new_account) => {
-                    info!("收到添加账户请求: {}", new_account.username);
-                    if let Some(db) = &self.database {
-                        let conn_arc = db.clone();
-                        let account = new_account.clone();
-
-                        // 启动异步任务执行数据库操作
-                        return Task::perform(
-                            async move {
-                                use crate::storage::create_account;
-                                let conn = conn_arc.read().await;
-                                match create_account(conn.clone(), account).await {
-                                    Ok(acc) => MessageCategory::Database(
-                                        DatabaseMessage::AccountAdded(Ok(acc)),
-                                    ),
-                                    Err(e) => MessageCategory::Database(
-                                        DatabaseMessage::AccountAdded(Err(e)),
-                                    ),
-                                }
-                            },
-                            |msg| msg,
-                        );
-                    } else {
-                        error!("数据库未连接，无法添加账户");
-                        return Task::done(MessageCategory::Database(
-                            DatabaseMessage::AccountAdded(Err("数据库未连接".to_string())),
-                        ));
                     }
-                }
-                DatabaseMessage::AccountAdded(result) => {
-                    // 处理添加账户结果
-                    self.state
-                        .update(StateUpdate::Ui(UiUpdate::SetLoading(false)));
-                    match result {
-                        Ok(acc) => {
-                            info!("账户添加成功: {}", acc.username);
-                            // 清空表单
-                            self.state.data.add_domain_provider_form.clear();
-                            // 提示成功
-                            self.state.update(StateUpdate::Ui(UiUpdate::ShowToast(
-                                "服务商添加成功".to_string(),
-                            )));
-                            // 重新加载数据并返回列表页
-                            return Task::batch(vec![
-                                Task::done(MessageCategory::Sync(SyncMessage::Reload)),
-                                Task::done(MessageCategory::Navigation(crate::gui::handlers::message_handler::NavigationMessage::PageChanged(Page::DomainPage)))
-                            ]);
-                        }
-                        Err(e) => {
-                            error!("账户添加失败: {}", e);
-                            self.state
-                                .update(StateUpdate::Ui(UiUpdate::ShowToast(format!(
-                                    "添加失败: {}",
-                                    e
-                                ))));
-                            return Task::none();
-                        }
+                    AppMessage::Initialize => {
+                        info!("应用初始化完成！");
+                        // 触发数据重载
+                        Task::done(MessageCategory::Sync(SyncMessage::Reload))
+                    }
+                    AppMessage::Shutdown => {
+                        info!("收到Shutdown消息，开始关闭管理器");
+                        Task::none()
                     }
                 }
             }
+            _ => {
+                warn!("管理器未启动，忽略消息: {:?}", message);
+                debug!("DomainManagerV2 收到消息: {:?}", message);
+                // 使用MessageHandler来处理所有消息
+                self.message_handler
+                    .handle_message(&mut self.state, message)
+            }
         }
-
-        // 对于非Started/Database消息，如果未初始化则忽略
-        if !self.initialized {
-            warn!("管理器未初始化，忽略消息: {:?}", message);
-            return Task::none();
-        }
-
-        info!("DomainManagerV2 收到消息: {:?}", message);
-
-        // 使用MessageHandler来处理所有消息
-        let task = self
-            .message_handler
-            .handle_message(&mut self.state, message);
-        task
     }
 
     /// 渲染UI
     pub fn view(&self) -> Element<'_, MessageCategory, StyleType> {
-        info!("view:是否初始化：{}", self.initialized);
-        if !self.initialized {
+        info!("view:是否初始化：{}", self.is_initialized());
+        if !self.state.initialized {
             return self.render_loading_screen();
         }
 
@@ -473,7 +392,7 @@ impl DomainManagerV2 {
             Page::Settings(_) => self.render_settings_page(),
             Page::Help => self.render_help_page(),
             Page::AddDomain => self.render_add_domain_page(),
-            Page::AddProvider => self.render_add_provider_page(),
+            Page::Providers => self.render_add_provider_page(),
             Page::EditDomain => self.render_edit_domain_page(),
             _ => self.render_unknown_page(),
         };
@@ -598,73 +517,172 @@ impl DomainManagerV2 {
 
     /// 渲染添加域名服务商页面
     fn render_add_provider_page(&self) -> Element<'_, MessageCategory, StyleType> {
-        use crate::gui::handlers::message_handler::{NavigationMessage, ProviderMessage};
+        use crate::gui::handlers::message_handler::ProviderMessage;
         use crate::gui::model::domain::DnsProvider;
-        use iced::widget::{button, pick_list, text_input, Row};
-        use iced::Alignment;
+        use crate::gui::pages::domain::VerificationStatus;
+        use crate::gui::styles::button::ButtonType;
+        use crate::gui::styles::container::ContainerType;
+        use crate::gui::styles::text::TextType;
+        use iced::widget::{
+            button, horizontal_space, pick_list, scrollable, text_input, Column, Container, Row,
+            Text,
+        };
+        use iced::{Alignment, Font, Length};
 
         let state = &self.state.data.add_domain_provider_form;
+        let ui_state = &self.state.ui;
 
-        // 动态生成凭证表单
-        let dyn_form: Option<Element<MessageCategory, StyleType>> =
-            state.credential.as_ref().and_then(|credential| {
-                Some(credential.view().map(|credential_message| {
-                    MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
-                        credential_message,
-                    ))
-                }))
-            });
+        // 1. 顶部操作栏
+        let toggle_text = if ui_state.provider_form_visible {
+            "-收起"
+        } else {
+            "+添加"
+        };
 
-        let content = Column::new()
-            .push(Text::new("添加域名服务商").size(24))
+        let header_row = Row::new()
+            .push(Text::new("域名服务商管理").size(24))
+            .push(horizontal_space())
             .push(
-                text_input("服务商名称", &state.provider_name)
-                    .on_input(|name| {
-                        MessageCategory::Provider(ProviderMessage::AddFormNameChanged(name))
+                button(Text::new(toggle_text).align_x(Alignment::Center))
+                    .on_press(MessageCategory::Provider(ProviderMessage::ToggleForm(
+                        !ui_state.provider_form_visible,
+                    )))
+                    .width(Length::Shrink),
+            )
+            .align_y(Alignment::Center)
+            .width(Length::Fill);
+
+        let mut content = Column::new().push(header_row).spacing(20);
+
+        // 2. 表单区域 (可折叠)
+        if ui_state.provider_form_visible {
+            // 动态生成凭证表单
+            let dyn_form: Option<Element<MessageCategory, StyleType>> =
+                state.credential.as_ref().and_then(|credential| {
+                    Some(credential.view().map(|credential_message| {
+                        MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
+                            credential_message,
+                        ))
+                    }))
+                });
+
+            let form_content = Column::new()
+                .push(
+                    pick_list(&DnsProvider::ALL[..], state.provider.clone(), |provider| {
+                        MessageCategory::Provider(ProviderMessage::Selected(provider))
                     })
-                    .padding(10),
-            )
-            .push(
-                pick_list(&DnsProvider::ALL[..], state.provider.clone(), |provider| {
-                    MessageCategory::Provider(ProviderMessage::AddFormProviderChanged(
-                        provider.name().to_string(),
-                    ))
+                    .width(Length::Fill)
+                    .placeholder("选择域名托管商..."),
+                )
+                .push(
+                    text_input("服务商名称 (自动生成，可修改)", &state.provider_name)
+                        .font(Font::with_name("Maple Mono NF CN"))
+                        .on_input(|name| {
+                            MessageCategory::Provider(ProviderMessage::AddFormNameChanged(name))
+                        })
+                        .padding(10),
+                )
+                .push_maybe(dyn_form) // 动态添加凭证表单
+                .push(match &state.verification_status {
+                    VerificationStatus::None => Text::new(""),
+                    VerificationStatus::Pending => {
+                        Text::new("正在验证...").class(TextType::Standard) // 或者 Warning/Secondary
+                    }
+                    VerificationStatus::Success => Text::new("验证通过").class(TextType::Success),
+                    VerificationStatus::Failed(err) => {
+                        Text::new(format!("验证失败: {}", err)).class(TextType::Danger)
+                    }
                 })
-                .width(Length::Fill)
-                .placeholder("选择域名托管商..."),
-            )
-            .push_maybe(dyn_form) // 动态添加凭证表单
-            .push(
-                Row::new()
-                    .push(
-                        button(Text::new("验证凭证").align_x(Alignment::Center))
+                .push(
+                    Row::new()
+                        .push(
+                            button(
+                                Text::new(get_text("provider.validate_credential"))
+                                    .align_x(Alignment::Center),
+                            )
                             .on_press(MessageCategory::Provider(
                                 ProviderMessage::ValidateCredential,
                             ))
                             .width(Length::FillPortion(1)),
-                    )
-                    .push(
-                        button(Text::new("添加").align_x(Alignment::Center))
+                        )
+                        .push(
+                            button(
+                                Text::new(if ui_state.editing_provider_id.is_some() {
+                                    "保存修改"
+                                } else {
+                                    "添加"
+                                })
+                                .align_x(Alignment::Center),
+                            )
                             .on_press(MessageCategory::Provider(ProviderMessage::AddCredential))
                             .width(Length::FillPortion(1)),
+                        )
+                        .spacing(20),
+                )
+                .spacing(10);
+
+            content = content.push(
+                Container::new(form_content)
+                    .padding(15)
+                    .class(ContainerType::Bordered),
+            );
+        }
+
+        // 3. 列表区域
+        let mut list_content = Column::new().spacing(10);
+
+        for provider in &self.state.data.domain_providers {
+            let id = provider.account_id;
+            let name = &provider.provider_name;
+            let type_name = provider.provider.name();
+
+            let mut row = Row::new()
+                .align_y(Alignment::Center)
+                .spacing(10)
+                .push(Text::new(format!("{} ({})", name, type_name)).width(Length::Fill));
+
+            // 如果处于删除确认状态
+            if ui_state.deleting_provider_id == Some(id) {
+                row = row
+                    .push(Text::new("确认删除此服务商及其所有相关数据?").class(TextType::Danger))
+                    .push(
+                        button(Text::new("确认").align_x(Alignment::Center))
+                            .on_press(MessageCategory::Provider(ProviderMessage::ConfirmDelete(
+                                id,
+                            )))
+                            .class(ButtonType::Alert),
                     )
                     .push(
-                        button(Text::new("返回").align_x(Alignment::Center))
-                            .on_press(MessageCategory::Navigation(NavigationMessage::PageChanged(
-                                Page::DomainPage,
-                            )))
-                            .width(Length::FillPortion(1)),
+                        button(Text::new("取消").align_x(Alignment::Center))
+                            .on_press(MessageCategory::Provider(ProviderMessage::CancelDelete))
+                            .class(ButtonType::Neutral),
+                    );
+            } else {
+                row = row
+                    .push(
+                        button(Text::new("编辑").align_x(Alignment::Center))
+                            .on_press(MessageCategory::Provider(ProviderMessage::Edit(id))),
                     )
-                    .spacing(20),
-            )
-            .spacing(20)
-            .padding(20);
+                    .push(
+                        button(Text::new("删除").align_x(Alignment::Center))
+                            .on_press(MessageCategory::Provider(ProviderMessage::Delete(id)))
+                            .class(ButtonType::Alert),
+                    );
+            }
+
+            list_content = list_content.push(
+                Container::new(row)
+                    .padding(10)
+                    .class(ContainerType::Bordered),
+            );
+        }
+
+        content = content.push(scrollable(list_content));
 
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x(Length::Fill)
-            .center_y(Length::Fill)
+            .padding(20)
             .into()
     }
 
@@ -704,7 +722,7 @@ impl DomainManagerV2 {
 
     /// 检查是否已初始化
     pub fn is_initialized(&self) -> bool {
-        self.initialized
+        self.state.initialized
     }
 
     /// 关闭管理器
@@ -719,8 +737,7 @@ impl DomainManagerV2 {
         }
 
         // 清理状态
-        self.state = AppState::new();
-        self.initialized = false;
+        self.state.clean();
         info!("域名管理器已关闭");
         Ok(())
     }
@@ -728,11 +745,9 @@ impl DomainManagerV2 {
     /// 重新加载数据
     pub async fn reload(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         info!("重新加载数据");
-
-        if !self.initialized {
+        if !self.is_initialized() {
             return self.initialize().await;
         }
-
         self.load_initial_data().await
     }
 
@@ -756,47 +771,14 @@ impl DomainManagerV2 {
                 .count(),
             last_sync_time: self.state.data.last_sync_time,
             is_syncing: self.state.ui.is_syncing,
-            initialized: self.initialized,
+            initialized: self.is_initialized(),
         }
     }
 }
 
 impl Default for DomainManagerV2 {
     fn default() -> Self {
-        let config = Config {
-            name: String::from("Domain Manager"),
-            description: String::from("A simple domain manager"),
-            version: String::from("1.0.0"),
-            author: String::from("Stanic.xyz"),
-            license: LICENCE::MulanPSL2,
-            domain_names: vec![],
-            locale: String::from("en"),
-            style_type: StyleType::Day,
-            language: Language::ZH,
-            color_gradient: GradientType::Mild,
-            ali_access_key_id: None,
-            ali_access_key_secret: None,
-            window_state: WindowState::default(),
-            background_config: BackgroundConfig::default(),
-        };
-
-        Self {
-            state: Default::default(),
-            config,
-            floating_window_enabled: false,
-            message: "".to_string(),
-            last_page: Page::DomainPage,
-            message_handler: Default::default(),
-            domain_handler: Default::default(),
-            dns_handler: Default::default(),
-            sync_handler: Default::default(),
-            window_handler: Default::default(),
-            service_manager: ServiceManager::default(),
-            domain_list_component: Default::default(),
-            dns_records_component: Default::default(),
-            database: None,
-            initialized: false,
-        }
+        DomainManagerV2::new(Config::default())
     }
 }
 
@@ -806,7 +788,7 @@ pub struct ManagerStatistics {
     pub total_domains: usize,
     pub total_dns_records: usize,
     pub active_domains: usize,
-    pub last_sync_time: Option<chrono::DateTime<chrono::Utc>>,
+    pub last_sync_time: Option<DateTime<Utc>>,
     pub is_syncing: bool,
     pub initialized: bool,
 }
@@ -838,7 +820,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_manager_creation() {
-        let manager = DomainManagerV2::default();
+        let manager = DomainManagerV2::new(Config::default());
         assert!(!manager.is_initialized());
         assert_eq!(manager.get_statistics().total_domains, 0);
     }

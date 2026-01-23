@@ -258,7 +258,7 @@ fn get_release_details<'a>(
             }),
     )
     .padding([4, 8])
-    .class(ButtonType::Standard)
+    .class(ButtonType::Neutral)
     .on_press(if has_update {
         MessageCategory::Navigation(OpenWebPage(WebPage::WebsiteDownload))
     } else {

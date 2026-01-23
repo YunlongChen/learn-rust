@@ -1,6 +1,7 @@
 use crate::gui::model::domain::Domain;
 use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
+use crate::translations::types::locale::Locale;
 use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE, VERSION};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -88,7 +89,7 @@ pub struct Config {
     pub version: String,
     pub author: String,
     pub license: LICENCE,
-    pub locale: String,
+    pub locale: Locale,
     pub style_type: StyleType,
     pub language: Language,
     pub color_gradient: GradientType,
@@ -112,7 +113,7 @@ impl From<String> for Config {
             version: String::new(),
             author: String::new(),
             license: LICENCE::MulanPSL2,
-            locale: String::from("zh-CN"),
+            locale: Locale::Chinese,
             style_type: StyleType::Day,
             language: Language::ZH,
             color_gradient: GradientType::None,
@@ -138,7 +139,7 @@ impl Default for Config {
             version: VERSION.to_string(),
             author: String::new(),
             license: LICENCE::MulanPSL2,
-            locale: String::from("en"),
+            locale: Locale::Chinese,
             style_type: StyleType::Day,
             language: Language::ZH,
             color_gradient: GradientType::None,

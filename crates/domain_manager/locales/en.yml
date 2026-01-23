@@ -18,8 +18,10 @@ syncing: syncing...
 exit: Exit
 minimize: Minimize
 maximize: Maximize
+change_locale: Change Locale
 provider:
-  add: Add Domain Provider
+  add: Provider Management
+  validate_credential: Validate Credential
 settings:
   title: Settings
   appearance: Appearance
@@ -34,9 +36,8 @@ settings:
   image: Image
   light: Light
   dark: Dark
-  chinese: Chinese
-  english: English
-  enable_notifications: Enable Notifications
+  Chinese: Chinese
+  English: English
   auto_sync: Auto Sync
   sync_interval: Sync Interval
   minutes: Minutes
@@ -65,3 +66,7 @@ console:
   database_queries: Database Queries
   clear_logs: Clear Logs
   logs_cleared: Logs cleared
+message:
+  loading: Loading...
+  retry: Retry
+  list_is_blank: List Is Empty

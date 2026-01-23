@@ -88,6 +88,14 @@ pub struct UiState {
 
     /// 错误消息
     pub error_message: Option<String>,
+
+    // 域名服务商管理相关状态
+    /// 服务商表单是否可见
+    pub provider_form_visible: bool,
+    /// 正在删除的服务商ID（用于确认）
+    pub deleting_provider_id: Option<i64>,
+    /// 正在编辑的服务商ID
+    pub editing_provider_id: Option<i64>,
 }
 
 impl Default for UiState {
@@ -98,6 +106,7 @@ impl Default for UiState {
             theme: Theme::default(),
             locale: Locale::Chinese,
             message: String::new(),
+            // ... (其他字段)
             is_syncing: false,
             toast_visible: false,
             toast_message: None,
@@ -118,6 +127,9 @@ impl Default for UiState {
             window_state: WindowState::default(),
             id: None,
             error_message: None,
+            provider_form_visible: true,
+            deleting_provider_id: None,
+            editing_provider_id: None,
         }
     }
 }

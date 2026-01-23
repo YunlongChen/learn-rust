@@ -6,7 +6,7 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{error, info};
 
 /// Cloudflare API响应结构体
 #[derive(Debug, Deserialize)]
@@ -339,5 +339,22 @@ impl DnsClientTrait for CloudflareDnsClient {
 
         info!("DNS记录更新成功: {:?}", cf_response.result.id);
         Ok(())
+    }
+
+    /// 验证凭证是否有效
+    async fn validate_credentials(&self) -> Result<()> {
+        // 通过查询Zone列表来验证凭证
+        // 如果凭证有效，应该能够成功获取Zone列表
+        // 如果凭证无效，API调用会失败
+        match self.list_domains(1, 1).await {
+            Ok(_) => {
+                info!("Cloudflare凭证验证成功");
+                Ok(())
+            }
+            Err(err) => {
+                error!("Cloudflare凭证验证失败: {:?}", err);
+                Err(err)
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@
 //! 系统事件、业务逻辑事件等。通过分离不同类型的事件处理逻辑，
 //! 提高代码的可维护性和可测试性。
 
+mod database_handler;
 pub mod dns_handler;
 pub mod domain_handler;
 pub mod message_handler;
@@ -16,6 +17,7 @@ pub use dns_handler::DnsHandler;
 pub use domain_handler::DomainHandler;
 pub use message_handler::MessageHandler;
 pub use provider_handler::ProviderHandler;
+use std::fmt::Debug;
 pub use sync_handler::SyncHandler;
 pub use ui_handler::UiHandler;
 pub use window_handler::WindowHandler;
@@ -36,6 +38,18 @@ pub enum HandlerResult {
     StateUpdated,
     /// 状态已更新并返回任务
     StateUpdatedWithTask(Task<MessageCategory>),
+}
+
+impl From<HandlerResult> for Task<MessageCategory> {
+    fn from(value: HandlerResult) -> Self {
+        match value {
+            HandlerResult::None => Task::none(),
+            HandlerResult::NoChange => Task::none(),
+            HandlerResult::Task(task) => task,
+            HandlerResult::StateUpdated => Task::none(),
+            HandlerResult::StateUpdatedWithTask(task) => task,
+        }
+    }
 }
 
 /// 事件处理器特征

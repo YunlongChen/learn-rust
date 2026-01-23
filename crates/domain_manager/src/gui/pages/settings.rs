@@ -290,7 +290,7 @@ fn general_settings<'a>(
                             .align_y(Alignment::Center)
                             .push(Icon::Window.to_text().size(16).align_y(Alignment::Center))
                             .push(
-                                text(if app.floating_window_enabled {
+                                text(if app.state.floating_window_enabled {
                                     get_text("settings.disable_floating_window")
                                 } else {
                                     get_text("settings.enable_floating_window")
@@ -299,7 +299,7 @@ fn general_settings<'a>(
                             ),
                     )
                     .on_press(MessageCategory::Window(WindowMessage::ToggleFloating))
-                    .class(if app.floating_window_enabled {
+                    .class(if app.state.floating_window_enabled {
                         ButtonType::BorderedRoundSelected
                     } else {
                         ButtonType::Standard

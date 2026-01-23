@@ -3,9 +3,7 @@
 use crate::configs::gui_config::BackgroundType;
 use crate::gui::components::tab::notifications_badge;
 use crate::gui::handlers::message_handler::NavigationMessage::PageChanged;
-use crate::gui::handlers::message_handler::{
-    MessageCategory, NavigationMessage, UiMessage, WindowMessage,
-};
+use crate::gui::handlers::message_handler::{MessageCategory, UiMessage, WindowMessage};
 use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::pages::names::Page;
 use crate::gui::pages::types::settings::SettingsPage;
@@ -15,7 +13,6 @@ use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::translations::quit_analysis_translation;
 use crate::translations::translations_3::thumbnail_mode_translation;
 use crate::translations::types::language::Language;
-use crate::translations::types::locale::Locale;
 use crate::utils::types::icon::Icon;
 use crate::{get_text, StyleType, DOMAIN_MANAGER_LOWERCASE};
 use iced::widget::text::LineHeight;
@@ -69,7 +66,7 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     font,
                     config.language,
                     SettingsPage::Appearance,
-                    Some(MessageCategory::Navigation(PageChanged(Page::AddProvider))),
+                    Some(MessageCategory::Navigation(PageChanged(Page::Providers))),
                     Icon::Add,
                     get_text("provider.add"),
                 ))
@@ -95,7 +92,7 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     SettingsPage::Appearance,
                     Some(MessageCategory::Navigation(PageChanged(Page::Console))),
                     Icon::Generals,
-                    "控制台".to_string(),
+                    get_text("console.title"),
                 ))
                 .push(get_custom_button(
                     font,
@@ -104,21 +101,18 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     Some(MessageCategory::Navigation(PageChanged(Page::Settings(
                         SettingsPage::General,
                     )))),
-                    Icon::Generals,
-                    get_text("settings"),
+                    Icon::Settings,
+                    get_text("settings.title"),
                 ))
-                .push(get_background_button(
-                    font,
-                    config.language,
-                    &app.config.background_config.background_type,
-                ))
+                // todo 主题配置应该放到Settings页面下面去完成
+                // .push(get_background_button(
+                //     font,
+                //     config.language,
+                //     &app.config.background_config.background_type,
+                // ))
                 .push(get_button_window_minimize(font, config.language))
                 .push(get_button_window_maximize(font, config.language))
-                .push(get_button_exit(
-                    font,
-                    config.language,
-                    SettingsPage::Appearance,
-                ))
+                .push(get_button_window_exit(font, config.language))
                 .spacing(10),
         )
         .on_press(MessageCategory::Window(WindowMessage::Drag)),
@@ -181,26 +175,27 @@ pub fn get_custom_button<'a>(
         .class(ContainerType::Tooltip)
 }
 
-pub fn get_button_exit<'a>(
+pub fn get_button_window_exit<'a>(
     _font: Font,
     _language: Language,
-    _open_overlay: SettingsPage,
 ) -> Tooltip<'a, MessageCategory, StyleType> {
-    let content = button(
-        Icon::Error
-            .to_text()
-            .size(20)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center),
+    Tooltip::new(
+        button(
+            Icon::Error
+                .to_text()
+                .size(20)
+                .align_x(Alignment::Center)
+                .align_y(Alignment::Center),
+        )
+        .padding(0)
+        .height(40)
+        .width(60)
+        .on_press(MessageCategory::Window(WindowMessage::CloseRequest)),
+        Text::new(get_text("exit")),
+        Position::Top,
     )
-    .padding(0)
-    .height(40)
-    .width(60)
-    .on_press(MessageCategory::Window(WindowMessage::CloseRequest));
-
-    Tooltip::new(content, Text::new(get_text("exit")), Position::Top)
-        .gap(5)
-        .class(ContainerType::Tooltip)
+    .gap(5)
+    .class(ContainerType::Tooltip)
 }
 
 /// 创建最小化按钮
@@ -238,21 +233,23 @@ pub fn get_button_window_maximize<'a>(
     _font: Font,
     _language: Language,
 ) -> Tooltip<'a, MessageCategory, StyleType> {
-    let content = button(
-        Icon::Maximize
-            .to_text()
-            .size(20)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center),
+    Tooltip::new(
+        button(
+            Icon::Maximize
+                .to_text()
+                .size(20)
+                .align_x(Alignment::Center)
+                .align_y(Alignment::Center),
+        )
+        .padding(0)
+        .height(40)
+        .width(60)
+        .on_press(MessageCategory::Window(WindowMessage::WindowMaximize)),
+        Text::new(get_text("maximize")),
+        Position::Top,
     )
-    .padding(0)
-    .height(40)
-    .width(60)
-    .on_press(MessageCategory::Window(WindowMessage::WindowMaximize));
-
-    Tooltip::new(content, Text::new(get_text("maximize")), Position::Top)
-        .gap(5)
-        .class(ContainerType::Tooltip)
+    .gap(5)
+    .class(ContainerType::Tooltip)
 }
 
 /// 创建背景切换按钮

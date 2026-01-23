@@ -12,8 +12,10 @@ pub async fn create_account(
     conn: DatabaseConnection,
     new_account: NewAccount,
 ) -> Result<Account, String> {
+    let id = Default::default();
+
     let active_model = AccountActiveModel {
-        id: Default::default(),
+        id,
         name: ActiveValue::Set(new_account.username),
         salt: ActiveValue::Set("123123".into()),
         last_login: Default::default(),
@@ -31,7 +33,7 @@ pub async fn create_account(
 
     match result {
         Ok(model) => {
-            info!("添加账号成功");
+            info!("添加账号成功,账号标识：{:?}", &model.id);
             Ok(Account {
                 id: model.id,
                 username: model.name.clone(),
@@ -197,14 +199,28 @@ fn get_api_keys(
 }
 
 /// 更新账户信息
-pub fn update_account(
-    _conn: &DatabaseConnection,
-    _account: &Account,
+pub async fn update_account(
+    conn: &DatabaseConnection,
+    account: &Account,
 ) -> Result<(), Box<dyn Error>> {
-    // conn.execute(
-    //     "UPDATE accounts SET email = ?1, last_login = ?2 WHERE id = ?3",
-    //     params![account.email, account.last_login, account.id],
-    // )?;
+    use crate::storage::entities::account;
+    use sea_orm::{ActiveModelTrait, ActiveValue};
+
+    let active_model = account::ActiveModel {
+        id: ActiveValue::Set(account.id),
+        name: ActiveValue::Set(account.username.clone()),
+        provider_type: ActiveValue::Set(account.provider_type.clone()),
+        credential_data: ActiveValue::Set(account.credential_data.clone()),
+        credential_type: ActiveValue::Set(account.credential_type.clone()),
+        updated_at: ActiveValue::Set(Some(chrono::Utc::now().naive_utc())),
+        ..Default::default()
+    };
+
+    active_model.update(conn).await.map_err(|e| {
+        error!("更新账户失败: {:?}", e);
+        Box::new(e) as Box<dyn Error>
+    })?;
+
     Ok(())
 }
 

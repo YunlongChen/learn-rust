@@ -90,7 +90,7 @@ pub fn domain_page(app: &DomainManagerV2) -> Container<'_, MessageCategory, Styl
                     .push(
                         button(Text::new(get_text("add_provider")).center())
                             .on_press(MessageCategory::Navigation(NavigationMessage::PageChanged(
-                                Page::AddProvider,
+                                Page::Providers,
                             )))
                             .width(Length::Fixed(100.0)),
                     )
@@ -164,18 +164,28 @@ impl From<Account> for DomainProvider {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum VerificationStatus {
+    None,
+    Pending,
+    Success,
+    Failed(String),
+}
+
 #[derive(Debug, Clone)]
 pub struct AddDomainProviderForm {
     pub provider_name: String,
     pub provider: Option<DnsProvider>,
     pub credential: Option<Credential>,
+    pub verification_status: VerificationStatus,
 }
 
 impl AddDomainProviderForm {
     pub fn clear(&mut self) {
         self.provider_name = String::new();
         self.credential = None;
-        self.provider = None
+        self.provider = None;
+        self.verification_status = VerificationStatus::None;
     }
 }
 
@@ -185,6 +195,7 @@ impl Default for AddDomainProviderForm {
             provider_name: String::new(),
             provider: None,
             credential: None,
+            verification_status: VerificationStatus::None,
         }
     }
 }

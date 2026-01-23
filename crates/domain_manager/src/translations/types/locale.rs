@@ -3,7 +3,10 @@ use tracing::info;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Locale {
+    #[serde(rename = "zh_CN")]
     Chinese,
+
+    #[serde(rename = "en")]
     English,
 }
 

@@ -9,7 +9,7 @@ use crate::gui::state::app_state::{ConfigUpdate, StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use iced::window::Id;
 use iced::{window, Point, Size, Task};
-use tracing::info;
+use tracing::{debug, info};
 
 /// 窗口处理器
 ///
@@ -315,6 +315,8 @@ impl WindowHandler {
 
 impl EventHandler<WindowMessage> for WindowHandler {
     fn handle(&self, state: &mut AppState, event: WindowMessage) -> HandlerResult {
+        debug!("收到窗口消息");
+
         // 由于需要修改self，这里需要特殊处理
         // 在实际实现中，可能需要使用RefCell或其他方式
         match event {
@@ -330,7 +332,7 @@ impl EventHandler<WindowMessage> for WindowHandler {
             }
             WindowMessage::Moved(position) => {
                 // 处理窗口移动事件，更新配置中的窗口位置
-                info!("窗口移动到位置: ({}, {})", position.x, position.y);
+                debug!("窗口移动到位置: ({}, {})", position.x, position.y);
                 state.update(StateUpdate::Config(ConfigUpdate::UpdateWindowConfig(
                     Size::new(state.ui.window_state.width, state.ui.window_state.height),
                     Point::new(position.x, position.y),
@@ -341,12 +343,11 @@ impl EventHandler<WindowMessage> for WindowHandler {
             WindowMessage::DragWindow(_position) => {
                 HandlerResult::Task(
                     // 获取最旧的窗口并拖动
-                    window::get_oldest().then(|id_option| {
-                        if let Some(id) = id_option {
+                    window::get_oldest().then(|id_option| match id_option {
+                        Some(id) => {
                             Task::done(MessageCategory::Window(WindowMessage::StartDrag(id)))
-                        } else {
-                            Task::none()
                         }
+                        None => Task::none(),
                     }),
                 )
             }

@@ -1,5 +1,6 @@
 use crate::configs::database::DatabaseConfig;
 use crate::configs::server::ServerConfig;
+use crate::storage::database::DB_FILE_NAME;
 use ::config::{Config, FileFormat};
 use anyhow::{anyhow, Context};
 use directories::ProjectDirs;
@@ -71,12 +72,12 @@ pub fn get_database_path() -> PathBuf {
     if let Some(proj_dirs) = ProjectDirs::from("xyz", "stanic", "DomainManager") {
         let mut path = proj_dirs.data_dir().to_path_buf();
         path.push("database");
-        path.push(crate::storage::database::DB_FILE_NAME);
+        path.push(DB_FILE_NAME);
         return path;
     }
 
     // 后备方案：当前目录
-    PathBuf::from(crate::storage::database::DB_FILE_NAME)
+    PathBuf::from(DB_FILE_NAME)
 }
 
 impl From<&DatabaseConfig> for String {

@@ -5,6 +5,7 @@
 
 use super::{DataState, UiState};
 use crate::configs::gui_config::Config;
+use std::sync::Arc;
 // TODO: 实现Config模块
 // use crate::config::Config;
 
@@ -14,7 +15,9 @@ use crate::gui::styles::types::style_type;
 use crate::storage::entities::domain::Model as DomainModel;
 use crate::translations::types::locale::Locale;
 use iced::{Point, Size, Theme};
+use sea_orm::DatabaseConnection;
 use style_type::StyleType;
+use tokio::sync::RwLock;
 use tracing::info;
 
 /// 应用程序状态结构体
@@ -36,6 +39,12 @@ pub struct AppState {
 
     /// 应用版本
     pub version: String,
+
+    /// 浮动窗口是否启用
+    pub floating_window_enabled: bool,
+
+    /// 数据库连接
+    pub database: Option<Arc<RwLock<DatabaseConnection>>>,
 }
 
 /// 状态更新枚举
@@ -182,7 +191,9 @@ impl Default for AppState {
             data: DataState::default(),
             config: Config::default(),
             initialized: false,
+            floating_window_enabled: false,
             version: env!("CARGO_PKG_VERSION").to_string(),
+            database: None,
         }
     }
 }
@@ -204,7 +215,7 @@ impl AppState {
             StyleType::Night => Theme::SolarizedDark,
             _ => Theme::TokyoNightLight,
         };
-        state.ui.locale = state.config.locale.clone().into();
+        state.ui.locale = state.config.locale.clone();
         rust_i18n::set_locale(state.ui.locale.code());
         state
     }
@@ -216,6 +227,12 @@ impl AppState {
             self.ui.set_message("应用初始化完成".to_string());
             self.initialized = true;
         }
+    }
+
+    /// 清理应用状态
+    pub fn clean(&mut self) {
+        self.initialized = false;
+        self.ui.set_message("应用已清理".to_string());
     }
 
     /// 重置应用状态
