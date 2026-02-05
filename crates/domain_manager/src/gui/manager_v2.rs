@@ -364,7 +364,6 @@ impl DomainManagerV2 {
                 }
             }
             _ => {
-                warn!("管理器未启动，忽略消息: {:?}", message);
                 debug!("DomainManagerV2 收到消息: {:?}", message);
                 // 使用MessageHandler来处理所有消息
                 self.message_handler
@@ -375,7 +374,7 @@ impl DomainManagerV2 {
 
     /// 渲染UI
     pub fn view(&self) -> Element<'_, MessageCategory, StyleType> {
-        info!("view:是否初始化：{}", self.is_initialized());
+        debug!("view:是否初始化：{}", self.is_initialized());
         if !self.state.initialized {
             return self.render_loading_screen();
         }
