@@ -1,8 +1,10 @@
 use crate::configs::database::DatabaseConfig;
 use crate::storage::migration::migration::Migrator;
 use anyhow::Context;
-use sea_orm::entity::prelude::*;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection, Schema};
+
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+#[cfg(test)]
+use sea_orm::{ConnectionTrait, Schema};
 use sea_orm_migration::MigratorTrait;
 use std::cmp::min;
 use std::time::Duration;
@@ -198,7 +200,7 @@ mod tests {
         let password: SecretString = SecretString::from("12123");
 
         let account = create_account(
-            connection.clone(),
+            &connection,
             NewAccount {
                 provider: DnsProvider::Aliyun,
                 username: "stanic".to_string(),

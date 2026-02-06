@@ -24,7 +24,7 @@ async fn test_handle_add_form_name_changed() {
     handler.handle(&mut state, message);
 
     assert_eq!(
-        state.data.add_domain_provider_form.provider_name, name,
+        state.data.provider_page.form.provider_name, name,
         "Provider name should be updated"
     );
 }
@@ -40,11 +40,11 @@ async fn test_handle_add_form_provider_changed_basic() {
     handler.handle(&mut state, message);
 
     assert!(
-        state.data.add_domain_provider_form.provider.is_some(),
+        state.data.provider_page.form.provider.is_some(),
         "Provider type should be set"
     );
     assert_eq!(
-        state.data.add_domain_provider_form.provider_name, "阿里云",
+        state.data.provider_page.form.provider_name, "阿里云",
         "Should auto-fill name"
     );
 }
@@ -56,7 +56,7 @@ async fn test_handle_auto_naming() {
     let mut state = AppState::default();
 
     // 模拟已存在的服务商
-    state.data.domain_providers.push(DomainProvider {
+    state.data.provider_page.providers.push(DomainProvider {
         account_id: 1,
         provider_name: "阿里云".to_string(),
         provider: DnsProvider::Aliyun,
@@ -69,7 +69,7 @@ async fn test_handle_auto_naming() {
 
     // 应该自动命名为 "阿里云 1"
     assert_eq!(
-        state.data.add_domain_provider_form.provider_name,
+        state.data.provider_page.form.provider_name,
         "阿里云 1"
     );
 }
@@ -84,18 +84,18 @@ async fn test_delete_flow() {
 
     // 1. 请求删除
     handler.handle(&mut state, ProviderMessage::Delete(provider_id));
-    assert_eq!(state.ui.deleting_provider_id, Some(provider_id));
+    assert_eq!(state.data.provider_page.deleting_provider_id, Some(provider_id));
 
     // 2. 取消删除
     handler.handle(&mut state, ProviderMessage::CancelDelete);
-    assert_eq!(state.ui.deleting_provider_id, None);
+    assert_eq!(state.data.provider_page.deleting_provider_id, None);
 
     // 3. 再次请求删除
     handler.handle(&mut state, ProviderMessage::Delete(provider_id));
 
     // 4. 确认删除
     let result = handler.handle(&mut state, ProviderMessage::ConfirmDelete(provider_id));
-    assert_eq!(state.ui.deleting_provider_id, None);
+    assert_eq!(state.data.provider_page.deleting_provider_id, None);
     assert!(state.ui.is_loading);
 
     // 验证返回了 Task
@@ -115,7 +115,7 @@ async fn test_edit_flow() {
     let provider_name = "My Provider".to_string();
 
     // 添加一个服务商
-    state.data.domain_providers.push(DomainProvider {
+    state.data.provider_page.providers.push(DomainProvider {
         account_id: provider_id,
         provider_name: provider_name.clone(),
         provider: DnsProvider::Aliyun,
@@ -126,13 +126,13 @@ async fn test_edit_flow() {
     handler.handle(&mut state, ProviderMessage::Edit(provider_id));
 
     // 验证状态
-    assert_eq!(state.ui.editing_provider_id, Some(provider_id));
-    assert!(state.ui.provider_form_visible);
+    assert_eq!(state.data.provider_page.editing_provider_id, Some(provider_id));
+    assert!(state.data.provider_page.form_visible);
 
     // 验证表单填充
     assert_eq!(
-        state.data.add_domain_provider_form.provider_name,
+        state.data.provider_page.form.provider_name,
         provider_name
     );
-    assert!(state.data.add_domain_provider_form.provider.is_some());
+    assert!(state.data.provider_page.form.provider.is_some());
 }

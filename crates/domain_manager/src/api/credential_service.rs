@@ -1,8 +1,6 @@
 use crate::api::dns_client::{DnsClient, DnsClientTrait};
 use crate::gui::model::domain::DnsProvider;
-use crate::gui::types::credential::{
-    ApiKeyCredential, Credential, TokenCredential, UsernamePasswordCredential,
-};
+use crate::gui::types::credential::Credential;
 use anyhow::{anyhow, Result};
 use tracing::{error, info};
 

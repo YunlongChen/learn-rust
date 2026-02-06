@@ -45,14 +45,7 @@ impl AsyncService for DomainService {
 impl DomainServiceTrait for DomainService {
     async fn get_all_domains(&self) -> ServiceResult<Vec<DomainModal>> {
         // TODO: 实现获取所有域名列表
-        ServiceResult::Success(vec![DomainModal {
-            id: 0,
-            name: "".to_string(),
-            provider_id: 0,
-            status: "".to_string(),
-            created_at: Default::default(),
-            updated_at: None,
-        }])
+        ServiceResult::Success(vec![])
     }
 
     async fn get_domain_by_id(&self, _domain_id: &str) -> ServiceResult<Option<DomainModal>> {

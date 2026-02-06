@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! UI状态管理
 //!
 //! 管理所有与用户界面相关的状态，包括当前页面、主题、语言设置、
@@ -78,6 +79,8 @@ pub struct UiState {
     /// 当前选中的域名
     pub selected_domain: Option<DomainModal>,
     pub floating_window_enabled: bool,
+
+    /// 最小化模式
     pub thumbnail_mode: bool,
 
     /// 窗口配置
@@ -88,14 +91,6 @@ pub struct UiState {
 
     /// 错误消息
     pub error_message: Option<String>,
-
-    // 域名服务商管理相关状态
-    /// 服务商表单是否可见
-    pub provider_form_visible: bool,
-    /// 正在删除的服务商ID（用于确认）
-    pub deleting_provider_id: Option<i64>,
-    /// 正在编辑的服务商ID
-    pub editing_provider_id: Option<i64>,
 }
 
 impl Default for UiState {
@@ -127,9 +122,6 @@ impl Default for UiState {
             window_state: WindowState::default(),
             id: None,
             error_message: None,
-            provider_form_visible: true,
-            deleting_provider_id: None,
-            editing_provider_id: None,
         }
     }
 }

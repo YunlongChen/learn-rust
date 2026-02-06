@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Module defining the constants used for aesthetic purposes (colors, borders...)
 
 use crate::gui::styles::types::palette::Palette;
@@ -5,6 +6,7 @@ use crate::gui::styles::types::palette_extension::PaletteExtension;
 use crate::{FONT_FAMILY_NAME, ICON_FONT_FAMILY_NAME};
 use iced::font::{Family, Stretch, Style, Weight};
 use iced::{Color, Font};
+
 
 // night theme - 优化后的深色主题
 const PRIMARY_NIGHT: Color = Color {

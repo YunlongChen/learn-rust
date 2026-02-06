@@ -5,7 +5,6 @@
 
 use super::{DataState, UiState};
 use crate::configs::gui_config::Config;
-use std::sync::Arc;
 // TODO: 实现Config模块
 // use crate::config::Config;
 
@@ -17,7 +16,6 @@ use crate::translations::types::locale::Locale;
 use iced::{Point, Size, Theme};
 use sea_orm::DatabaseConnection;
 use style_type::StyleType;
-use tokio::sync::RwLock;
 use tracing::info;
 
 /// 应用程序状态结构体
@@ -44,7 +42,7 @@ pub struct AppState {
     pub floating_window_enabled: bool,
 
     /// 数据库连接
-    pub database: Option<Arc<RwLock<DatabaseConnection>>>,
+    pub database: Option<DatabaseConnection>,
 }
 
 /// 状态更新枚举
@@ -438,7 +436,7 @@ impl AppState {
 
     /// 检查应用是否准备就绪
     pub fn is_ready(&self) -> bool {
-        self.initialized && self.data.connection.is_some()
+        self.initialized && self.database.is_some()
     }
 }
 

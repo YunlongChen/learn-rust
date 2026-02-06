@@ -1,9 +1,10 @@
+
+use serde::{Deserialize, Serialize};
 use crate::gui::model::domain::DnsProvider;
 use crate::gui::types::credential::Credential;
-use secrecy::SecretString;
 
 /// 账户模型
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
     pub id: i64,
     pub username: String,
@@ -27,15 +28,15 @@ pub struct NewAccount {
 }
 
 /// API密钥模型
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKey {
     pub id: i32,
     pub key_name: String,
-    pub key: SecretString,
+    pub key: String,
 }
 
 /// 新API密钥模型
 pub struct NewApiKey {
     pub key_name: String,
-    pub key: SecretString,
+    pub key: String,
 }

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use iced::widget::Text;
 
 use crate::gui::styles::style_constants::ICONS;

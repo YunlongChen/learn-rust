@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::gui::model::domain::DnsProvider;
 use crate::model::dns_record_response::Type;
 use tracing::info;

@@ -6,8 +6,6 @@ use crate::gui::pages::Page;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use iced::Task;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::{debug, error, info};
 
 #[derive(Debug, Default)]
@@ -33,7 +31,7 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                 match result {
                     Ok(conn) => {
                         info!("数据库连接成功");
-                        state.database = Some(Arc::new(RwLock::new(conn)));
+                        state.database = Some(conn);
                         state.initialize(); // 标记初始化完成
                         HandlerResult::Task(Task::done(MessageCategory::App(
                             AppMessage::Initialize,
@@ -52,15 +50,14 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
             }
             DatabaseMessage::AddAccount(new_account) => {
                 info!("收到添加账户请求: {}", new_account.username);
-                if let Some(db) = &state.database {
-                    let conn_arc = db.clone();
+                if let Some(conn) = &state.database {
                     let account = new_account.clone();
+                    let conn_clone = conn.clone();
 
                     HandlerResult::Task(Task::perform(
                         async move {
                             use crate::storage::create_account;
-                            let conn = conn_arc.read().await;
-                            match create_account(conn.clone(), account).await {
+                            match create_account(&conn_clone, account).await {
                                 Ok(acc) => MessageCategory::Database(
                                     DatabaseMessage::AccountAdded(Ok(acc)),
                                 ),
@@ -86,7 +83,7 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                     Ok(acc) => {
                         info!("账户添加成功: {}", acc.username);
                         // 清空表单
-                        state.data.add_domain_provider_form.clear();
+                        state.data.provider_page.form.clear();
                         // 提示成功
                         state.update(StateUpdate::Ui(UiUpdate::ShowToast(
                             "服务商添加成功".to_string(),
@@ -109,13 +106,11 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
             }
             DatabaseMessage::DeleteAccount(id) => {
                 info!("收到删除账户请求: {}", id);
-                if let Some(db) = &state.database {
-                    let conn_arc = db.clone();
+                if let Some(_conn) = &state.database {
                     let account_id = id;
                     HandlerResult::Task(Task::perform(
                         async move {
                             // 模拟删除，实际应调用 storage::delete_account
-                            let _conn = conn_arc.read().await;
                             // TODO: 实现真实的删除逻辑
                             MessageCategory::Database(DatabaseMessage::AccountDeleted(Ok(
                                 account_id,
@@ -131,13 +126,14 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
             }
             DatabaseMessage::UpdateAccount(account) => {
                 info!("收到更新账户请求: {}", account.username);
-                if let Some(db) = &state.database {
-                    let conn_arc = db.clone();
+                if let Some(conn) = &state.database {
                     let account_clone = account.clone();
+
+                    let conn_clone = conn.clone();
                     let handler_result = HandlerResult::Task(Task::perform(
                         async move {
-                            let conn = conn_arc.read().await;
-                            match crate::storage::update_account(&conn, &account_clone).await {
+                            match crate::storage::update_account(&conn_clone, &account_clone).await
+                            {
                                 Ok(_) => MessageCategory::Database(
                                     DatabaseMessage::AccountUpdated(Ok(())),
                                 ),
@@ -157,11 +153,11 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                 match result {
                     Ok(_) => {
                         state.ui.set_message("账户更新成功".to_string());
-                        state.ui.editing_provider_id = None;
-                        state.data.add_domain_provider_form.clear();
+                        state.data.provider_page.editing_provider_id = None;
+                        state.data.provider_page.form.clear();
                         // 刷新列表
                         return HandlerResult::Task(Task::done(MessageCategory::Sync(
-                            crate::gui::handlers::message_handler::SyncMessage::Reload,
+                            SyncMessage::Reload,
                         )));
                     }
                     Err(e) => {
@@ -176,7 +172,11 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                     Ok(id) => {
                         info!("账户删除成功: {}", id);
                         // 更新本地列表
-                        state.data.domain_providers.retain(|p| p.account_id != id);
+                        state
+                            .data
+                            .provider_page
+                            .providers
+                            .retain(|p| p.account_id != id);
                         state.update(StateUpdate::Ui(UiUpdate::ShowToast(
                             "服务商删除成功".to_string(),
                         )));
@@ -195,7 +195,7 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
         }
     }
 
-    fn can_handle(&self, message: &DatabaseMessage) -> bool {
+    fn can_handle(&self, _message: &DatabaseMessage) -> bool {
         todo!()
     }
 }

@@ -17,7 +17,6 @@ pub use dns_handler::DnsHandler;
 pub use domain_handler::DomainHandler;
 pub use message_handler::MessageHandler;
 pub use provider_handler::ProviderHandler;
-use std::fmt::Debug;
 pub use sync_handler::SyncHandler;
 pub use ui_handler::UiHandler;
 pub use window_handler::WindowHandler;

@@ -88,7 +88,7 @@ impl DnsClient {
 
 #[async_trait]
 impl DnsClientTrait for DnsClient {
-    async fn list_domains(&self, page_num: u32, page_size: u32) -> Result<Vec<DomainName>> {
+    async fn list_domains(&self, _page_num: u32, _page_size: u32) -> Result<Vec<DomainName>> {
         let domains = self.get_all_domain_info().await?;
         let domain_names = domains
             .into_iter()
@@ -101,31 +101,31 @@ impl DnsClientTrait for DnsClient {
         Ok(domain_names)
     }
 
-    async fn query_domain(&self, domain_name: &Domain) -> Result<DomainQueryResponse> {
+    async fn query_domain(&self, _domain_name: &Domain) -> Result<DomainQueryResponse> {
         // 这里需要根据具体的提供商实现域名查询
         // 目前暂不实现
         todo!("query_domain not implemented for DnsClient")
     }
 
-    async fn list_dns_records(&self, domain_name: String) -> Result<Vec<Record>> {
+    async fn list_dns_records(&self, _domain_name: String) -> Result<Vec<Record>> {
         // 这里需要根据具体的提供商实现DNS记录查询
         // 目前暂不实现
         todo!("list_dns_records not implemented for DnsClient")
     }
 
-    async fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+    async fn add_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
         // 这里需要根据具体的提供商实现添加DNS记录
         // 目前暂不实现
         todo!("add_dns_record not implemented for DnsClient")
     }
 
-    async fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()> {
+    async fn delete_dns_record(&self, _domain_name: &DomainName, _record_id: &str) -> Result<()> {
         // 这里需要根据具体的提供商实现删除DNS记录
         // 目前暂不实现
         todo!("delete_dns_record not implemented for DnsClient")
     }
 
-    async fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+    async fn update_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
         // 这里需要根据具体的提供商实现更新DNS记录
         // 目前暂不实现
         todo!("update_dns_record not implemented for DnsClient")
@@ -137,8 +137,8 @@ impl DnsClientTrait for DnsClient {
         // 如果凭证有效，应该能够成功获取域名列表
         // 如果凭证无效，API调用会失败
         match self.get_all_domain_info().await {
-            Ok(_) => {
-                info!("凭证验证成功");
+            Ok(domains) => {
+                info!("凭证验证成功,查询到域名数量：{}",domains.len());
                 Ok(())
             }
             Err(err) => {

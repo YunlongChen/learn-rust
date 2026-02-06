@@ -2,43 +2,34 @@
 //!
 //! 采用模块化架构，分离UI渲染、业务逻辑、数据管理和事件处理
 
-use crate::configs::gui_config::{BackgroundConfig, Config, WindowState, LICENCE};
+use crate::configs::gui_config::Config;
 use crate::gui::components::{
     dns_records::DnsRecordsComponent, domain_list::DomainListComponent, footer, header, Component,
 };
 // TODO: 实现Component trait
 use crate::gui::handlers::message_handler::{
-    AppMessage, DatabaseMessage, MessageCategory, NotificationMessage, SyncMessage, WindowMessage,
+    AppMessage, DatabaseMessage, MessageCategory, SyncMessage, WindowMessage,
 };
 use crate::gui::handlers::{
-    DnsHandler, DomainHandler, HandlerResult, MessageHandler, SyncHandler, WindowHandler,
+    DnsHandler, DomainHandler, MessageHandler, SyncHandler, WindowHandler,
 };
-use crate::gui::services::config_service::ConfigService;
-use crate::gui::services::database_service::DatabaseService;
-use crate::gui::services::dns_service::DnsService;
-use crate::gui::services::domain_service::DomainService;
-use crate::gui::services::sync_service::SyncService;
 use crate::gui::services::{ServiceManager, ServiceResult};
 use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
-use crate::gui::styles::types::gradient_type::GradientType;
 use crate::gui::styles::types::style_type::StyleType;
 use crate::storage::init_database;
 use crate::storage::{DnsRecordModal, DomainModal};
-use crate::{configs, get_text};
+use crate::configs;
 // TODO: 实现DatabaseConnection
-use sea_orm::DatabaseConnection;
 
-use crate::gui::handlers::message_handler::DomainMessage::Reload;
 use crate::gui::handlers::message_handler::WindowMessage::Resized;
 use crate::gui::pages::names::Page;
-use crate::translations::types::language::Language;
 use chrono::{DateTime, Utc};
 use iced::widget::{row, Column, Container, Text};
 use iced::{Element, Length, Task};
-use std::sync::{Arc, Mutex};
-use tokio::sync::RwLock;
+use std::sync::Mutex;
 use tracing::{debug, error, info, warn};
+use crate::gui::pages::provider::provider_page;
 
 /// DNS日志条目
 #[derive(Debug, Clone)]
@@ -253,31 +244,31 @@ impl DomainManagerV2 {
             Ok(domains) => {
                 let mut domains = domains;
                 // 如果没有数据，添加一些模拟数据用于测试
-                if domains.is_empty() {
-                    info!("数据库为空，添加模拟数据");
-                    domains = vec![
-                        DomainModal {
-                            id: 1,
-                            name: "example.com".to_string(),
-                            provider_id: 1,
-                            status: "Active".to_string(),
-                            created_at: Utc::now().naive_utc(),
-                            updated_at: None,
-                        },
-                        DomainModal {
-                            id: 2,
-                            name: "test.org".to_string(),
-                            provider_id: 1,
-                            status: "Expired".to_string(),
-                            created_at: Utc::now().naive_utc(),
-                            updated_at: None,
-                        },
-                    ];
-
-                    // 同时添加一些模拟的DNS记录缓存
-                    // 注意：这只是为了演示，实际上应该由DnsService管理
-                    // 这里我们通过消息机制触发更新可能会更合适，但直接修改状态也可以
-                }
+                // if domains.is_empty() {
+                //     info!("数据库为空，添加模拟数据");
+                //     domains = vec![
+                //         DomainModal {
+                //             id: 1,
+                //             name: "example.com".to_string(),
+                //             provider_id: 1,
+                //             status: "Active".to_string(),
+                //             created_at: Utc::now().naive_utc(),
+                //             updated_at: None,
+                //         },
+                //         DomainModal {
+                //             id: 2,
+                //             name: "test.org".to_string(),
+                //             provider_id: 1,
+                //             status: "Expired".to_string(),
+                //             created_at: Utc::now().naive_utc(),
+                //             updated_at: None,
+                //         },
+                //     ];
+                //
+                //     // 同时添加一些模拟的DNS记录缓存
+                //     // 注意：这只是为了演示，实际上应该由DnsService管理
+                //     // 这里我们通过消息机制触发更新可能会更合适，但直接修改状态也可以
+                // }
 
                 info!("成功加载 {} 个域名", domains.len());
                 self.state
@@ -391,7 +382,7 @@ impl DomainManagerV2 {
             Page::Settings(_) => self.render_settings_page(),
             Page::Help => self.render_help_page(),
             Page::AddDomain => self.render_add_domain_page(),
-            Page::Providers => self.render_add_provider_page(),
+            Page::Providers => provider_page(&self.state.data.provider_page),
             Page::EditDomain => self.render_edit_domain_page(),
             _ => self.render_unknown_page(),
         };
@@ -515,175 +506,7 @@ impl DomainManagerV2 {
     }
 
     /// 渲染添加域名服务商页面
-    fn render_add_provider_page(&self) -> Element<'_, MessageCategory, StyleType> {
-        use crate::gui::handlers::message_handler::ProviderMessage;
-        use crate::gui::model::domain::DnsProvider;
-        use crate::gui::pages::domain::VerificationStatus;
-        use crate::gui::styles::button::ButtonType;
-        use crate::gui::styles::container::ContainerType;
-        use crate::gui::styles::text::TextType;
-        use iced::widget::{
-            button, horizontal_space, pick_list, scrollable, text_input, Column, Container, Row,
-            Text,
-        };
-        use iced::{Alignment, Font, Length};
-
-        let state = &self.state.data.add_domain_provider_form;
-        let ui_state = &self.state.ui;
-
-        // 1. 顶部操作栏
-        let toggle_text = if ui_state.provider_form_visible {
-            "-收起"
-        } else {
-            "+添加"
-        };
-
-        let header_row = Row::new()
-            .push(Text::new("域名服务商管理").size(24))
-            .push(horizontal_space())
-            .push(
-                button(Text::new(toggle_text).align_x(Alignment::Center))
-                    .on_press(MessageCategory::Provider(ProviderMessage::ToggleForm(
-                        !ui_state.provider_form_visible,
-                    )))
-                    .width(Length::Shrink),
-            )
-            .align_y(Alignment::Center)
-            .width(Length::Fill);
-
-        let mut content = Column::new().push(header_row).spacing(20);
-
-        // 2. 表单区域 (可折叠)
-        if ui_state.provider_form_visible {
-            // 动态生成凭证表单
-            let dyn_form: Option<Element<MessageCategory, StyleType>> =
-                state.credential.as_ref().and_then(|credential| {
-                    Some(credential.view().map(|credential_message| {
-                        MessageCategory::Provider(ProviderMessage::AddFormCredentialChanged(
-                            credential_message,
-                        ))
-                    }))
-                });
-
-            let form_content = Column::new()
-                .push(
-                    pick_list(&DnsProvider::ALL[..], state.provider.clone(), |provider| {
-                        MessageCategory::Provider(ProviderMessage::Selected(provider))
-                    })
-                    .width(Length::Fill)
-                    .placeholder("选择域名托管商..."),
-                )
-                .push(
-                    text_input("服务商名称 (自动生成，可修改)", &state.provider_name)
-                        .font(Font::with_name("Maple Mono NF CN"))
-                        .on_input(|name| {
-                            MessageCategory::Provider(ProviderMessage::AddFormNameChanged(name))
-                        })
-                        .padding(10),
-                )
-                .push_maybe(dyn_form) // 动态添加凭证表单
-                .push(match &state.verification_status {
-                    VerificationStatus::None => Text::new(""),
-                    VerificationStatus::Pending => {
-                        Text::new("正在验证...").class(TextType::Standard) // 或者 Warning/Secondary
-                    }
-                    VerificationStatus::Success => Text::new("验证通过").class(TextType::Success),
-                    VerificationStatus::Failed(err) => {
-                        Text::new(format!("验证失败: {}", err)).class(TextType::Danger)
-                    }
-                })
-                .push(
-                    Row::new()
-                        .push(
-                            button(
-                                Text::new(get_text("provider.validate_credential"))
-                                    .align_x(Alignment::Center),
-                            )
-                            .on_press(MessageCategory::Provider(
-                                ProviderMessage::ValidateCredential,
-                            ))
-                            .width(Length::FillPortion(1)),
-                        )
-                        .push(
-                            button(
-                                Text::new(if ui_state.editing_provider_id.is_some() {
-                                    "保存修改"
-                                } else {
-                                    "添加"
-                                })
-                                .align_x(Alignment::Center),
-                            )
-                            .on_press(MessageCategory::Provider(ProviderMessage::AddCredential))
-                            .width(Length::FillPortion(1)),
-                        )
-                        .spacing(20),
-                )
-                .spacing(10);
-
-            content = content.push(
-                Container::new(form_content)
-                    .padding(15)
-                    .class(ContainerType::Bordered),
-            );
-        }
-
-        // 3. 列表区域
-        let mut list_content = Column::new().spacing(10);
-
-        for provider in &self.state.data.domain_providers {
-            let id = provider.account_id;
-            let name = &provider.provider_name;
-            let type_name = provider.provider.name();
-
-            let mut row = Row::new()
-                .align_y(Alignment::Center)
-                .spacing(10)
-                .push(Text::new(format!("{} ({})", name, type_name)).width(Length::Fill));
-
-            // 如果处于删除确认状态
-            if ui_state.deleting_provider_id == Some(id) {
-                row = row
-                    .push(Text::new("确认删除此服务商及其所有相关数据?").class(TextType::Danger))
-                    .push(
-                        button(Text::new("确认").align_x(Alignment::Center))
-                            .on_press(MessageCategory::Provider(ProviderMessage::ConfirmDelete(
-                                id,
-                            )))
-                            .class(ButtonType::Alert),
-                    )
-                    .push(
-                        button(Text::new("取消").align_x(Alignment::Center))
-                            .on_press(MessageCategory::Provider(ProviderMessage::CancelDelete))
-                            .class(ButtonType::Neutral),
-                    );
-            } else {
-                row = row
-                    .push(
-                        button(Text::new("编辑").align_x(Alignment::Center))
-                            .on_press(MessageCategory::Provider(ProviderMessage::Edit(id))),
-                    )
-                    .push(
-                        button(Text::new("删除").align_x(Alignment::Center))
-                            .on_press(MessageCategory::Provider(ProviderMessage::Delete(id)))
-                            .class(ButtonType::Alert),
-                    );
-            }
-
-            list_content = list_content.push(
-                Container::new(row)
-                    .padding(10)
-                    .class(ContainerType::Bordered),
-            );
-        }
-
-        content = content.push(scrollable(list_content));
-
-        Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(20)
-            .into()
-    }
+    // 渲染函数已迁移至 src/gui/pages/provider.rs
 
     /// 渲染编辑域名页面
     fn render_edit_domain_page(&self) -> Element<'_, MessageCategory, StyleType> {

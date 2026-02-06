@@ -3,7 +3,7 @@ use crate::api::model::domain::DomainQueryResponse;
 use crate::gui::model::domain::DnsProvider::Aliyun;
 use crate::gui::model::domain::{Domain, DomainName};
 use crate::model::dns_record_response::{DnsRecordResponse, Record};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use domain_client::RequestBody;
 use reqwest::{Client, Method};
@@ -116,7 +116,7 @@ impl DnsClientTrait for AliyunDnsClient {
             }
             Err(err) => {
                 error!("解析结果异常：{:?}", err);
-                Ok(vec![])
+                Err(anyhow!("解析结果异常: HTTP {}", err.to_string()))
             }
         }
     }

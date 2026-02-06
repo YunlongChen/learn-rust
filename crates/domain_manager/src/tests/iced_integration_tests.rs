@@ -26,7 +26,6 @@ use crate::tests::test_utils::init_test_env;
 use anyhow::Result;
 use chrono::Utc;
 use secrecy::{ExposeSecret, SecretString};
-use std::sync::Arc;
 use tokio;
 use tracing::info;
 
@@ -145,7 +144,7 @@ async fn setup_test_database() -> Result<(sea_orm::DatabaseConnection, i64, i64)
     // 创建测试账户
     let password: SecretString = SecretString::from("test_password_123");
     let account = create_account(
-        connection.clone(),
+        &connection,
         NewAccount {
             provider: DnsProvider::Aliyun,
             username: "test_aliyun_user".to_string(),
@@ -218,7 +217,6 @@ mod tests {
     use async_trait::async_trait;
     use iced::{Size, Task};
     use std::time::Duration;
-    use tokio::sync::RwLock;
 
     /// 测试Message::ReloadComplete消息处理
     #[test]
@@ -256,7 +254,7 @@ mod tests {
 
         // 验证应用程序状态
         assert_eq!(
-            data_state.domain_providers.len(),
+            data_state.provider_page.providers.len(),
             providers.len(),
             "域名提供商数量不匹配"
         );
@@ -274,7 +272,7 @@ mod tests {
         );
 
         // 验证具体数据
-        let first_provider = data_state.domain_providers.get(0).unwrap();
+        let first_provider = data_state.provider_page.providers.get(0).unwrap();
         assert_eq!(*first_provider.provider_name, "阿里云测试账户".to_string());
 
         let first_domain = data_state.domain_list.get(0).unwrap();
@@ -308,10 +306,6 @@ mod tests {
         let mut app = DomainManagerV2::default();
         let _ = app.initialize().await;
 
-        let clone_connection = connection.clone();
-
-        app.state.database = Some(Arc::new(RwLock::new(clone_connection)));
-
         // 执行Reload消息
         let task = app.update(MessageCategory::Sync(SyncMessage::Reload));
 
@@ -322,9 +316,7 @@ mod tests {
         info!("Message::Reload任务创建成功");
 
         // 验证数据库中的数据
-        let accounts = list_accounts(&(connection.clone()))
-            .await
-            .expect("查询账户列表失败");
+        let accounts = list_accounts(&connection).await.expect("查询账户列表失败");
         assert_eq!(accounts.len(), 1, "账户数量不匹配");
         assert_eq!(accounts[0].username, "test_aliyun_user");
 
@@ -350,7 +342,7 @@ mod tests {
         // 创建DomainManager实例并设置数据库连接
         let mut app = DomainManagerV2::new(Config::default());
         let _ = app.initialize().await;
-        app.state.database = Some(Arc::new(RwLock::new(connection)));
+        app.state.database = Some(connection);
 
         // 创建模拟的DNS客户端
         let dns_client = DnsClient::new(
@@ -383,7 +375,7 @@ mod tests {
 
         let mut app = DomainManagerV2::default();
         let _ = app.initialize().await;
-        app.state.database = Some(Arc::new(RwLock::new(connection)));
+        app.state.database = Some(connection);
         app.state.ui.set_syncing(true);
         app.state.ui.set_message("同步中...".to_string());
 
@@ -442,11 +434,10 @@ mod tests {
 
         // 在测试环境中，我们直接设置数据库连接，避免触发真实的异步初始化
         // 这样可以确保测试的确定性和幂等性
-        let mock_connection = connection.clone();
 
         // 直接设置数据库连接并标记初始化完成（模拟 Connected 消息的处理）
         let _ = app.update(MessageCategory::Database(DatabaseMessage::Connected(Ok(
-            mock_connection,
+            connection.clone(),
         ))));
         assert_eq!(app.is_initialized(), true, "客户端应该已经初始化");
 
@@ -473,7 +464,7 @@ mod tests {
 
         // 5. 验证界面状态
         assert_eq!(
-            app.state.data.domain_providers.len(),
+            app.state.data.provider_page.providers.len(),
             1,
             "域名提供商数量应该为1"
         );
@@ -514,7 +505,7 @@ mod tests {
 
         // 1. 验证表单初始化状态
         info!("验证表单初始化状态");
-        let form = &app.state.data.add_domain_provider_form;
+        let form = &app.state.data.provider_page.form;
         assert_eq!(form.provider_name, "", "提供商名称应该为空");
         assert!(form.provider.is_none(), "提供商类型应该为空");
         assert!(form.credential.is_none(), "凭证信息应该为空");
@@ -526,7 +517,7 @@ mod tests {
         )));
 
         assert_eq!(
-            app.state.data.add_domain_provider_form.provider.unwrap(),
+            app.state.data.provider_page.form.provider.unwrap(),
             DnsProvider::Aliyun
         );
 
@@ -537,7 +528,7 @@ mod tests {
             ProviderMessage::AddFormNameChanged(provider_name.clone()),
         ));
         assert_eq!(
-            app.state.data.add_domain_provider_form.provider_name,
+            app.state.data.provider_page.form.provider_name,
             provider_name
         );
 
@@ -575,8 +566,7 @@ mod tests {
         ));
 
         // 验证凭证信息已更新
-        if let Some(Credential::ApiKey(cred)) = &app.state.data.add_domain_provider_form.credential
-        {
+        if let Some(Credential::ApiKey(cred)) = &app.state.data.provider_page.form.credential {
             assert_eq!(cred.api_key, access_key, "AccessKey应该正确设置");
             assert_eq!(cred.api_secret, api_secret, "ApiSecret应该正确设置");
         } else {
@@ -590,7 +580,7 @@ mod tests {
         ));
 
         // 验证验证状态为Pending
-        match app.state.data.add_domain_provider_form.verification_status {
+        match app.state.data.provider_page.form.verification_status {
             VerificationStatus::Pending => {
                 info!("凭证验证状态正确设置为Pending");
             }
@@ -604,7 +594,7 @@ mod tests {
         ));
 
         // 验证验证状态为Success
-        match app.state.data.add_domain_provider_form.verification_status {
+        match app.state.data.provider_page.form.verification_status {
             VerificationStatus::Success => {
                 info!("凭证验证成功");
             }
@@ -638,7 +628,7 @@ mod tests {
             }),
         };
 
-        let account = create_account(connection.clone(), new_account)
+        let account = create_account(&connection, new_account)
             .await
             .expect("模拟数据库写入失败");
 
@@ -707,6 +697,7 @@ mod tests {
 
         // 执行Reload消息，应该处理数据库连接失败的情况
         let _task = app.update(MessageCategory::Sync(SyncMessage::Reload));
-        assert_eq!(app.state.data.domain_list.len(), 1, "数据库中应该有1个域名");
+        // 因为没有设置数据库连接，所以应该加载0个域名
+        assert_eq!(app.state.data.domain_list.len(), 0, "数据库中应该有0个域名");
     }
 }

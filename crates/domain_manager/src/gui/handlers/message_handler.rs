@@ -211,6 +211,9 @@ pub enum ProviderMessage {
     Edit(i64),
     ConfirmDelete(i64),
     CancelDelete,
+    // 数据加载
+    Load,
+    Loaded(Result<Vec<crate::models::account::Account>, String>),
 }
 
 /// UI消息
@@ -333,8 +336,13 @@ impl MessageHandler {
     ) -> Task<MessageCategory> {
         match message {
             NavigationMessage::PageChanged(page) => {
-                state.update(StateUpdate::Ui(UiUpdate::NavigateTo(page)));
-                Task::none()
+                state.update(StateUpdate::Ui(UiUpdate::NavigateTo(page.clone())));
+
+                // 页面切换时的自动刷新逻辑
+                match page {
+                    Page::Providers => Task::done(MessageCategory::Provider(ProviderMessage::Load)),
+                    _ => Task::none(),
+                }
             }
             NavigationMessage::ToHelp | NavigationMessage::OpenHelp => {
                 state.ui.show_help = true;

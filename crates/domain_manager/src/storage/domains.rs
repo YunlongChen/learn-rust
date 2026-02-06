@@ -198,6 +198,36 @@ pub async fn list_domains(conn: &DatabaseConnection) -> Result<Vec<DomainEntity>
     Ok(domain_list)
 }
 
+/// 根据域名名称查找域名
+pub async fn find_domain_by_name(
+    conn: &DatabaseConnection,
+    domain_name: &str,
+) -> Result<Option<DomainEntity>, Box<dyn Error>> {
+    let domain_model = DomainDbEntity::find()
+        .filter(domain::Column::Name.eq(domain_name))
+        .one(conn)
+        .await
+        .map_err(|e| {
+            error!("根据域名名称查找域名失败: {}", e);
+            Box::new(e) as Box<dyn Error>
+        })?;
+
+    match domain_model {
+        Some(domain) => Ok(Some(DomainEntity {
+            id: domain.id,
+            account_id: domain.provider_id,
+            domain_name: domain.name,
+            registration_date: None,
+            expiration_date: None,
+            registrar: None,
+            status: DomainStatus::Active,
+            created_at: domain.created_at.to_string(),
+            updated_at: domain.updated_at,
+        })),
+        None => Ok(None),
+    }
+}
+
 /// 根据域名名称和账户ID查找域名
 pub async fn find_domain_by_name_and_account(
     conn: &DatabaseConnection,
@@ -336,7 +366,7 @@ mod tests {
         let password: SecretString = SecretString::from("12123");
 
         let account = create_account(
-            connection.clone(),
+            &connection,
             NewAccount {
                 provider: DnsProvider::Aliyun,
                 username: "stanic".to_string(),

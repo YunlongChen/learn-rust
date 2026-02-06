@@ -35,7 +35,7 @@
               KeyPath='yes'
               Checksum='yes' />
           </Component>
-        </Directory>
+        </Directory>   
       </Directory>
 
       <Directory Id='ProgramMenuFolder'>

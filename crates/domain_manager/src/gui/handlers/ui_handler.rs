@@ -11,7 +11,6 @@ use crate::gui::pages::Page;
 use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::storage::DomainModal;
-use crate::translations::types::locale::Locale;
 use iced::{Task, Theme};
 use tracing::{debug, info};
 

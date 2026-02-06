@@ -5,18 +5,21 @@
 
 use super::message_handler::{MessageCategory, NotificationMessage, SyncMessage};
 use super::{AsyncEventHandler, EventHandler, HandlerResult};
-use crate::gui::model::domain;
-use crate::gui::model::domain::DnsProvider;
+use crate::api::aliyun_dns_api::AliyunDnsApi;
+use crate::api::dns_api::{DnsApiTrait, DnsRecordQuery};
 use crate::gui::model::gui::ReloadModel;
 use crate::gui::pages::domain::DomainProvider;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
-use crate::gui::types::credential::{Credential, TokenCredential};
-use crate::storage::{DnsRecordModal, DomainModal};
+use crate::gui::types::credential::Credential;
+use crate::models::record::NewRecord;
+use crate::storage::{accounts, domains, records, DnsRecordModal, DomainModal};
 use iced::Task;
+use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
-use tokio::time::{sleep, Duration};
-use tracing::{debug, info};
+use std::error::Error;
+use std::sync::Arc;
+use tracing::{debug, error, info};
 
 /// 同步处理器
 ///
@@ -73,35 +76,43 @@ impl SyncHandler {
         // 返回同步任务
         let domain_for_async = domain.clone();
         let domain_for_message = domain.clone();
-        HandlerResult::StateUpdatedWithTask(Task::perform(
-            Self::sync_domain_async(domain_for_async),
-            move |result| {
-                // 将Result<Vec<DnsRecordModal>, String>转换为Result<Vec<DnsRecord>, String>
-                let converted_dns_record_result = result.map(|records| {
-                    let dns_records: Vec<DnsRecordModal> = records
-                        .into_iter()
-                        .map(|record| DnsRecordModal {
-                            id: 0,
-                            name: record.name,
-                            record_type: record.record_type,
-                            value: record.value,
-                            ttl: record.ttl,
-                            priority: None,
-                            enabled: false,
-                            created_at: Default::default(),
-                            domain_id: 0,
-                            updated_at: None,
-                        })
-                        .collect();
 
-                    dns_records
-                });
-                MessageCategory::Sync(SyncMessage::DomainSyncComplete(
-                    domain_for_message.clone(),
-                    converted_dns_record_result,
-                ))
-            },
-        ))
+        if let Some(conn) = &state.database {
+            let db_arc = conn.clone();
+
+            HandlerResult::StateUpdatedWithTask(Task::perform(
+                Self::sync_domain_async(db_arc, domain_for_async),
+                move |result| {
+                    // ... (保持不变)
+                    let converted_dns_record_result = result.map(|records| {
+                        let dns_records: Vec<DnsRecordModal> = records
+                            .into_iter()
+                            .map(|record| DnsRecordModal {
+                                id: 0,
+                                name: record.name,
+                                record_type: record.record_type,
+                                value: record.value,
+                                ttl: record.ttl,
+                                priority: None,
+                                enabled: false,
+                                created_at: Default::default(),
+                                domain_id: 0,
+                                updated_at: None,
+                            })
+                            .collect();
+
+                        dns_records
+                    });
+                    MessageCategory::Sync(SyncMessage::DomainSyncComplete(
+                        domain_for_message.clone(),
+                        converted_dns_record_result,
+                    ))
+                },
+            ))
+        } else {
+            state.ui.set_message("数据库未连接".to_string());
+            HandlerResult::StateUpdated
+        }
     }
 
     /// 处理批量同步所有域名
@@ -132,19 +143,26 @@ impl SyncHandler {
             .ui
             .set_message(format!("正在同步 {} 个域名...", domains.len()));
 
-        // 返回批量同步任务
-        HandlerResult::StateUpdatedWithTask(Task::perform(
-            Self::sync_all_domains_async(domains),
-            |result| {
-                // 将BatchSyncResult转换为Result<(), String>
-                if result.failed.is_empty() {
-                    MessageCategory::Sync(SyncMessage::AllComplete(Ok(())))
-                } else {
-                    let error_msg = format!("同步失败: {} 个域名失败", result.failed.len());
-                    MessageCategory::Sync(SyncMessage::AllComplete(Err(error_msg)))
-                }
-            },
-        ))
+        if let Some(conn) = &state.database {
+            let conn_clone = conn.clone();
+
+            // 返回批量同步任务
+            HandlerResult::StateUpdatedWithTask(Task::perform(
+                Self::sync_all_domains_async(conn_clone, domains),
+                |result| {
+                    // 将BatchSyncResult转换为Result<(), String>
+                    if result.failed.is_empty() {
+                        MessageCategory::Sync(SyncMessage::AllComplete(Ok(())))
+                    } else {
+                        let error_msg = format!("同步失败: {} 个域名失败", result.failed.len());
+                        MessageCategory::Sync(SyncMessage::AllComplete(Err(error_msg)))
+                    }
+                },
+            ))
+        } else {
+            state.ui.set_message("数据库未连接".to_string());
+            HandlerResult::StateUpdated
+        }
     }
 
     /// 处理同步完成
@@ -265,107 +283,120 @@ impl SyncHandler {
     fn handle_reload(&self, state: &mut AppState) -> HandlerResult {
         state.ui.set_message("正在重新加载数据...".to_string());
 
-        // 返回重新加载任务
-        HandlerResult::StateUpdatedWithTask(Task::perform(Self::reload_data_async(), |result| {
-            match result {
-                Ok((domains, records_map)) => {
-                    // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecordModal>
-                    let records: Vec<DnsRecordModal> = records_map
-                        .into_iter()
-                        .flat_map(|(_, records)| records)
-                        .collect();
-
-                    // 创建提供商列表（使用默认的两个提供商）
-                    let providers = vec![
-                        DomainProvider {
-                            account_id: 0,
-                            provider_name: "CloudFlare".to_string(),
-                            provider: DnsProvider::CloudFlare,
-                            credential: Credential::Token(TokenCredential::default()),
-                        },
-                        DomainProvider {
-                            account_id: 0,
-                            provider_name: "CloudFlare".to_string(),
-                            provider: DnsProvider::CloudFlare,
-                            credential: Credential::Token(TokenCredential::default()),
-                        },
-                    ];
-
-                    let total_count = domains.len() + records.len();
-
-                    // 创建ReloadModel
-                    let reload_model =
-                        ReloadModel::new_from(providers, domains, records, total_count);
-
-                    MessageCategory::Sync(SyncMessage::DataReloaded(reload_model))
-                }
-                Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                    "重新加载数据失败: {}",
-                    e
-                ))),
+        match &state.database {
+            Some(_x) => HandlerResult::NoChange,
+            None => {
+                error!("数据库未连接！");
+                state.ui.set_message("数据库未连接".to_string());
+                HandlerResult::NoChange
             }
-        }))
+        }
     }
 
     /// 异步同步单个域名
-    async fn sync_domain_async(domain: String) -> Result<Vec<DnsRecordModal>, String> {
-        // 模拟网络延迟
-        sleep(Duration::from_millis(1200)).await;
+    async fn sync_domain_async(
+        conn: DatabaseConnection,
+        domain_name: String,
+    ) -> Result<Vec<DnsRecordModal>, String> {
+        // 1. 查找域名以获取 Account ID
+        let domain_entity = domains::find_domain_by_name(&conn, &domain_name)
+            .await
+            .map_err(|e: Box<dyn Error>| e.to_string())?
+            .ok_or(format!("域名 {} 不存在", domain_name))?;
 
-        // 这里应该调用实际的DNS同步服务
-        // 暂时返回模拟数据
-        let records = vec![
-            DnsRecordModal {
-                id: 1,
-                domain_id: 1,
-                record_type: "A".to_string(),
-                name: "@".to_string(),
-                value: "192.168.1.100".to_string(),
-                ttl: 600,
+        // 2. 获取账户信息
+        let account = accounts::get_account_by_id(&conn, domain_entity.account_id)
+            .await
+            .map_err(|e: Box<dyn Error + Send>| e.to_string())?
+            .ok_or(format!("账户 ID {} 不存在", domain_entity.account_id))?;
+
+        // 3. 初始化 API 客户端
+        let credential: Credential = account
+            .try_into()
+            .map_err(|e: anyhow::Error| e.to_string())?;
+
+        let api_client = match credential {
+            Credential::ApiKey(key) => AliyunDnsApi::new(key.api_key, key.api_secret),
+            _ => return Err("不支持的凭据类型".to_string()),
+        };
+
+        // 4. 调用 API
+        let query = DnsRecordQuery {
+            domain_name: domain_name.clone(),
+            ..Default::default()
+        };
+
+        let response = api_client
+            .query_dns_records(query)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // 5. 转换结果
+        let records: Vec<DnsRecordModal> = response
+            .records
+            .into_iter()
+            .map(|r| DnsRecordModal {
+                id: 0, // 新记录 ID 为 0，插入数据库时会自动生成
+                domain_id: domain_entity.id,
+                name: r.rr,
+                record_type: r.record_type.to_string(),
+                value: r.value,
+                ttl: r.ttl,
                 priority: None,
-                enabled: true,
+                enabled: r.status == crate::model::dns_record_response::Status::Enable,
                 created_at: chrono::Utc::now().naive_utc(),
-                updated_at: Some(chrono::Utc::now().naive_utc()),
-            },
-            DnsRecordModal {
-                id: 2,
-                domain_id: 1,
-                record_type: "MX".to_string(),
-                name: "@".to_string(),
-                value: format!("mail.{}", domain),
-                ttl: 3600,
-                priority: Some(10),
-                enabled: true,
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: Some(chrono::Utc::now().naive_utc()),
-            },
-        ];
+                updated_at: None,
+            })
+            .collect();
 
-        // 模拟可能的失败情况
-        if domain.contains("error") {
-            return Err("模拟同步失败".to_string());
+        // 6. 更新数据库
+        // 先删除旧记录
+        records::delete_records_by_domain(&conn, domain_entity.id)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // 再插入新记录
+        if !records.is_empty() {
+            let new_records: Vec<NewRecord> = records
+                .iter()
+                .map(|r| NewRecord {
+                    domain_id: r.domain_id,
+                    record_name: r.name.clone(),
+                    record_type: r.record_type.clone(),
+                    record_value: r.value.clone(),
+                    ttl: r.ttl,
+                })
+                .collect();
+
+            records::add_records_many(&conn, new_records)
+                .await
+                .map_err(|e| e.to_string())?;
         }
 
         Ok(records)
     }
 
     /// 异步批量同步所有域名
-    async fn sync_all_domains_async(domains: Vec<String>) -> BatchSyncResult {
+    async fn sync_all_domains_async(
+        conn: DatabaseConnection,
+        domains: Vec<String>,
+    ) -> BatchSyncResult {
         let mut successful = Vec::new();
         let mut failed = Vec::new();
         let cancelled = Vec::new();
         let mut total_records = 0;
 
         // 并发同步所有域名（限制并发数）
-        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(3)); // 最多3个并发
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(3)); // 最多3个并发
         let mut tasks = Vec::new();
 
         for domain in domains.iter().cloned() {
             let permit = semaphore.clone();
             let domain_clone = domain.clone();
+            let conn_clone = conn.clone();
             let task = tokio::spawn(async move {
                 let _permit = permit.acquire().await.unwrap();
-                let result = SyncHandler::sync_domain_async(domain_clone.clone()).await;
+                let result = Self::sync_domain_async(conn_clone, domain_clone.clone()).await;
                 (domain_clone, result)
             });
             tasks.push(task);
@@ -402,40 +433,70 @@ impl SyncHandler {
 
     /// 异步重新加载数据
     async fn reload_data_async(
-    ) -> Result<(Vec<DomainModal>, HashMap<String, Vec<DnsRecordModal>>), String> {
-        debug!("reloading data async");
-        // 模拟网络延迟
-        sleep(Duration::from_millis(800)).await;
+        conn: DatabaseConnection,
+    ) -> Result<
+        (
+            Vec<DomainModal>,
+            HashMap<String, Vec<DnsRecordModal>>,
+            Vec<DomainProvider>,
+        ),
+        String,
+    > {
+        info!("reloading data async");
+        info!("reload data");
+        // 1. 加载账户 (Providers)
+        let accounts = accounts::list_accounts(&conn)
+            .await
+            .map_err(|e| e.to_string())?;
+        let providers: Vec<DomainProvider> = accounts.into_iter().map(|acc| acc.into()).collect();
 
-        // 这里应该从数据库或API重新加载数据
-        // 暂时返回模拟数据
-        let domains = vec![DomainModal {
-            id: 1,
-            name: "reloaded-example.com".to_string(),
-            provider_id: 1,
-            status: "Active".to_string(),
-            created_at: chrono::Utc::now().naive_utc(),
-            updated_at: Some(chrono::Utc::now().naive_utc()),
-        }];
+        // 2. 加载域名
+        let domain_entities = domains::list_domains(&conn)
+            .await
+            .map_err(|e| e.to_string())?;
+        let mut domain_modals = Vec::new();
+        let mut records_map = HashMap::new();
 
-        let mut records = HashMap::new();
-        for domain in &domains {
-            let domain_records = vec![DnsRecordModal {
-                id: 1,
-                domain_id: domain.id,
-                record_type: "A".to_string(),
-                name: "@".to_string(),
-                value: "192.168.1.200".to_string(),
-                ttl: 600,
-                priority: None,
-                enabled: true,
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: Some(chrono::Utc::now().naive_utc()),
-            }];
-            records.insert(domain.name.clone(), domain_records);
+        for domain in domain_entities {
+            // 转换 DomainEntity -> DomainModal
+            let modal = DomainModal {
+                id: domain.id,
+                name: domain.domain_name.clone(),
+                provider_id: domain.account_id,
+                status: domain.status.to_string().into(),
+                created_at: chrono::NaiveDateTime::parse_from_str(
+                    &domain.created_at,
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                .unwrap_or_default(),
+                updated_at: None,
+            };
+            domain_modals.push(modal);
+
+            // 3. 加载每个域名的 DNS 记录
+            let record_entities = records::get_records_by_domain(&conn, Some(domain.id))
+                .await
+                .unwrap_or_default();
+            let dns_records: Vec<DnsRecordModal> = record_entities
+                .into_iter()
+                .map(|r| DnsRecordModal {
+                    id: r.id,
+                    domain_id: r.domain_id,
+                    name: r.record_name,
+                    record_type: r.record_type,
+                    value: r.record_value,
+                    ttl: r.ttl,
+                    priority: None,
+                    enabled: true,
+                    created_at: Default::default(),
+                    updated_at: None,
+                })
+                .collect();
+
+            records_map.insert(domain.domain_name, dns_records);
         }
 
-        Ok((domains, records))
+        Ok((domain_modals, records_map, providers))
     }
 }
 
@@ -496,7 +557,7 @@ impl EventHandler<SyncMessage> for SyncHandler {
             SyncMessage::DataReloaded(model) => {
                 info!("数据加载完成");
                 // 更新应用状态
-                state.data.domain_providers = model.providers;
+                state.data.provider_page.providers = model.providers;
                 state.data.domain_list = model.domains;
                 state.data.current_dns_records = model.records;
                 state.ui.set_message("数据加载完成".to_string());
@@ -523,59 +584,55 @@ impl AsyncEventHandler<SyncMessage> for SyncHandler {
                     .map(|d| d.name.clone())
                     .collect();
 
-                Task::perform(Self::sync_all_domains_async(domains), |result| {
-                    // 将BatchSyncResult转换为Result<(), String>
-                    if result.failed.is_empty() {
-                        MessageCategory::Sync(SyncMessage::AllComplete(Ok(())))
-                    } else {
-                        let error_msg = format!("同步失败: {} 个域名失败", result.failed.len());
-                        MessageCategory::Sync(SyncMessage::AllComplete(Err(error_msg)))
-                    }
-                })
+                if let Some(conn) = &state.database {
+                    let conn = conn.clone();
+                    Task::perform(Self::sync_all_domains_async(conn, domains), |result| {
+                        // 将BatchSyncResult转换为Result<(), String>
+                        if result.failed.is_empty() {
+                            MessageCategory::Sync(SyncMessage::AllComplete(Ok(())))
+                        } else {
+                            let error_msg = format!("同步失败: {} 个域名失败", result.failed.len());
+                            MessageCategory::Sync(SyncMessage::AllComplete(Err(error_msg)))
+                        }
+                    })
+                } else {
+                    Task::done(MessageCategory::Sync(SyncMessage::AllComplete(Err(
+                        "数据库未连接".to_string(),
+                    ))))
+                }
             }
             SyncMessage::Reload => {
-                Task::perform(Self::reload_data_async(), |result| match result {
-                    Ok((domains, records_map)) => {
-                        // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecordModal>
-                        let records: Vec<DnsRecordModal> = records_map
-                            .into_iter()
-                            .flat_map(|(_, records)| records)
-                            .collect();
+                if let Some(conn) = &state.database {
+                    let conn = conn.clone();
+                    Task::perform(Self::reload_data_async(conn), |result| {
+                        match result {
+                            Ok((domains, records_map, providers)) => {
+                                // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecordModal>
+                                let records: Vec<DnsRecordModal> = records_map
+                                    .into_iter()
+                                    .flat_map(|(_, records)| records)
+                                    .collect();
 
-                        // 创建提供商列表（使用默认的两个提供商）
-                        let providers = vec![
-                            DomainProvider {
-                                account_id: 0,
-                                provider_name: "CloudFlare".to_string(),
-                                provider: DnsProvider::CloudFlare,
-                                credential: Credential::Token(TokenCredential::default()),
-                            },
-                            DomainProvider {
-                                account_id: 0,
-                                provider_name: "CloudFlare".to_string(),
-                                provider: DnsProvider::CloudFlare,
-                                credential: Credential::Token(TokenCredential::default()),
-                            },
-                        ];
+                                let total_count = domains.len() + records.len();
 
-                        let total_count = domains.len() + records.len();
-
-                        MessageCategory::Sync(SyncMessage::DataReloaded(ReloadModel::new_from(
-                            providers,
-                            domains,
-                            records,
-                            total_count,
-                        )))
-                    }
-                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(
-                        format!("重新加载数据失败: {}", e),
-                    )),
-                })
+                                MessageCategory::Sync(SyncMessage::DataReloaded(
+                                    ReloadModel::new_from(providers, domains, records, total_count),
+                                ))
+                            }
+                            Err(e) => MessageCategory::Notification(
+                                NotificationMessage::ShowToast(format!("重新加载数据失败: {}", e)),
+                            ),
+                        }
+                    })
+                } else {
+                    Task::done(MessageCategory::Notification(
+                        NotificationMessage::ShowToast(
+                            "重新加载数据失败: 数据库未连接".to_string(),
+                        ),
+                    ))
+                }
             }
-            _ => {
-                // 其他消息不需要异步处理
-                Task::none()
-            }
+            _ => Task::none(),
         }
     }
 }

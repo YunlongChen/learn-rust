@@ -4,9 +4,10 @@ use crate::utils::types::icon::Icon;
 use crate::StyleType;
 use iced::widget::Text;
 use iced::{Alignment, Font, Length};
+// use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use tracing::info;
+// use tracing::info;
 
 /// Enum representing the possible notification sounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,32 +58,6 @@ pub fn play(sound: Sound, volume: u8) {
     if sound.eq(&Sound::None) || volume == 0 {
         return;
     }
-    let mp3_sound = sound.mp3_sound();
-    info!("{}", mp3_sound.len());
-
-    // let _ = thread::Builder::new()
-    //     .name("thread_play_sound".to_string())
-    //     .spawn(move || {
-    //         // Get an output stream handle to the default physical sound device
-    //         let Ok((_stream, stream_handle)) = OutputStream::try_default().log_err(location!())
-    //         else {
-    //             return;
-    //         };
-    //         let Ok(sink) = Sink::try_new(&stream_handle).log_err(location!()) else {
-    //             return;
-    //         };
-    //         //load data
-    //         let data = std::io::Cursor::new(mp3_sound);
-    //         // Decode that sound file into a source
-    //         let Ok(source) = Decoder::new(data).log_err(location!()) else {
-    //             return;
-    //         };
-    //         // Play the sound directly on the device
-    //         sink.set_volume(f32::from(volume) / 200.0); // set the desired volume
-    //         sink.append(source);
-    //         // The sound plays in a separate thread. This call will block the current thread until the sink
-    //         // has finished playing all its queued sounds.
-    //         sink.sleep_until_end();
-    //     })
-    //     .log_err(location!());
+    let _mp3_sound = sound.mp3_sound();
+    // info!("{}", mp3_sound.len());
 }

@@ -159,7 +159,7 @@ impl DnsHandler {
         // 查找提供商
         if let Some(provider) = state
             .data
-            .domain_providers
+            .provider_page.providers
             .iter()
             .find(|provider| provider.account_id as usize == provider_id)
             .cloned()

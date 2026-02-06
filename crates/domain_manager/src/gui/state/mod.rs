@@ -5,6 +5,7 @@
 
 pub mod app_state;
 pub mod data_state;
+pub mod pages;
 pub mod ui_state;
 
 pub use app_state::AppState;

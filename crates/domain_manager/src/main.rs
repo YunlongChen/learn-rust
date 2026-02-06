@@ -1,4 +1,5 @@
 // #![cfg_attr(windows, windows_subsystem = "windows")]
+#![allow(dead_code)]
 
 mod api;
 mod cli;

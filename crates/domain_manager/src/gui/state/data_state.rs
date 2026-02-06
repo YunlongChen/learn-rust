@@ -5,9 +5,9 @@
 
 use crate::gui::model::domain::DomainStatus;
 use crate::gui::model::form::AddDnsField;
-use crate::gui::pages::domain::{AddDomainProviderForm, DomainProvider};
+use crate::gui::pages::domain::DomainProvider;
+use crate::gui::state::pages::provider_state::ProviderPageState;
 use crate::storage::{DnsRecordModal, DomainModal};
-use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 
 /// 数据状态结构体
@@ -20,9 +20,6 @@ pub struct DataState {
 
     /// 当前选中的域名
     pub selected_domain: Option<DomainModal>,
-
-    /// DNS提供商列表
-    pub domain_providers: Vec<DomainProvider>,
 
     /// 当前选中的DNS提供商
     pub selected_provider: Option<DomainProvider>,
@@ -54,17 +51,14 @@ pub struct DataState {
     /// 最后同步时间
     pub last_sync_time: Option<chrono::DateTime<chrono::Utc>>,
 
-    /// 数据库连接
-    pub connection: Option<DatabaseConnection>,
-
     /// 域名同步状态管理 (域名 -> 是否正在同步)
     pub syncing_domains: HashMap<String, bool>,
 
     /// 域名统计信息映射 (域名 -> 统计信息)
     pub domain_stats: HashMap<String, DomainStats>,
 
-    /// 添加域名提供商表单
-    pub add_domain_provider_form: AddDomainProviderForm,
+    /// 服务商管理页面状态
+    pub provider_page: ProviderPageState,
 }
 
 /// 过滤器设置
@@ -124,7 +118,6 @@ impl Default for DataState {
         Self {
             domain_list: Vec::new(),
             selected_domain: None,
-            domain_providers: vec![],
             selected_provider: None,
             dns_records_cache: HashMap::new(),
             current_dns_records: Vec::new(),
@@ -135,10 +128,9 @@ impl Default for DataState {
             search_content: String::new(),
             has_changes: false,
             last_sync_time: None,
-            connection: None,
             syncing_domains: HashMap::new(),
             domain_stats: HashMap::new(),
-            add_domain_provider_form: AddDomainProviderForm::default(),
+            provider_page: ProviderPageState::default(),
         }
     }
 }

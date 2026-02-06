@@ -3,7 +3,7 @@ use crate::models::record::{NewRecord, RecordEntity};
 use crate::storage::{dns_record, DnsRecordDbEntity};
 use anyhow::Result;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
 use std::error::Error;
 use tracing::{error, info};
@@ -173,7 +173,7 @@ mod tests {
         let password: SecretString = SecretString::from("12123");
 
         let account = create_account(
-            connection.clone(),
+            &connection,
             NewAccount {
                 provider: DnsProvider::Aliyun,
                 username: "stanic".to_string(),

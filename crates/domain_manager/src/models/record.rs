@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 /// 域名状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DomainStatus {
     Active,
     Expired,

@@ -9,7 +9,7 @@ use tracing::{error, info};
 
 /// 创建新账户
 pub async fn create_account(
-    conn: DatabaseConnection,
+    conn: &DatabaseConnection,
     new_account: NewAccount,
 ) -> Result<Account, String> {
     let id = Default::default();
@@ -27,7 +27,7 @@ pub async fn create_account(
     };
 
     let result = active_model
-        .insert(&conn)
+        .insert(conn)
         .await
         .map_err(|err| error!("添加账号发生了异常:{:?}", err));
 
@@ -111,6 +111,30 @@ pub async fn list_accounts(
     // }
     // Ok(api_keys)
     // Ok(vec![])
+}
+
+/// 根据ID获取账户
+pub async fn get_account_by_id(
+    conn: &DatabaseConnection,
+    id: i64,
+) -> Result<Option<Account>, Box<dyn Error + Send>> {
+    let account = AccountEntity::find_by_id(id).one(conn).await.map_err(|e| {
+        error!("根据ID查询账户失败: {}", e);
+        Box::new(e) as Box<dyn Error + Send>
+    })?;
+
+    Ok(account.map(|model| Account {
+        id: model.id,
+        username: model.name,
+        email: "".to_string(), // 数据库中没有 email 字段
+        salt: "".to_string(),
+        api_keys: vec![],
+        created_at: model.created_at.to_string(),
+        last_login: model.last_login.map(|d| d.to_string()),
+        credential_type: model.credential_type,
+        credential_data: model.credential_data,
+        provider_type: model.provider_type,
+    }))
 }
 
 /// 验证用户登录
@@ -217,7 +241,7 @@ pub async fn update_account(
     };
 
     active_model.update(conn).await.map_err(|e| {
-        error!("更新账户失败: {:?}", e);
+        error!("更新账户失败: {:?}", e.to_string());
         Box::new(e) as Box<dyn Error>
     })?;
 
@@ -282,7 +306,7 @@ mod tests {
         let password: SecretString = SecretString::from("12123");
 
         let account = create_account(
-            connection.clone(),
+            &connection,
             NewAccount {
                 provider: DnsProvider::Aliyun,
                 username: "stanic".to_string(),
