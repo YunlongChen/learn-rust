@@ -44,7 +44,8 @@ impl ButtonType {
                 ButtonType::TabActive | ButtonType::BorderedRoundSelected => {
                     Background::Color(mix_colors(colors.primary, ext.buttons_color))
                 }
-                ButtonType::Primary => Background::Color(colors.primary),
+                ButtonType::Primary => Background::Color(Color::from_rgb8(59, 130, 246)), // 品牌蓝
+                ButtonType::Alert => Background::Color(ext.red_alert_color),
                 ButtonType::Starred => Background::Color(colors.starred),
                 ButtonType::Success => Background::Color(Color::from_rgb8(0, 200, 0)), // 简单绿色
                 ButtonType::Link => Background::Color(Color::TRANSPARENT),
@@ -99,7 +100,7 @@ impl ButtonType {
                 },
             },
             text_color: match self {
-                ButtonType::Primary => colors.text_headers,
+                ButtonType::Primary | ButtonType::Alert => Color::WHITE,
                 ButtonType::Starred => Color::BLACK,
                 ButtonType::Link => colors.text_body, // 修改为 text_body 以确保可见性
                 ButtonType::Transparent => colors.text_body,
@@ -147,9 +148,8 @@ impl ButtonType {
                 },
             },
             background: Some(match self {
-                ButtonType::Primary => {
-                    Background::Color(mix_colors(colors.primary, colors.secondary))
-                }
+                ButtonType::Primary => Background::Color(Color::from_rgb8(37, 99, 235)), // 深蓝
+                ButtonType::Alert => Background::Color(Color::from_rgb8(200, 50, 50)),   // 深红
                 ButtonType::Starred => Background::Color(colors.starred),
                 ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail | ButtonType::Link | ButtonType::Transparent => {
                     Background::Color(Color::TRANSPARENT)
@@ -199,7 +199,7 @@ impl ButtonType {
                 },
             },
             text_color: match self {
-                ButtonType::Primary => colors.text_headers,
+                ButtonType::Primary | ButtonType::Alert => Color::WHITE,
                 ButtonType::Starred => Color::BLACK,
                 ButtonType::Link => mix_colors(colors.primary, colors.secondary),
                 ButtonType::Gradient(_) | ButtonType::Thumbnail => colors.text_headers,

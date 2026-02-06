@@ -195,18 +195,10 @@ fn provider_row_view(
         )
         // 点击区域包裹信息
         .push(
-            mouse_area(
-                button(info_column)
-                    .on_press(MessageCategory::Provider(ProviderMessage::ToggleExpand(id)))
-                    .class(ButtonType::Transparent)
-                    .width(Length::Fill),
-            )
-            .on_enter(MessageCategory::Provider(ProviderMessage::ProviderHovered(
-                Some(id),
-            )))
-            .on_exit(MessageCategory::Provider(ProviderMessage::ProviderHovered(
-                None,
-            ))),
+            button(info_column)
+                .on_press(MessageCategory::Provider(ProviderMessage::ToggleExpand(id)))
+                .class(ButtonType::Transparent)
+                .width(Length::Fill),
         );
 
     // 操作按钮区域
@@ -255,13 +247,21 @@ fn provider_row_view(
 
     // 整个服务商容器
     let mut provider_container = Column::new().push(
-        Container::new(row)
-            .padding(5)
-            .class(if is_hovered {
-                ContainerType::HoveredRow
-            } else {
-                ContainerType::Standard
-            }),
+        Container::new(
+            mouse_area(row)
+                .on_enter(MessageCategory::Provider(ProviderMessage::ProviderHovered(
+                    Some(id),
+                )))
+                .on_exit(MessageCategory::Provider(ProviderMessage::ProviderHovered(
+                    None,
+                ))),
+        )
+        .padding(5)
+        .class(if is_hovered {
+            ContainerType::HoveredRow
+        } else {
+            ContainerType::Standard
+        }),
     );
 
     // 域名列表区域（展开时显示）
