@@ -91,6 +91,10 @@ fn create_mock_providers() -> Vec<DomainProvider> {
             username: "test_user".to_string(),
             password: "test_password".to_string(),
         }),
+        is_expanded: false,
+        is_adding_domain: false,
+        new_domain_name: "".to_string(),
+        domains: vec![],
     }]
 }
 

@@ -61,6 +61,10 @@ async fn test_handle_auto_naming() {
         provider_name: "阿里云".to_string(),
         provider: DnsProvider::Aliyun,
         credential: Credential::Token(TokenCredential::default()),
+        is_expanded: false,
+        is_adding_domain: false,
+        new_domain_name: "".to_string(),
+        domains: vec![],
     });
 
     // 触发选择 Aliyun
@@ -120,6 +124,10 @@ async fn test_edit_flow() {
         provider_name: provider_name.clone(),
         provider: DnsProvider::Aliyun,
         credential: Credential::Token(TokenCredential::default()),
+        is_expanded: false,
+        is_adding_domain: false,
+        new_domain_name: "".to_string(),
+        domains: vec![],
     });
 
     // 请求编辑
