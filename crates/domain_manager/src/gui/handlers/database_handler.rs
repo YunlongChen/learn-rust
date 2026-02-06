@@ -88,11 +88,8 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                         state.update(StateUpdate::Ui(UiUpdate::ShowToast(
                             "服务商添加成功".to_string(),
                         )));
-                        // 重新加载数据并返回列表页
-                        HandlerResult::Task( Task::batch(vec![
-                            Task::done(MessageCategory::Sync(SyncMessage::Reload)),
-                            Task::done(MessageCategory::Navigation(crate::gui::handlers::message_handler::NavigationMessage::PageChanged(Page::DomainPage)))
-                        ]))
+                        // 重新加载数据
+                        HandlerResult::Task(Task::done(MessageCategory::Sync(SyncMessage::Reload)))
                     }
                     Err(e) => {
                         error!("账户添加失败: {}", e);

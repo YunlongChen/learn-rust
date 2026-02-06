@@ -154,6 +154,22 @@ pub struct DomainProvider {
     pub is_adding_domain: bool,
     pub new_domain_name: String,
     pub domains: Vec<Domain>,
+    pub status: ProviderStatus,
+    pub last_synced_at: Option<String>,
+    pub domain_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Copy)]
+pub enum ProviderStatus {
+    Active,
+    Inactive,
+    Error,
+}
+
+impl Default for ProviderStatus {
+    fn default() -> Self {
+        ProviderStatus::Inactive
+    }
 }
 
 impl From<Account> for DomainProvider {
@@ -168,6 +184,9 @@ impl From<Account> for DomainProvider {
             is_adding_domain: false,
             new_domain_name: String::new(),
             domains: vec![],
+            status: ProviderStatus::Inactive, // 默认为未激活，加载后更新
+            last_synced_at: None,
+            domain_count: 0,
         }
     }
 }

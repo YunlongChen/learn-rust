@@ -230,6 +230,7 @@ pub enum ProviderMessage {
     DomainAdded(Result<i64, String>), // 域名添加结果
     LoadDomains(i64),                 // AccountID
     DomainsLoaded(i64, Result<Vec<DomainModal>, String>), // AccountID, Result
+    ProviderHovered(Option<i64>),     // AccountID, None表示移出
 }
 
 /// UI消息

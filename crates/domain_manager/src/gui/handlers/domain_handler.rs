@@ -235,6 +235,9 @@ impl DomainHandler {
                         is_adding_domain: false,
                         new_domain_name: String::new(),
                         domains: vec![],
+                        status: crate::gui::pages::domain::ProviderStatus::Inactive,
+                        last_synced_at: None,
+                        domain_count: 0,
                     };
                     MessageCategory::Domain(DomainMessage::QueryDomainResult(domains))
                 }

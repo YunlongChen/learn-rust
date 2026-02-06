@@ -52,6 +52,12 @@ pub enum ContainerType {
     BackgroundImage(BackgroundType, f32), // 背景类型和透明度
     /// Toast通知容器
     Toast,
+    /// 自定义背景色
+    Custom(Color),
+    /// 自定义圆形背景色
+    CustomRound(Color),
+    /// 悬停行背景色
+    HoveredRow,
 }
 
 impl ContainerType {
@@ -111,6 +117,9 @@ impl ContainerType {
                     b: 0.2,
                     a: 0.95,
                 }),
+                ContainerType::Custom(color) => Background::Color(*color),
+                ContainerType::CustomRound(color) => Background::Color(*color),
+                ContainerType::HoveredRow => Background::Color(Color::from_rgb(0.95, 0.95, 0.95)), // 浅灰
             }),
             border: Border {
                 radius: match self {
@@ -123,6 +132,8 @@ impl ContainerType {
                     | ContainerType::HighlightedOnHeader => 100.0.into(),
                     ContainerType::Bordered => Radius::new(1).bottom(BORDER_ROUNDED_RADIUS),
                     ContainerType::Toast => 8.0.into(),
+                    ContainerType::CustomRound(_) => 100.0.into(),
+                    ContainerType::HoveredRow => 8.0.into(),
                     _ => 0.0.into(),
                 },
                 width: match self {

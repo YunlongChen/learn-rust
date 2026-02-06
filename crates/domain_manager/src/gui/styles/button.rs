@@ -32,6 +32,7 @@ pub enum ButtonType {
     SortArrows,
     SortArrowActive,
     Thumbnail,
+    Transparent,
 }
 
 impl ButtonType {
@@ -55,7 +56,8 @@ impl ButtonType {
                 | ButtonType::Thumbnail
                 | ButtonType::NotStarred
                 | ButtonType::SortArrows
-                | ButtonType::SortArrowActive => Background::Color(Color::TRANSPARENT),
+                | ButtonType::SortArrowActive
+                | ButtonType::Transparent => Background::Color(Color::TRANSPARENT),
                 ButtonType::Gradient(GradientType::None) => Background::Color(colors.secondary),
                 ButtonType::Gradient(gradient_type) => Background::Gradient(get_gradient_buttons(
                     &colors,
@@ -82,7 +84,8 @@ impl ButtonType {
                     | ButtonType::NotStarred
                     | ButtonType::Neutral
                     | ButtonType::Thumbnail
-                    | ButtonType::Link => 0.0,
+                    | ButtonType::Link
+                    | ButtonType::Transparent => 0.0,
                     ButtonType::BorderedRound => BORDER_WIDTH * 2.0,
                     _ => BORDER_WIDTH,
                 },
@@ -99,6 +102,7 @@ impl ButtonType {
                 ButtonType::Primary => colors.text_headers,
                 ButtonType::Starred => Color::BLACK,
                 ButtonType::Link => colors.text_body, // 修改为 text_body 以确保可见性
+                ButtonType::Transparent => colors.text_body,
                 ButtonType::SortArrows => Color {
                     a: if ext.is_nightly { 0.2 } else { 0.7 },
                     ..colors.text_body
@@ -128,7 +132,8 @@ impl ButtonType {
                 | ButtonType::SortArrows
                 | ButtonType::SortArrowActive
                 | ButtonType::Thumbnail
-                | ButtonType::Link => Shadow::default(),
+                | ButtonType::Link
+                | ButtonType::Transparent => Shadow::default(),
                 _ => Shadow {
                     color: Color::BLACK,
                     offset: match self {
@@ -146,7 +151,7 @@ impl ButtonType {
                     Background::Color(mix_colors(colors.primary, colors.secondary))
                 }
                 ButtonType::Starred => Background::Color(colors.starred),
-                ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail | ButtonType::Link => {
+                ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail | ButtonType::Link | ButtonType::Transparent => {
                     Background::Color(Color::TRANSPARENT)
                 }
                 ButtonType::Success => Background::Color(Color::from_rgb8(0, 180, 0)),
@@ -179,7 +184,8 @@ impl ButtonType {
                     | ButtonType::TabInactive
                     | ButtonType::Thumbnail
                     | ButtonType::BorderedRound
-                    | ButtonType::Link => 0.0,
+                    | ButtonType::Link
+                    | ButtonType::Transparent => 0.0,
                     _ => BORDER_WIDTH,
                 },
                 color: match self {

@@ -802,6 +802,16 @@ impl ProviderHandler {
             }
         }
     }
+
+    /// 处理鼠标悬停事件
+    fn handle_provider_hovered(
+        &self,
+        state: &mut AppState,
+        account_id: Option<i64>,
+    ) -> HandlerResult {
+        state.data.provider_page.hovered_provider_id = account_id;
+        HandlerResult::StateUpdated
+    }
 }
 
 impl EventHandler<ProviderMessage> for ProviderHandler {
@@ -845,6 +855,7 @@ impl EventHandler<ProviderMessage> for ProviderHandler {
             }
             ProviderMessage::ConfirmAddDomain(id) => self.handle_confirm_add_domain(state, id),
             ProviderMessage::DomainAdded(res) => self.handle_domain_added(state, res),
+            ProviderMessage::ProviderHovered(id) => self.handle_provider_hovered(state, id),
         }
     }
 

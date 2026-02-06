@@ -21,6 +21,7 @@ pub enum TextType {
     Warning,
     Sponsor,
     Starred,
+    Dimmed,
 }
 
 /// Returns a formatted caption followed by subtitle, new line, tab, and desc
@@ -81,6 +82,10 @@ pub fn highlight(style: &StyleType, element: TextType) -> Color {
         TextType::Warning => Color::from_rgb(1.0, 0.8, 0.0),
         TextType::Standard => colors.text_body,
         TextType::Starred => colors.starred,
+        TextType::Dimmed => Color {
+            a: 0.5,
+            ..colors.text_body
+        },
     }
 }
 

@@ -20,6 +20,9 @@ pub struct ProviderPageState {
 
     /// 是否正在加载数据
     pub is_loading: bool,
+
+    /// 鼠标悬停的服务商ID
+    pub hovered_provider_id: Option<i64>,
 }
 
 impl Default for ProviderPageState {
@@ -31,6 +34,7 @@ impl Default for ProviderPageState {
             editing_provider_id: None,
             deleting_provider_id: None,
             is_loading: false,
+            hovered_provider_id: None,
         }
     }
 }
