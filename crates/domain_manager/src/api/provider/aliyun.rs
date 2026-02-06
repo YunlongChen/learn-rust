@@ -65,7 +65,27 @@ impl AliyunDnsClient {
         .await;
         info!("接口请求结果:{}", json!(&response));
 
-        Ok(serde_json::from_str(&response.unwrap())?)
+        let resp_str = response.unwrap();
+        let json_val: serde_json::Value = serde_json::from_str(&resp_str)?;
+
+        if let Some(code) = json_val.get("Code") {
+            let message = json_val
+                .get("Message")
+                .and_then(|v| v.as_str())
+                .unwrap_or("Unknown error");
+            let request_id = json_val
+                .get("RequestId")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            return Err(anyhow!(
+                "Aliyun API Error: {} - {} (RequestId: {})",
+                code,
+                message,
+                request_id
+            ));
+        }
+
+        Ok(json_val)
     }
 }
 

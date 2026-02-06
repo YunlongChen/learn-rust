@@ -73,7 +73,10 @@ impl DnsClient {
                                 })
                             })
                         }
-                        Err(_) => {}
+                        Err(e) => {
+                            error!("查询阿里云域名列表失败: {:?}", e);
+                            return Err(e);
+                        }
                     };
                 }
                 _ => {
