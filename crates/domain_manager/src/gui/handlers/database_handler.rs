@@ -106,15 +106,19 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
             }
             DatabaseMessage::DeleteAccount(id) => {
                 info!("收到删除账户请求: {}", id);
-                if let Some(_conn) = &state.database {
+                if let Some(conn) = &state.database {
                     let account_id = id;
+                    let conn_clone = conn.clone();
                     HandlerResult::Task(Task::perform(
                         async move {
-                            // 模拟删除，实际应调用 storage::delete_account
-                            // TODO: 实现真实的删除逻辑
-                            MessageCategory::Database(DatabaseMessage::AccountDeleted(Ok(
-                                account_id,
-                            )))
+                            match crate::storage::delete_account(&conn_clone, account_id).await {
+                                Ok(_) => MessageCategory::Database(DatabaseMessage::AccountDeleted(Ok(
+                                    account_id,
+                                ))),
+                                Err(e) => MessageCategory::Database(DatabaseMessage::AccountDeleted(
+                                    Err(e.to_string()),
+                                )),
+                            }
                         },
                         |msg| msg,
                     ))

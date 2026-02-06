@@ -280,9 +280,19 @@ pub fn add_api_key(
 }
 
 /// 删除账户
-pub fn delete_account(_conn: &DatabaseConnection, _account_id: i32) -> Result<(), Box<dyn Error>> {
-    // 外键设置为CASCADE，会自动删除关联域名和API密钥
-    // conn.execute("DELETE FROM accounts WHERE id = ?1", [account_id])?;
+pub async fn delete_account(conn: &DatabaseConnection, account_id: i64) -> Result<(), Box<dyn Error>> {
+    use crate::storage::entities::account;
+    use sea_orm::EntityTrait;
+
+    account::Entity::delete_by_id(account_id)
+        .exec(conn)
+        .await
+        .map_err(|e| {
+            error!("删除账户失败: {:?}", e);
+            Box::new(e) as Box<dyn Error>
+        })?;
+
+    info!("账户删除成功: {}", account_id);
     Ok(())
 }
 

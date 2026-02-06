@@ -285,7 +285,7 @@ impl ProviderHandler {
             let account = Account {
                 id,
                 username: new_account.username.clone(),
-                provider_type: new_account.provider.name().to_string(),
+                provider_type: new_account.provider.value().to_string(),
                 email: new_account.email.clone(),
                 created_at: chrono::Local::now().naive_local().to_string(),
                 last_login: None,

@@ -16,7 +16,7 @@ use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::gui::types::credential::CredentialMessage;
 use crate::model::dns_record_response::{Record, Type};
-use crate::models::account::NewAccount;
+use crate::models::account::{Account, NewAccount};
 use crate::storage::{DnsRecordModal, DomainModal};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
@@ -73,8 +73,8 @@ pub enum AppMessage {
 pub enum DatabaseMessage {
     Connected(Result<DatabaseConnection, String>),
     AddAccount(NewAccount),
-    AccountAdded(Result<crate::models::account::Account, String>),
-    UpdateAccount(crate::models::account::Account),
+    AccountAdded(Result<Account, String>),
+    UpdateAccount(Account),
     AccountUpdated(Result<(), String>),
     DeleteAccount(i64),
     AccountDeleted(Result<i64, String>),
@@ -213,7 +213,7 @@ pub enum ProviderMessage {
     CancelDelete,
     // 数据加载
     Load,
-    Loaded(Result<Vec<crate::models::account::Account>, String>),
+    Loaded(Result<Vec<Account>, String>),
 }
 
 /// UI消息

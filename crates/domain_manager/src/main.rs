@@ -68,7 +68,7 @@ pub async fn main() -> iced::Result {
 
     panic::set_hook(Box::new(move |_panic_info| {
         // invoke the default handler and exit the process
-        error!("程序崩溃了，退出程序！");
+        error!("程序崩溃了，退出程序！：{:?}", _panic_info);
         // orig_hook(panic_info);
         process::exit(0);
     }));
