@@ -19,7 +19,7 @@ use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 /// 同步处理器
 ///
@@ -125,6 +125,7 @@ impl SyncHandler {
             .collect();
 
         if domains.is_empty() {
+            warn!("没有域名需要同步");
             state.update(StateUpdate::Ui(UiUpdate::ShowToast(
                 "没有域名需要同步".to_string(),
             )));
@@ -381,6 +382,7 @@ impl SyncHandler {
         conn: DatabaseConnection,
         domains: Vec<String>,
     ) -> BatchSyncResult {
+        info!("正在同步所有域名！");
         let mut successful = Vec::new();
         let mut failed = Vec::new();
         let cancelled = Vec::new();

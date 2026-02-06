@@ -66,7 +66,7 @@ impl CredentialService {
         );
 
         client.validate_credentials().await.map_err(|e| {
-            error!("阿里云凭证验证失败: {:?}", e);
+            error!("阿里云凭证验证失败");
             anyhow!("凭证验证失败: {}", e)
         })
     }
