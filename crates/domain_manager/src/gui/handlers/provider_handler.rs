@@ -7,14 +7,16 @@ use super::{EventHandler, HandlerResult};
 use crate::gui::handlers::message_handler::{
     DatabaseMessage, MessageCategory, ProviderMessage, SyncMessage,
 };
-use crate::gui::model::domain::DnsProvider;
+use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::pages::domain::{AddDomainProviderForm, VerificationStatus};
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use crate::gui::types::credential::{Credential, CredentialMessage};
 use crate::models::account::{Account, NewAccount};
 use crate::storage;
+use crate::storage::DomainModal;
 use iced::Task;
+use std::str::FromStr;
 use tokio::time;
 use tokio::time::Duration;
 use tracing::{debug, error, info, warn};
@@ -512,6 +514,294 @@ impl ProviderHandler {
         }
         HandlerResult::StateUpdated
     }
+
+    /// 切换服务商展开/收起状态
+    fn handle_toggle_expand(&self, state: &mut AppState, account_id: i64) -> HandlerResult {
+        let mut should_load = false;
+        if let Some(provider) = state
+            .data
+            .provider_page
+            .providers
+            .iter_mut()
+            .find(|p| p.account_id == account_id)
+        {
+            provider.is_expanded = !provider.is_expanded;
+            // 如果展开且没有域名数据，则加载
+            if provider.is_expanded && provider.domains.is_empty() {
+                should_load = true;
+            }
+        }
+
+        if should_load {
+            HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Provider(
+                ProviderMessage::LoadDomains(account_id),
+            )))
+        } else {
+            HandlerResult::StateUpdated
+        }
+    }
+
+    /// 加载指定账户的域名列表
+    fn handle_load_domains(&self, state: &mut AppState, account_id: i64) -> HandlerResult {
+        if let Some(conn) = &state.database {
+            let conn_clone = conn.clone();
+            HandlerResult::StateUpdatedWithTask(Task::perform(
+                async move {
+                    storage::list_domains_by_account(&conn_clone, account_id)
+                        .await
+                        .map(|domains| {
+                            domains
+                                .into_iter()
+                                .map(|d| DomainModal {
+                                    id: d.id,
+                                    name: d.domain_name,
+                                    provider_id: d.account_id,
+                                    status: d.status.to_string().to_string(),
+                                    created_at: chrono::NaiveDateTime::parse_from_str(
+                                        &d.created_at,
+                                        "%Y-%m-%d %H:%M:%S",
+                                    )
+                                    .unwrap_or_default(),
+                                    updated_at: d.updated_at,
+                                })
+                                .collect()
+                        })
+                        .map_err(|e| e.to_string())
+                },
+                move |result| {
+                    MessageCategory::Provider(ProviderMessage::DomainsLoaded(account_id, result))
+                },
+            ))
+        } else {
+            HandlerResult::StateUpdated
+        }
+    }
+
+    /// 域名加载完成
+    fn handle_domains_loaded(
+        &self,
+        state: &mut AppState,
+        account_id: i64,
+        result: Result<Vec<DomainModal>, String>,
+    ) -> HandlerResult {
+        match result {
+            Ok(domains) => {
+                if let Some(provider) = state
+                    .data
+                    .provider_page
+                    .providers
+                    .iter_mut()
+                    .find(|p| p.account_id == account_id)
+                {
+                    provider.domains = domains
+                        .into_iter()
+                        .map(|d| Domain {
+                            id: d.id,
+                            name: d.name,
+                            provider: provider.provider.clone(),
+                            status: d
+                                .status
+                                .parse()
+                                .unwrap_or(crate::gui::model::domain::DomainStatus::Active),
+                            expiry: "".to_string(), // TODO: 需要添加过期字段
+                            records: vec![],
+                        })
+                        .collect();
+                }
+            }
+            Err(e) => {
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(format!(
+                    "加载域名失败: {}",
+                    e
+                ))));
+            }
+        }
+        HandlerResult::StateUpdated
+    }
+
+    fn handle_add_domain(&self, state: &mut AppState, _account_id: i64) -> HandlerResult {
+        // TODO: 实现添加域名的弹窗或逻辑
+        // 暂时只显示Toast
+        state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+            "功能开发中：请通过顶部“添加域名”按钮添加".to_string(),
+        )));
+        HandlerResult::StateUpdated
+    }
+
+    fn handle_delete_domain(
+        &self,
+        state: &mut AppState,
+        account_id: i64,
+        domain_id: i64,
+    ) -> HandlerResult {
+        state.ui.set_loading(true);
+        // 发送数据库删除消息，并在成功后重新加载该账户的域名
+        HandlerResult::StateUpdatedWithTask(Task::perform(
+            async move { (account_id, domain_id) },
+            move |(_aid, did)| MessageCategory::Database(DatabaseMessage::DeleteDomain(did)),
+        ))
+    }
+
+    fn handle_domain_deleted(
+        &self,
+        state: &mut AppState,
+        result: Result<i64, String>,
+    ) -> HandlerResult {
+        state.ui.set_loading(false);
+        match result {
+            Ok(_id) => {
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                    "域名删除成功".to_string(),
+                )));
+                // 这里比较麻烦的是不知道是哪个 Account 的域名删除了
+                // 简单起见，重新加载所有展开的 Account 的域名，或者由 DeleteDomain 消息携带 AccountId
+                // 目前架构限制，先简单重新加载当前页面（或者不做操作，因为前端可能需要刷新）
+                // 更好的做法是让 DeleteDomain 消息带上 AccountId，或者这里直接 Reload 所有 Provider
+                HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Provider(
+                    ProviderMessage::Load,
+                )))
+            }
+            Err(e) => {
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(format!(
+                    "删除失败: {}",
+                    e
+                ))));
+                HandlerResult::StateUpdated
+            }
+        }
+    }
+
+    fn handle_sync_domain_info(&self, state: &mut AppState, _account_id: i64) -> HandlerResult {
+        // 触发同步消息
+        // 这里假设同步逻辑在 SyncHandler 中
+        // 但我们需要指定同步特定的 Account
+        // 暂时不支持指定 Account 同步，先触发 SyncMessage::SyncAllDomains 作为演示
+        // 或者扩展 SyncMessage
+        state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+            "正在同步域名信息...".to_string(),
+        )));
+        HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Sync(
+            SyncMessage::SyncAllDomains,
+        )))
+    }
+
+    /// 切换添加域名模式
+    fn handle_toggle_add_domain(
+        &self,
+        state: &mut AppState,
+        account_id: i64,
+        is_adding: bool,
+    ) -> HandlerResult {
+        if let Some(provider) = state
+            .data
+            .provider_page
+            .providers
+            .iter_mut()
+            .find(|p| p.account_id == account_id)
+        {
+            provider.is_adding_domain = is_adding;
+            if is_adding {
+                provider.is_expanded = true; // 自动展开
+                provider.new_domain_name = String::new(); // 清空输入
+            }
+        }
+        HandlerResult::StateUpdated
+    }
+
+    /// 处理新域名输入
+    fn handle_new_domain_name_changed(
+        &self,
+        state: &mut AppState,
+        account_id: i64,
+        name: String,
+    ) -> HandlerResult {
+        if let Some(provider) = state
+            .data
+            .provider_page
+            .providers
+            .iter_mut()
+            .find(|p| p.account_id == account_id)
+        {
+            provider.new_domain_name = name;
+        }
+        HandlerResult::StateUpdated
+    }
+
+    /// 确认添加域名
+    fn handle_confirm_add_domain(&self, state: &mut AppState, account_id: i64) -> HandlerResult {
+        let mut new_domain_name = String::new();
+        if let Some(provider) = state
+            .data
+            .provider_page
+            .providers
+            .iter()
+            .find(|p| p.account_id == account_id)
+        {
+            new_domain_name = provider.new_domain_name.trim().to_string();
+        }
+
+        if new_domain_name.is_empty() {
+            state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                "请输入域名".to_string(),
+            )));
+            return HandlerResult::StateUpdated;
+        }
+
+        // 构造新域名对象
+        let new_domain = crate::models::domain::NewDomain {
+            domain_name: new_domain_name,
+            account_id,
+            status: crate::models::domain::DomainStatus::Active,
+            registration_date: Some(chrono::Utc::now().to_string()),
+            expiration_date: None,
+            registrar: None,
+        };
+
+        state.ui.set_loading(true);
+        HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Database(
+            DatabaseMessage::AddDomain(new_domain),
+        )))
+    }
+
+    /// 域名添加成功回调
+    fn handle_domain_added(
+        &self,
+        state: &mut AppState,
+        result: Result<i64, String>,
+    ) -> HandlerResult {
+        state.ui.set_loading(false);
+        match result {
+            Ok(account_id) => {
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                    "域名添加成功".to_string(),
+                )));
+
+                // 关闭添加模式并清空输入
+                if let Some(provider) = state
+                    .data
+                    .provider_page
+                    .providers
+                    .iter_mut()
+                    .find(|p| p.account_id == account_id)
+                {
+                    provider.is_adding_domain = false;
+                    provider.new_domain_name = String::new();
+                }
+
+                // 重新加载该账户的域名
+                HandlerResult::StateUpdatedWithTask(Task::done(MessageCategory::Provider(
+                    ProviderMessage::LoadDomains(account_id),
+                )))
+            }
+            Err(e) => {
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(format!(
+                    "添加失败: {}",
+                    e
+                ))));
+                HandlerResult::StateUpdated
+            }
+        }
+    }
 }
 
 impl EventHandler<ProviderMessage> for ProviderHandler {
@@ -540,6 +830,21 @@ impl EventHandler<ProviderMessage> for ProviderHandler {
             ProviderMessage::Edit(id) => self.handle_edit_request(state, id),
             ProviderMessage::Load => self.handle_load(state),
             ProviderMessage::Loaded(result) => self.handle_loaded(state, result),
+            ProviderMessage::ToggleExpand(id) => self.handle_toggle_expand(state, id),
+            ProviderMessage::LoadDomains(id) => self.handle_load_domains(state, id),
+            ProviderMessage::DomainsLoaded(id, res) => self.handle_domains_loaded(state, id, res),
+            ProviderMessage::AddDomain(id) => self.handle_add_domain(state, id),
+            ProviderMessage::DeleteDomain(aid, did) => self.handle_delete_domain(state, aid, did),
+            ProviderMessage::DomainDeleted(res) => self.handle_domain_deleted(state, res),
+            ProviderMessage::SyncDomainInfo(id) => self.handle_sync_domain_info(state, id),
+            ProviderMessage::ToggleAddDomain(id, is_adding) => {
+                self.handle_toggle_add_domain(state, id, is_adding)
+            }
+            ProviderMessage::NewDomainNameChanged(id, name) => {
+                self.handle_new_domain_name_changed(state, id, name)
+            }
+            ProviderMessage::ConfirmAddDomain(id) => self.handle_confirm_add_domain(state, id),
+            ProviderMessage::DomainAdded(res) => self.handle_domain_added(state, res),
         }
     }
 

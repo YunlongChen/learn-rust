@@ -190,6 +190,25 @@ pub enum DomainStatus {
     Suspended,
 }
 
+impl std::str::FromStr for DomainStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Active" => Ok(DomainStatus::Active),
+            "Warning" => Ok(DomainStatus::Warning),
+            "Suspended" => Ok(DomainStatus::Suspended),
+            _ => Ok(DomainStatus::Active), // 默认值为Active
+        }
+    }
+}
+
+impl Display for DomainStatus {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
 impl DomainStatus {
     pub(crate) fn text(&self) -> &str {
         match self {

@@ -231,6 +231,10 @@ impl DomainHandler {
                             api_key: "mock_key".to_string(),
                             api_secret: "mock_secret".to_string(),
                         }),
+                        is_expanded: false,
+                        is_adding_domain: false,
+                        new_domain_name: String::new(),
+                        domains: vec![],
                     };
                     MessageCategory::Domain(DomainMessage::QueryDomainResult(domains))
                 }

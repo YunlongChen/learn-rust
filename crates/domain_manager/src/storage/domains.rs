@@ -327,9 +327,49 @@ pub fn get_expiring_domains(
 }
 
 /// 删除域名
-pub fn delete_domain(_conn: &DatabaseConnection, _domain_id: i32) -> Result<(), Box<dyn Error>> {
-    // conn.execute("DELETE FROM domains WHERE id = ?1", [domain_id])?;
+pub async fn delete_domain(conn: &DatabaseConnection, domain_id: i64) -> Result<(), Box<dyn Error>> {
+    use crate::storage::entities::domain;
+    use sea_orm::EntityTrait;
+
+    domain::Entity::delete_by_id(domain_id)
+        .exec(conn)
+        .await
+        .map_err(|e| {
+            error!("删除域名失败: {:?}", e);
+            Box::new(e) as Box<dyn Error>
+        })?;
+
     Ok(())
+}
+
+/// 根据账号ID获取域名列表
+pub async fn list_domains_by_account(
+    conn: &DatabaseConnection,
+    account_id: i64,
+) -> Result<Vec<DomainEntity>, Box<dyn Error>> {
+    let domain_list = DomainDbEntity::find()
+        .filter(domain::Column::ProviderId.eq(account_id))
+        .order_by_asc(domain::Column::Name)
+        .all(conn)
+        .await
+        .map_err(|e| {
+            error!("查询域名失败: {}", e);
+            Box::new(e) as Box<dyn Error>
+        })?
+        .into_iter()
+        .map(|domain| DomainEntity {
+            id: domain.id,
+            account_id: domain.provider_id,
+            domain_name: domain.name,
+            registration_date: None,
+            expiration_date: None,
+            registrar: None,
+            status: DomainStatus::Active, // TODO: 从数据库或状态获取
+            created_at: domain.created_at.to_string(),
+            updated_at: domain.updated_at,
+        })
+        .collect();
+    Ok(domain_list)
 }
 
 /// 根据账号删除域名

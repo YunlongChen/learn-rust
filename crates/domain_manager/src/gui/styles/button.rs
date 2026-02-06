@@ -26,6 +26,8 @@ pub enum ButtonType {
     NotStarred,
     Neutral,
     Alert,
+    Success,
+    Link,
     Gradient(GradientType),
     SortArrows,
     SortArrowActive,
@@ -43,6 +45,8 @@ impl ButtonType {
                 }
                 ButtonType::Primary => Background::Color(colors.primary),
                 ButtonType::Starred => Background::Color(colors.starred),
+                ButtonType::Success => Background::Color(Color::from_rgb8(0, 200, 0)), // 简单绿色
+                ButtonType::Link => Background::Color(Color::TRANSPARENT),
                 ButtonType::BorderedRound => Background::Color(Color {
                     a: ext.alpha_round_containers,
                     ..ext.buttons_color
@@ -63,7 +67,7 @@ impl ButtonType {
             }),
             border: Border {
                 radius: match self {
-                    ButtonType::Neutral => 0.0.into(),
+                    ButtonType::Neutral | ButtonType::Link => 0.0.into(),
                     ButtonType::TabActive | ButtonType::TabInactive => Radius::new(0).bottom(30),
                     ButtonType::BorderedRound | ButtonType::BorderedRoundSelected => 12.0.into(),
                     ButtonType::Starred | ButtonType::NotStarred => 100.0.into(),
@@ -77,7 +81,8 @@ impl ButtonType {
                     | ButtonType::Starred
                     | ButtonType::NotStarred
                     | ButtonType::Neutral
-                    | ButtonType::Thumbnail => 0.0,
+                    | ButtonType::Thumbnail
+                    | ButtonType::Link => 0.0,
                     ButtonType::BorderedRound => BORDER_WIDTH * 2.0,
                     _ => BORDER_WIDTH,
                 },
@@ -93,6 +98,7 @@ impl ButtonType {
             text_color: match self {
                 ButtonType::Primary => colors.text_headers,
                 ButtonType::Starred => Color::BLACK,
+                ButtonType::Link => colors.text_body, // 修改为 text_body 以确保可见性
                 ButtonType::SortArrows => Color {
                     a: if ext.is_nightly { 0.2 } else { 0.7 },
                     ..colors.text_body
@@ -121,7 +127,8 @@ impl ButtonType {
                 ButtonType::Neutral
                 | ButtonType::SortArrows
                 | ButtonType::SortArrowActive
-                | ButtonType::Thumbnail => Shadow::default(),
+                | ButtonType::Thumbnail
+                | ButtonType::Link => Shadow::default(),
                 _ => Shadow {
                     color: Color::BLACK,
                     offset: match self {
@@ -139,9 +146,10 @@ impl ButtonType {
                     Background::Color(mix_colors(colors.primary, colors.secondary))
                 }
                 ButtonType::Starred => Background::Color(colors.starred),
-                ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail => {
+                ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail | ButtonType::Link => {
                     Background::Color(Color::TRANSPARENT)
                 }
+                ButtonType::Success => Background::Color(Color::from_rgb8(0, 180, 0)),
                 ButtonType::Neutral => Background::Color(Color {
                     a: ext.alpha_round_borders,
                     ..ext.buttons_color
@@ -157,7 +165,7 @@ impl ButtonType {
             }),
             border: Border {
                 radius: match self {
-                    ButtonType::Neutral => 0.0.into(),
+                    ButtonType::Neutral | ButtonType::Link => 0.0.into(),
                     ButtonType::TabActive | ButtonType::TabInactive => Radius::new(0).bottom(30),
                     ButtonType::BorderedRound | ButtonType::BorderedRoundSelected => 12.0.into(),
                     ButtonType::Starred | ButtonType::NotStarred => 100.0.into(),
@@ -170,7 +178,8 @@ impl ButtonType {
                     | ButtonType::SortArrowActive
                     | ButtonType::TabInactive
                     | ButtonType::Thumbnail
-                    | ButtonType::BorderedRound => 0.0,
+                    | ButtonType::BorderedRound
+                    | ButtonType::Link => 0.0,
                     _ => BORDER_WIDTH,
                 },
                 color: match self {
@@ -186,6 +195,7 @@ impl ButtonType {
             text_color: match self {
                 ButtonType::Primary => colors.text_headers,
                 ButtonType::Starred => Color::BLACK,
+                ButtonType::Link => mix_colors(colors.primary, colors.secondary),
                 ButtonType::Gradient(_) | ButtonType::Thumbnail => colors.text_headers,
                 ButtonType::SortArrowActive | ButtonType::SortArrows => colors.secondary,
                 _ => colors.text_body,

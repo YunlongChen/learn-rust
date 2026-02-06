@@ -78,6 +78,10 @@ pub enum DatabaseMessage {
     AccountUpdated(Result<(), String>),
     DeleteAccount(i64),
     AccountDeleted(Result<i64, String>),
+    AddDomain(crate::models::domain::NewDomain),
+    DomainAdded(Result<i64, String>), // 返回 AccountID 以便刷新列表
+    DeleteDomain(i64),
+    DomainDeleted(Result<i64, String>),
 }
 
 /// 导航消息
@@ -214,6 +218,18 @@ pub enum ProviderMessage {
     // 数据加载
     Load,
     Loaded(Result<Vec<Account>, String>),
+    // 域名管理
+    ToggleExpand(i64),
+    ToggleAddDomain(i64, bool), // AccountID, is_adding
+    NewDomainNameChanged(i64, String), // AccountID, name
+    ConfirmAddDomain(i64),      // AccountID
+    AddDomain(i64),             // 原有的 AddDomain 保留，可能用于触发添加模式
+    DeleteDomain(i64, i64),     // (AccountID, DomainID)
+    SyncDomainInfo(i64),        // AccountID
+    DomainDeleted(Result<i64, String>),
+    DomainAdded(Result<i64, String>), // 域名添加结果
+    LoadDomains(i64),                 // AccountID
+    DomainsLoaded(i64, Result<Vec<DomainModal>, String>), // AccountID, Result
 }
 
 /// UI消息

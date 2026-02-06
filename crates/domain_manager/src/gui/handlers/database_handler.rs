@@ -196,6 +196,74 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                     }
                 }
             }
+            DatabaseMessage::DeleteDomain(id) => {
+                info!("收到删除域名请求: {}", id);
+                if let Some(conn) = &state.database {
+                    let domain_id = id;
+                    let conn_clone = conn.clone();
+                    HandlerResult::Task(Task::perform(
+                        async move {
+                            match crate::storage::delete_domain(&conn_clone, domain_id).await {
+                                Ok(_) => MessageCategory::Provider(
+                                    crate::gui::handlers::message_handler::ProviderMessage::DomainDeleted(
+                                        Ok(domain_id),
+                                    ),
+                                ),
+                                Err(e) => MessageCategory::Provider(
+                                    crate::gui::handlers::message_handler::ProviderMessage::DomainDeleted(
+                                        Err(e.to_string()),
+                                    ),
+                                ),
+                            }
+                        },
+                        |msg| msg,
+                    ))
+                } else {
+                    HandlerResult::Task(Task::done(MessageCategory::Provider(
+                        crate::gui::handlers::message_handler::ProviderMessage::DomainDeleted(Err(
+                            "数据库未连接".to_string(),
+                        )),
+                    )))
+                }
+            }
+            DatabaseMessage::DomainDeleted(_) => {
+                // 这个消息似乎多余了，因为我们在DeleteDomain中直接返回了ProviderMessage::DomainDeleted
+                // 但如果需要统一处理，可以在这里处理
+                HandlerResult::None
+            }
+            DatabaseMessage::AddDomain(new_domain) => {
+                info!("收到添加域名请求: {}", new_domain.domain_name);
+                if let Some(conn) = &state.database {
+                    let conn_clone = conn.clone();
+                    let account_id = new_domain.account_id;
+                    HandlerResult::Task(Task::perform(
+                        async move {
+                            match crate::storage::add_domain(&conn_clone, new_domain).await {
+                                Ok(_) => MessageCategory::Provider(
+                                    crate::gui::handlers::message_handler::ProviderMessage::DomainAdded(
+                                        Ok(account_id),
+                                    ),
+                                ),
+                                Err(e) => MessageCategory::Provider(
+                                    crate::gui::handlers::message_handler::ProviderMessage::DomainAdded(
+                                        Err(e.to_string()),
+                                    ),
+                                ),
+                            }
+                        },
+                        |msg| msg,
+                    ))
+                } else {
+                    HandlerResult::Task(Task::done(MessageCategory::Provider(
+                        crate::gui::handlers::message_handler::ProviderMessage::DomainAdded(Err(
+                            "数据库未连接".to_string(),
+                        )),
+                    )))
+                }
+            }
+            DatabaseMessage::DomainAdded(_) => {
+                 HandlerResult::None
+            }
         }
     }
 

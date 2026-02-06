@@ -150,6 +150,10 @@ pub struct DomainProvider {
     pub provider_name: String,
     pub provider: DnsProvider,
     pub credential: Credential,
+    pub is_expanded: bool,
+    pub is_adding_domain: bool,
+    pub new_domain_name: String,
+    pub domains: Vec<Domain>,
 }
 
 impl From<Account> for DomainProvider {
@@ -160,6 +164,10 @@ impl From<Account> for DomainProvider {
             // todo 这里有可能报错
             account_id: input_account.id,
             credential: input_account.try_into().unwrap(),
+            is_expanded: false,
+            is_adding_domain: false,
+            new_domain_name: String::new(),
+            domains: vec![],
         }
     }
 }
