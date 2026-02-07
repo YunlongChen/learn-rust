@@ -228,6 +228,35 @@ pub async fn find_domain_by_name(
     }
 }
 
+/// 根据ID查找域名
+pub async fn find_domain_by_id(
+    conn: &DatabaseConnection,
+    domain_id: i64,
+) -> Result<Option<DomainEntity>, Box<dyn Error>> {
+    let domain_model = DomainDbEntity::find_by_id(domain_id)
+        .one(conn)
+        .await
+        .map_err(|e| {
+            error!("根据ID查找域名失败: {}", e);
+            Box::new(e) as Box<dyn Error>
+        })?;
+
+    match domain_model {
+        Some(domain) => Ok(Some(DomainEntity {
+            id: domain.id,
+            account_id: domain.provider_id,
+            domain_name: domain.name,
+            registration_date: None,
+            expiration_date: None,
+            registrar: None,
+            status: DomainStatus::Active,
+            created_at: domain.created_at.to_string(),
+            updated_at: domain.updated_at,
+        })),
+        None => Ok(None),
+    }
+}
+
 /// 根据域名名称和账户ID查找域名
 pub async fn find_domain_by_name_and_account(
     conn: &DatabaseConnection,

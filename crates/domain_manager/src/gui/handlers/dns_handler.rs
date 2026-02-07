@@ -5,13 +5,20 @@
 
 use super::message_handler::{DnsMessage, MessageCategory, NavigationMessage, NotificationMessage};
 use super::{EventHandler, HandlerResult};
+use crate::api::dns_client::DnsClientTrait;
+use crate::api::provider::aliyun::AliyunDnsClient;
+use crate::gui::model::domain::{DnsProvider, DomainName};
 use crate::gui::model::form::AddDnsField;
 use crate::gui::pages::Page;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
-use crate::model::dns_record_response::Type as RecordType;
-use crate::storage::DnsRecordModal;
+use crate::gui::types::credential::Credential;
+use crate::model::dns_record_response::{Record, Status, Type as RecordType};
+use crate::models::record::NewRecord;
+use crate::storage::{accounts, domains, records, DnsRecordModal};
 use iced::Task;
+use sea_orm::DatabaseConnection;
+use std::error::Error;
 use tracing::{info, warn};
 
 /// DNS处理器
@@ -79,7 +86,7 @@ impl DnsHandler {
         // 创建新的DNS记录
         let new_record = DnsRecordModal {
             id: 0,        // 临时ID，数据库会自动生成
-            domain_id: 0, // 需要根据域名查找对应的domain_id
+            domain_id: domain_id as i64,
             record_type: record_type.clone(),
             name: name.clone(),
             value: value.clone(),
@@ -95,19 +102,25 @@ impl DnsHandler {
             record_type, name, value
         ));
 
-        // 返回添加DNS记录的异步任务
-        HandlerResult::StateUpdatedWithTask(Task::perform(
-            Self::add_dns_record_async(new_record),
-            move |result| match result {
-                Ok(_record) => MessageCategory::Notification(NotificationMessage::ShowToast(
-                    format!("DNS记录已添加到域名: {}", domain_id),
-                )),
-                Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                    "添加DNS记录失败: {}",
-                    e
-                ))),
-            },
-        ))
+        if let Some(conn) = &state.database {
+            let conn_clone = conn.clone();
+            // 返回添加DNS记录的异步任务
+            HandlerResult::StateUpdatedWithTask(Task::perform(
+                Self::add_dns_record_async(conn_clone, new_record),
+                move |result| match result {
+                    Ok(_record) => MessageCategory::Notification(NotificationMessage::ShowToast(
+                        format!("DNS记录已添加到域名: {}", domain_id),
+                    )),
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
+                        "添加DNS记录失败: {}",
+                        e
+                    ))),
+                },
+            ))
+        } else {
+            state.ui.set_message("数据库未连接".to_string());
+            HandlerResult::StateUpdated
+        }
     }
 
     /// 处理删除DNS记录
@@ -117,41 +130,28 @@ impl DnsHandler {
         domain: usize,
         record_id: usize,
     ) -> HandlerResult {
-        // 检查记录是否存在
-        let record_exists = state
-            .data
-            .dns_records_cache
-            .get(&domain)
-            .map_or(false, |records| {
-                records
-                    .iter()
-                    .any(|record_model| record_model.id as usize == record_id)
-            });
-
-        if !record_exists {
-            state.update(StateUpdate::Ui(UiUpdate::ShowToast(
-                "DNS记录不存在".to_string(),
-            )));
-            return HandlerResult::StateUpdated;
-        }
-
         state
             .ui
             .set_message(format!("正在删除DNS记录: {}", record_id));
 
-        // 返回删除DNS记录的异步任务
-        let domain_for_async = domain.clone();
-        let domain_for_message = domain.clone();
-        HandlerResult::StateUpdatedWithTask(Task::perform(
-            Self::delete_dns_record_async(domain_for_async, record_id.clone()),
-            move |result| match result {
-                Ok(_) => MessageCategory::Dns(DnsMessage::Delete(domain_for_message.clone())),
-                Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                    "删除DNS记录失败: {}",
-                    e
-                ))),
-            },
-        ))
+        if let Some(conn) = &state.database {
+            let conn_clone = conn.clone();
+            // 返回删除DNS记录的异步任务
+            let domain_for_message = domain.clone();
+            HandlerResult::StateUpdatedWithTask(Task::perform(
+                Self::delete_dns_record_async(conn_clone, domain, record_id),
+                move |result| match result {
+                    Ok(_) => MessageCategory::Dns(DnsMessage::Delete(domain_for_message.clone())),
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
+                        "删除DNS记录失败: {}",
+                        e
+                    ))),
+                },
+            ))
+        } else {
+            state.ui.set_message("数据库未连接".to_string());
+            HandlerResult::StateUpdated
+        }
     }
 
     /// 处理DNS提供商选择
@@ -325,22 +325,154 @@ impl DnsHandler {
     }
 
     /// 异步添加DNS记录
-    async fn add_dns_record_async(record: DnsRecordModal) -> Result<DnsRecordModal, String> {
-        // 模拟网络延迟
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    async fn add_dns_record_async(
+        conn: DatabaseConnection,
+        record: DnsRecordModal,
+    ) -> Result<DnsRecordModal, String> {
+        // 1. 获取域名信息
+        let domain = domains::find_domain_by_id(&conn, record.domain_id)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("域名不存在")?;
 
-        // 这里应该调用实际的DNS服务API
-        // 暂时直接返回记录
-        Ok(record)
+        // 2. 获取账户信息
+        let account = accounts::get_account_by_id(&conn, domain.account_id)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("账户不存在")?;
+
+        // 3. 初始化 API 客户端
+        let credential: Credential = account
+            .try_into()
+            .map_err(|e: anyhow::Error| e.to_string())?;
+
+        let api_client = match credential {
+            Credential::ApiKey(key) => AliyunDnsClient::new(key.api_key, key.api_secret),
+            _ => return Err("不支持的凭据类型".to_string()),
+        };
+
+        let record_type_enum = match record.record_type.to_uppercase().as_str() {
+            "A" => RecordType::A,
+            "CNAME" => RecordType::Cname,
+            "MX" => RecordType::MX,
+            "AAAA" => RecordType::AAAA,
+            "TXT" => RecordType::TXT,
+            "NS" => RecordType::NS,
+            "SOA" => RecordType::SOA,
+            "PTR" => RecordType::PTR,
+            "SRV" => RecordType::SRV,
+            "FORWARD_URL" => RecordType::ForwardUrl,
+            _ => RecordType::A, // 默认为 A 记录
+        };
+
+        // 4. 调用 API 创建记录
+        let domain_name = DomainName {
+            name: domain.domain_name.clone(),
+            provider: DnsProvider::Aliyun,
+            ..Default::default()
+        };
+
+        let new_dns_record = Record::new(
+            Status::Enable,
+            record.name.clone(),
+            record_type_enum,
+            record.value.clone(),
+            "".to_string(), // 创建时还没有 RecordId
+            record.ttl,
+        );
+
+        api_client
+            .add_dns_record(&domain_name, &new_dns_record)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // 5. 更新本地数据库
+        let new_record = NewRecord {
+            domain_id: record.domain_id,
+            record_name: record.name.clone(),
+            record_type: record.record_type.clone(),
+            record_value: record.value.clone(),
+            ttl: record.ttl,
+        };
+
+        let saved_record = records::add_record(&conn, new_record)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // 6. 返回更新后的记录
+        let mut result_record = record;
+        result_record.id = saved_record.id;
+
+        Ok(result_record)
     }
 
     /// 异步删除DNS记录
-    async fn delete_dns_record_async(_domain_id: usize, _record_id: usize) -> Result<(), String> {
-        // 模拟网络延迟
-        tokio::time::sleep(tokio::time::Duration::from_millis(400)).await;
+    async fn delete_dns_record_async(
+        conn: DatabaseConnection,
+        _domain_id: usize,
+        record_id: usize,
+    ) -> Result<(), String> {
+        // 1. 获取记录信息
+        let record = records::find_record_by_id(&conn, record_id as i64)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("记录不存在")?;
 
-        // 这里应该调用实际的DNS服务API
-        // 暂时直接返回成功
+        // 2. 获取域名信息
+        let domain = domains::find_domain_by_id(&conn, record.domain_id)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("域名不存在")?;
+
+        // 3. 获取账户信息
+        let account = accounts::get_account_by_id(&conn, domain.account_id)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("账户不存在")?;
+
+        // 4. 初始化 API 客户端
+        let credential: Credential = account
+            .try_into()
+            .map_err(|e: anyhow::Error| e.to_string())?;
+
+        let api_client = match credential {
+            Credential::ApiKey(key) => AliyunDnsClient::new(key.api_key, key.api_secret),
+            _ => return Err("不支持的凭据类型".to_string()),
+        };
+
+        // 5. 调用 API 删除记录
+        // 注意：阿里云API需要 RecordId，这是阿里云分配的ID，不是本地数据库ID
+        // 临时方案：先查询该域名下的所有记录，找到匹配的（根据 RR, Type, Value），获取 RecordId
+        let records = api_client
+            .list_dns_records(domain.domain_name.clone())
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let target_record = records
+            .iter()
+            .find(|r| {
+                r.rr == record.record_name
+                    && r.record_type.get_value() == record.record_type
+                    && r.value == record.record_value
+            })
+            .ok_or("在云端未找到匹配的DNS记录")?;
+
+        let domain_name = DomainName {
+            name: domain.domain_name.clone(),
+            provider: DnsProvider::Aliyun,
+            ..Default::default()
+        };
+
+        api_client
+            .delete_dns_record(&domain_name, &target_record.record_id)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        // 6. 删除本地数据库记录
+        records::delete_record(&conn, record_id as i64)
+            .await
+            .map_err(|e| e.to_string())?;
+
         Ok(())
     }
 

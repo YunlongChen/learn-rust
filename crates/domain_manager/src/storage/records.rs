@@ -95,6 +95,44 @@ pub async fn add_records_many(
     Ok(results)
 }
 
+/// 根据ID查找记录
+pub async fn find_record_by_id(
+    conn: &DatabaseConnection,
+    record_id: i64,
+) -> Result<Option<RecordEntity>, Box<dyn Error>> {
+    let record_model = DnsRecordDbEntity::find_by_id(record_id)
+        .one(conn)
+        .await
+        .map_err(|e| {
+            error!("根据ID查找记录失败: {}", e);
+            Box::new(e) as Box<dyn Error>
+        })?;
+
+    match record_model {
+        Some(record) => Ok(Some(RecordEntity {
+            id: record.id,
+            domain_id: record.domain_id,
+            record_name: record.name,
+            record_type: record.record_type,
+            record_value: record.value,
+            ttl: record.ttl,
+        })),
+        None => Ok(None),
+    }
+}
+
+/// 删除记录
+pub async fn delete_record(conn: &DatabaseConnection, record_id: i64) -> Result<(), Box<dyn Error>> {
+    DnsRecordDbEntity::delete_by_id(record_id)
+        .exec(conn)
+        .await
+        .map_err(|e| {
+            error!("删除记录失败: {}", e);
+            Box::new(e) as Box<dyn Error>
+        })?;
+    Ok(())
+}
+
 /// 根据域名ID删除所有DNS记录
 pub async fn delete_records_by_domain(
     conn: &DatabaseConnection,

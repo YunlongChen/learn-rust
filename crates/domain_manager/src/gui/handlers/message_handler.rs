@@ -336,7 +336,7 @@ impl MessageHandler {
             AppMessage::Initialize => {
                 // 执行初始化逻辑
                 state.update(StateUpdate::Ui(UiUpdate::SetLoading(true)));
-                Task::none()
+                Task::done(MessageCategory::Sync(SyncMessage::Reload))
             }
             AppMessage::Shutdown => {
                 // 应用程序关闭时的清理工作

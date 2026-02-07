@@ -5,8 +5,8 @@
 
 use super::message_handler::{MessageCategory, NotificationMessage, SyncMessage};
 use super::{AsyncEventHandler, EventHandler, HandlerResult};
-use crate::api::aliyun_dns_api::AliyunDnsApi;
-use crate::api::dns_api::{DnsApiTrait, DnsRecordQuery};
+use crate::api::dns_client::DnsClientTrait;
+use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::model::gui::ReloadModel;
 use crate::gui::pages::domain::DomainProvider;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
@@ -284,13 +284,36 @@ impl SyncHandler {
     fn handle_reload(&self, state: &mut AppState) -> HandlerResult {
         state.ui.set_message("正在重新加载数据...".to_string());
 
-        match &state.database {
-            Some(_x) => HandlerResult::NoChange,
-            None => {
-                error!("数据库未连接！");
-                state.ui.set_message("数据库未连接".to_string());
-                HandlerResult::NoChange
-            }
+        if let Some(conn) = &state.database {
+            let conn = conn.clone();
+            HandlerResult::StateUpdatedWithTask(Task::perform(
+                Self::reload_data_async(conn),
+                |result| match result {
+                    Ok((domains, records_map, providers)) => {
+                        // 将HashMap<String, Vec<DnsRecordModal>>转换为Vec<DnsRecordModal>
+                        let records: Vec<DnsRecordModal> = records_map
+                            .into_iter()
+                            .flat_map(|(_, records)| records)
+                            .collect();
+
+                        let total_count = domains.len() + records.len();
+
+                        MessageCategory::Sync(SyncMessage::DataReloaded(ReloadModel::new_from(
+                            providers,
+                            domains,
+                            records,
+                            total_count,
+                        )))
+                    }
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(
+                        format!("重新加载数据失败: {}", e),
+                    )),
+                },
+            ))
+        } else {
+            error!("数据库未连接！");
+            state.ui.set_message("数据库未连接".to_string());
+            HandlerResult::NoChange
         }
     }
 
@@ -317,24 +340,18 @@ impl SyncHandler {
             .map_err(|e: anyhow::Error| e.to_string())?;
 
         let api_client = match credential {
-            Credential::ApiKey(key) => AliyunDnsApi::new(key.api_key, key.api_secret),
+            Credential::ApiKey(key) => AliyunDnsClient::new(key.api_key, key.api_secret),
             _ => return Err("不支持的凭据类型".to_string()),
         };
 
         // 4. 调用 API
-        let query = DnsRecordQuery {
-            domain_name: domain_name.clone(),
-            ..Default::default()
-        };
-
-        let response = api_client
-            .query_dns_records(query)
+        let response_records = api_client
+            .list_dns_records(domain_name.clone())
             .await
             .map_err(|e| e.to_string())?;
 
         // 5. 转换结果
-        let records: Vec<DnsRecordModal> = response
-            .records
+        let records: Vec<DnsRecordModal> = response_records
             .into_iter()
             .map(|r| DnsRecordModal {
                 id: 0, // 新记录 ID 为 0，插入数据库时会自动生成
