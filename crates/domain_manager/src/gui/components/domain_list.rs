@@ -9,7 +9,11 @@ use crate::gui::handlers::message_handler::{
 use crate::gui::model::domain::{DnsProvider, Domain, DomainStatus};
 use crate::gui::pages::Page;
 use crate::gui::state::AppState;
-use crate::{get_text, StyleType};
+use crate::gui::styles::button::ButtonType;
+use crate::gui::styles::container::ContainerType;
+use crate::gui::styles::text::TextType;
+use crate::gui::styles::types::style_type::StyleType;
+use crate::{get_text, StyleType as CrateStyleType}; // Ensure StyleType is imported correctly
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Length, Padding};
 
@@ -75,31 +79,40 @@ impl DomainListComponent {
         is_selected: bool,
         item_config: &DomainListItemConfig,
         state: &AppState,
-    ) -> Element<'a, MessageCategory, crate::gui::styles::types::style_type::StyleType> {
+    ) -> Element<'a, MessageCategory, StyleType> {
         let mut content = column![];
 
-        // 域名名称行
-        let mut name_row = row![text(domain.name.clone()).size(16).class(if is_selected {
-            crate::gui::styles::text::TextType::Outgoing
-        } else {
-            crate::gui::styles::text::TextType::Standard
-        })]
-        .align_y(Alignment::Center)
-        .spacing(10);
+        let mut row_content = row![].align_y(Alignment::Center).spacing(10);
 
         // 添加状态指示器
         if item_config.show_status {
-            let _status_color = match domain.status.as_str() {
-                "Active" => iced::Color::from_rgb(0.2, 0.7, 0.3),
-                "Inactive" => iced::Color::from_rgb(0.6, 0.6, 0.6),
-                "Error" => iced::Color::from_rgb(0.8, 0.2, 0.2),
-                _ => iced::Color::from_rgb(0.5, 0.5, 0.5),
+            let status_color = match domain.status.as_str() {
+                "Active" => iced::Color::from_rgb(0.2, 0.7, 0.3),   // 绿色
+                "Error" => iced::Color::from_rgb(0.8, 0.2, 0.2),    // 红色
+                _ => iced::Color::from_rgb(0.6, 0.6, 0.6),          // 灰色
             };
 
-            name_row = name_row.push(container(text("●").size(12)));
+            row_content = row_content.push(
+                container(text(" ").size(12))
+                    .width(Length::Fixed(4.0))
+                    .height(Length::Fixed(16.0))
+                    .class(ContainerType::CustomRound(status_color)),
+            );
         }
 
-        content = content.push(name_row);
+        // 域名名称行
+        row_content = row_content.push(
+            text(domain.name.clone())
+                .size(16)
+                .width(Length::Fill)
+                .class(if is_selected {
+                    TextType::Outgoing
+                } else {
+                    TextType::Standard
+                }),
+        );
+
+        content = content.push(row_content);
 
         // 详细信息行
         if self.show_details {
@@ -141,21 +154,23 @@ impl DomainListComponent {
         }
 
         // 包装在容器中
-        let mut item_container = container(content)
+        let item_container = container(content)
             .padding(Padding::from([8, 12]))
-            .width(Length::Fill);
+            .width(Length::Fill)
+            .class(if is_selected {
+                ContainerType::Selected
+            } else {
+                ContainerType::Standard
+            });
 
-        // 设置选中状态的样式
-        if is_selected {
-            item_container = item_container;
-        }
-
-        // 如果可点击，包装在按钮中
+        // 如果可点击，包装在按钮中（实际上是用 button 模拟点击区域，但样式自定义）
         if item_config.clickable {
             button(item_container)
                 .on_press(MessageCategory::Domain(DomainMessage::Selected(
                     domain.clone(),
                 )))
+                .padding(0) // 移除按钮内边距
+                .class(ButtonType::Transparent) // 移除按钮默认样式
                 .width(Length::Fill)
                 .into()
         } else {
@@ -231,48 +246,48 @@ impl Component<AppState> for DomainListComponent {
             return self.render_loading_state();
         }
 
-        // 检查错误状态
+        // 优先渲染数据（如果有）
+        if !state.data.domain_list.is_empty() {
+            let item_config = DomainListItemConfig::default();
+
+            let domain_items: Vec<Element<MessageCategory, StyleType>> = state
+                .data
+                .domain_list
+                .iter()
+                .map(|domain| {
+                    let is_selected = self
+                        .selected_domain
+                        .as_ref()
+                        .map(|selected| selected == &domain.name)
+                        .unwrap_or(false);
+
+                    let domain_model = Domain {
+                        id: domain.id.clone(),
+                        name: domain.name.clone(),
+                        status: DomainStatus::Active,
+                        expiry: "".to_string(),
+                        provider: DnsProvider::Aliyun,
+                        records: vec![],
+                    };
+                    self.render_domain_item(domain_model, is_selected, &item_config, state)
+                })
+                .collect();
+
+            let content = column(domain_items).spacing(2).width(Length::Fill);
+
+            return scrollable(content)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into();
+        }
+
+        // 如果没有数据，再检查错误状态
         if !state.ui.message.is_empty() {
             return self.render_error_state(&state.ui.message);
         }
 
-        // 检查是否有域名
-        if state.data.domain_list.is_empty() {
-            return self.render_empty_state();
-        }
-
-        // 渲染域名列表
-        let item_config = DomainListItemConfig::default();
-
-        let domain_items: Vec<Element<MessageCategory, StyleType>> = state
-            .data
-            .domain_list
-            .iter()
-            .map(|domain| {
-                let is_selected = self
-                    .selected_domain
-                    .as_ref()
-                    .map(|selected| selected == &domain.name)
-                    .unwrap_or(false);
-
-                let domain_model = Domain {
-                    id: domain.id.clone(),
-                    name: domain.name.clone(),
-                    status: DomainStatus::Active,
-                    expiry: "".to_string(),
-                    provider: DnsProvider::Aliyun,
-                    records: vec![],
-                };
-                self.render_domain_item(domain_model, is_selected, &item_config, state)
-            })
-            .collect();
-
-        let content = column(domain_items).spacing(2).width(Length::Fill);
-
-        scrollable(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        // 最后渲染空状态
+        self.render_empty_state()
     }
 
     fn is_visible(&self, _state: &AppState) -> bool {

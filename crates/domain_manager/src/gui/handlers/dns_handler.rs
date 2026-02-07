@@ -3,8 +3,10 @@
 //! 负责处理所有与DNS记录相关的业务逻辑，包括DNS记录的增删改查、
 //! 提供商管理等操作。
 
-use super::message_handler::{DnsMessage, MessageCategory, NavigationMessage, NotificationMessage};
-use super::{EventHandler, HandlerResult};
+use crate::gui::handlers::message_handler::{
+    DnsMessage, MessageCategory, NavigationMessage, NotificationMessage,
+};
+use crate::gui::handlers::{EventHandler, HandlerResult};
 use crate::api::dns_client::DnsClientTrait;
 use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::model::domain::{DnsProvider, DomainName};
@@ -17,7 +19,7 @@ use crate::model::dns_record_response::{Record, Status, Type as RecordType};
 use crate::models::record::NewRecord;
 use crate::storage::{accounts, domains, records, DnsRecordModal};
 use iced::Task;
-use sea_orm::DatabaseConnection;
+use sea_orm::{DatabaseConnection, DbErr}; // Import DbErr
 use std::error::Error;
 use tracing::{info, warn};
 
@@ -37,32 +39,30 @@ impl DnsHandler {
 
     /// 处理查询DNS记录
     fn handle_query_record(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
-        // 检查缓存中是否已有记录
-        if state.data.dns_records_cache.contains_key(&domain_id) {
-            state
-                .ui
-                .set_message(format!("DNS记录已缓存: {}", domain_id));
-            return HandlerResult::StateUpdated;
-        }
-
         // 设置加载状态
         state
             .ui
             .set_message(format!("正在查询 {} 的DNS记录...", domain_id));
 
-        // 返回查询DNS记录的异步任务
-        HandlerResult::StateUpdatedWithTask(Task::perform(
-            Self::query_dns_records_async(domain_id.clone()),
-            move |result| match result {
-                Ok(records) => {
-                    MessageCategory::Dns(DnsMessage::DnsRecordReloaded(domain_id, records))
-                }
-                Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                    "查询DNS记录失败: {}",
-                    e
-                ))),
-            },
-        ))
+        if let Some(conn) = &state.database {
+            let conn_clone = conn.clone();
+            // 返回查询DNS记录的异步任务（从数据库加载）
+            HandlerResult::StateUpdatedWithTask(Task::perform(
+                Self::load_dns_records_from_db(conn_clone, domain_id),
+                move |result| match result {
+                    Ok(records) => {
+                        MessageCategory::Dns(DnsMessage::DnsRecordReloaded(domain_id, records))
+                    }
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
+                        "加载DNS记录失败: {}",
+                        e
+                    ))),
+                },
+            ))
+        } else {
+            state.ui.set_message("数据库未连接".to_string());
+            HandlerResult::StateUpdated
+        }
     }
 
     /// 处理添加DNS记录
@@ -287,41 +287,46 @@ impl DnsHandler {
         HandlerResult::StateUpdated
     }
 
-    /// 异步查询DNS记录
-    async fn query_dns_records_async(domain_id: usize) -> Result<Vec<DnsRecordModal>, String> {
-        // 模拟网络延迟
-        tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+    /// 从数据库加载DNS记录
+    async fn load_dns_records_from_db(
+        conn: DatabaseConnection,
+        domain_id: usize,
+    ) -> Result<Vec<DnsRecordModal>, String> {
+        info!("开始从数据库加载域名 {} 的DNS记录", domain_id);
 
-        // 这里应该调用实际的DNS查询服务
-        // 暂时返回模拟数据
-        let records = vec![
-            DnsRecordModal {
-                id: 1,
-                domain_id: domain_id.clone() as i64,
-                record_type: "A".to_string(),
-                name: "@".to_string(),
-                value: "192.168.1.1".to_string(),
-                ttl: 600,
-                priority: None,
-                enabled: true,
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: Some(chrono::Utc::now().naive_utc()),
-            },
-            DnsRecordModal {
-                id: 2,
-                domain_id: domain_id.clone() as i64,
-                record_type: "CNAME".to_string(),
-                name: "www".to_string(),
-                value: "127.0.0.1".to_string(),
-                ttl: 600,
-                priority: None,
-                enabled: true,
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: Some(chrono::Utc::now().naive_utc()),
-            },
-        ];
+        let records = records::get_records_by_domain(&conn, Some(domain_id as i64))
+            .await
+            .map_err(|e: anyhow::Error| e.to_string())?;
 
-        Ok(records)
+        // 转换为 DnsRecordModal
+        let modal_records: Vec<DnsRecordModal> = records
+            .into_iter()
+            .map(|r| DnsRecordModal {
+                id: r.id,
+                domain_id: r.domain_id,
+                record_type: r.record_type,
+                name: r.record_name,
+                value: r.record_value,
+                ttl: r.ttl,
+                priority: None, // 数据库中没有存储 priority，后续可以添加
+                enabled: true,  // 数据库中没有存储 status，默认为 true
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: None,
+            })
+            .collect();
+
+        info!(
+            "域名 {} 的DNS记录加载完成，共 {} 条记录",
+            domain_id,
+            modal_records.len()
+        );
+        Ok(modal_records)
+    }
+
+    /// 异步同步DNS记录
+    async fn sync_dns_records_async(domain: usize, conn: DatabaseConnection) -> Result<Vec<DnsRecordModal>, String> {
+        // 使用 load_dns_records_from_db 代替 query_dns_records_async
+        Self::load_dns_records_from_db(conn, domain).await
     }
 
     /// 异步添加DNS记录
@@ -489,13 +494,13 @@ impl DnsHandler {
     }
 
     /// 异步同步DNS记录
-    async fn sync_dns_records_async(domain: usize) -> Result<Vec<DnsRecordModal>, String> {
-        // 模拟网络延迟
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-
-        // 这里应该调用实际的DNS同步服务
-        Self::query_dns_records_async(domain).await
-    }
+    // async fn sync_dns_records_async(domain: usize) -> Result<Vec<DnsRecordModal>, String> {
+    //     // 模拟网络延迟
+    //     tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+    //
+    //     // 这里应该调用实际的DNS同步服务
+    //     Self::query_dns_records_async(domain).await
+    // }
 
     /// 异步删除DNS记录（原版handle_dns_record_delete）
     async fn handle_dns_record_delete_async(record_id: usize) -> Option<usize> {
@@ -559,7 +564,13 @@ impl EventHandler<DnsMessage> for DnsHandler {
             DnsMessage::FormCancelled => self.handle_form_cancelled(state),
             DnsMessage::RecordDeleted(record_id) => self.handle_record_deleted(state, record_id),
             DnsMessage::ProviderSelected(account_id) => {
-                self.handle_provider_selected(state, account_id)
+                // 特殊处理：使用 99999 作为切换添加表单的信号
+                if account_id == 99999 {
+                    state.data.add_dns_form.is_visible = !state.data.add_dns_form.is_visible;
+                    HandlerResult::StateUpdated
+                } else {
+                    self.handle_provider_selected(state, account_id)
+                }
             }
             DnsMessage::ProviderChange(provider) => self.handle_provider_change(state, provider),
             _ => HandlerResult::None,

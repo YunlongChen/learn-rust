@@ -11,6 +11,7 @@ pub struct AddDnsField {
     pub value: String,
     pub ttl: i32,
     pub record_type: Option<Type>,
+    pub is_visible: bool, // 控制表单显示
 }
 
 impl AddDnsField {
@@ -34,6 +35,7 @@ impl Default for AddDnsField {
             ttl: 600,
             record_type: Some(Type::A),
             value: String::new(),
+            is_visible: false,
         }
     }
 }

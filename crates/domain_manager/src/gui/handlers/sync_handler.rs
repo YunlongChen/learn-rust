@@ -560,7 +560,10 @@ impl EventHandler<SyncMessage> for SyncHandler {
 
                 match result {
                     Ok(_) => {
-                        state.ui.set_message("所有域名同步完成".to_string());
+                        state.ui.set_message("".to_string());
+                        state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                            "所有域名同步完成".to_string(),
+                        )));
                     }
                     Err(e) => {
                         state.ui.set_message(e.clone());
@@ -579,7 +582,11 @@ impl EventHandler<SyncMessage> for SyncHandler {
                 state.data.provider_page.providers = model.providers;
                 state.data.domain_list = model.domains;
                 state.data.current_dns_records = model.records;
-                state.ui.set_message("数据加载完成".to_string());
+                state.ui.set_message("".to_string()); // 清空消息，避免被误判为错误
+                state.ui.is_loading = false; // 确保加载状态结束
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(
+                    "数据加载完成".to_string(),
+                )));
                 HandlerResult::StateUpdated
             }
             SyncMessage::DomainSyncComplete(_, _) => todo!(),

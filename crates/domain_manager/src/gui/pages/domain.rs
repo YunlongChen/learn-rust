@@ -67,17 +67,17 @@ pub fn domain_page(app: &DomainManagerV2) -> Container<'_, MessageCategory, Styl
                     .push(
                         text(get_text("domain_manage"))
                             .size(20)
-                            .align_x(Alignment::Start)
-                            .width(Length::Fill),
+                            .align_x(Alignment::Start),
                     )
                     .push_maybe(match app.in_query() {
                         true => Some(Text::new(get_text("in_query")).width(Length::Fill)),
                         false => None,
                     })
+                    .push(Space::with_width(Length::Fill)) // 将按钮推向右侧
                     .push(
                         button(text(get_text("reload")).center())
                             .on_press(MessageCategory::Domain(DomainMessage::Reload))
-                            .width(Length::Fixed(100.0)),
+                            .width(Length::Fixed(80.0)),
                     )
                     .push(horizontal_space().width(Length::Fixed(4f32)).height(4))
                     .push(
@@ -87,12 +87,13 @@ pub fn domain_page(app: &DomainManagerV2) -> Container<'_, MessageCategory, Styl
                             )))
                             .width(Length::Fixed(100.0)),
                     )
+                    .push(horizontal_space().width(Length::Fixed(4f32)).height(4))
                     .push(
-                        button(Text::new(get_text("add_provider")).center())
+                        button(Text::new("⚙").size(16).center()) // 使用齿轮图标
                             .on_press(MessageCategory::Navigation(NavigationMessage::PageChanged(
                                 Page::Providers,
                             )))
-                            .width(Length::Fixed(100.0)),
+                            .width(Length::Fixed(40.0)), // 小尺寸按钮
                     )
                     .width(Length::Fill)
                     .padding(Padding {

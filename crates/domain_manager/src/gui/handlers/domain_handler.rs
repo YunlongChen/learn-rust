@@ -53,27 +53,11 @@ impl DomainHandler {
             // 切换到DNS记录页面并查询DNS记录
             state.ui.current_page = Page::DnsRecord;
 
-            // 如果有DNS记录缓存，直接显示；否则需要查询
-            if !state.data.dns_records_cache.contains_key(&domain_id) {
-                info!("开始查询域名 {} 的DNS记录", domain_id);
-                // 返回查询DNS记录的任务
-                return HandlerResult::StateUpdatedWithTask(Task::perform(
-                    Self::query_dns_records_async(domain_id.clone()),
-                    move |records| match records {
-                        Ok(records) => MessageCategory::Dns(DnsMessage::QueryDnsResult(records)),
-                        Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(
-                            format!("DNS记录查询失败: {}", e),
-                        )),
-                    },
-                ));
-            } else {
-                // 使用缓存的DNS记录
-                if let Some(cached_records) = state.data.dns_records_cache.get(&domain_id) {
-                    state.data.dns_list = cached_records.clone();
-                }
-            }
-
-            HandlerResult::StateUpdated
+            // 触发DNS记录查询消息，交给DnsHandler处理
+            info!("触发DNS记录查询消息: {}", domain_id);
+            return HandlerResult::Task(Task::done(MessageCategory::Dns(DnsMessage::QueryRecord(
+                domain_id,
+            ))));
         } else {
             warn!("域名 {} 不存在", domain_id);
             state.update(StateUpdate::Ui(UiUpdate::ShowToast(format!(

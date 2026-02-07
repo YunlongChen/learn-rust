@@ -8,10 +8,13 @@ use crate::gui::handlers::message_handler::{DnsMessage, MessageCategory, Navigat
 use crate::gui::model::domain::DnsRecord;
 use crate::gui::pages::Page;
 use crate::gui::state::AppState;
-use crate::gui::styles::ContainerType;
+use crate::gui::styles::button::ButtonType;
+use crate::gui::styles::container::ContainerType;
+use crate::gui::styles::ContainerType as ContainerClass;
+use crate::model::dns_record_response::Type as RecordType;
 use crate::storage::DnsRecordModal;
 use crate::StyleType;
-use iced::widget::{button, column, container, row, text};
+use iced::widget::{button, column, container, pick_list, row, text, text_input};
 use iced::{Alignment, Element, Length, Padding};
 
 /// DNS记录组件
@@ -24,6 +27,7 @@ pub struct DnsRecordsComponent {
     show_details: bool,
     edit_mode: bool,
     editing_record: Option<DnsRecordModal>,
+    is_adding: bool, // 新增：控制是否显示添加表单
 }
 
 /// DNS记录显示配置
@@ -102,7 +106,13 @@ impl DnsRecordsComponent {
             show_details: true,
             edit_mode: false,
             editing_record: None,
+            is_adding: false,
         }
+    }
+
+    /// 切换添加模式
+    pub fn toggle_add_mode(&mut self) {
+        self.is_adding = !self.is_adding;
     }
 
     /// 设置选中的记录
@@ -161,8 +171,94 @@ impl DnsRecordsComponent {
             .collect()
     }
 
+    /// 渲染内联添加表单
+    fn render_add_form<'a>(&'a self, state: &'a State) -> Element<'a, MessageCategory, StyleType> {
+        let form_state = &state.data.add_dns_form;
+
+        let record_types = vec![
+            RecordType::A,
+            RecordType::AAAA,
+            RecordType::Cname,
+            RecordType::MX,
+            RecordType::TXT,
+            RecordType::NS,
+            RecordType::SRV,
+            RecordType::PTR,
+            RecordType::SOA,
+        ];
+
+        let content = column![
+            text("添加DNS记录").size(14),
+            row![
+                // 记录类型
+                column![
+                    text("类型").size(12),
+                    pick_list(
+                        record_types,
+                        form_state.record_type.clone(),
+                        |t| MessageCategory::Dns(DnsMessage::FormRecordTypeChanged(t))
+                    )
+                    .width(Length::Fixed(100.0))
+                ]
+                .spacing(5),
+                // 主机记录
+                column![
+                    text("主机记录").size(12),
+                    text_input("如 www", &form_state.record_name)
+                        .on_input(|s| MessageCategory::Dns(DnsMessage::FormNameChanged(s)))
+                        .width(Length::Fixed(150.0))
+                ]
+                .spacing(5),
+                // 记录值
+                column![
+                    text("记录值").size(12),
+                    text_input("如 1.2.3.4", &form_state.value)
+                        .on_input(|s| MessageCategory::Dns(DnsMessage::FormValueChanged(s)))
+                        .width(Length::Fill)
+                ]
+                .spacing(5),
+                // TTL
+                column![
+                    text("TTL").size(12),
+                    text_input("600", &form_state.ttl.to_string())
+                        .on_input(|s| {
+                            if let Ok(ttl) = s.parse::<i32>() {
+                                MessageCategory::Dns(DnsMessage::FormTtlChanged(ttl))
+                            } else if s.is_empty() {
+                                MessageCategory::Dns(DnsMessage::FormTtlChanged(0))
+                            } else {
+                                MessageCategory::Dns(DnsMessage::FormTtlChanged(form_state.ttl))
+                            }
+                        })
+                        .width(Length::Fixed(80.0))
+                ]
+                .spacing(5),
+            ]
+            .spacing(10)
+            .align_y(Alignment::End),
+            // 操作按钮
+            row![
+                button("保存")
+                    .on_press(MessageCategory::Dns(DnsMessage::FormSubmit))
+                    .class(ButtonType::Primary),
+                button("取消")
+                    .on_press(MessageCategory::Dns(DnsMessage::FormCancelled))
+                    .class(ButtonType::Standard),
+            ]
+            .spacing(10)
+            .align_y(Alignment::Center)
+        ]
+        .spacing(15)
+        .padding(15);
+
+        container(content)
+            .class(ContainerType::BorderedRound)
+            .width(Length::Fill)
+            .into()
+    }
+
     /// 渲染过滤器栏
-    fn render_filter_bar(&self, _state: &State) -> Element<'_, MessageCategory, StyleType> {
+    fn render_filter_bar(&self, state: &State) -> Element<'_, MessageCategory, StyleType> {
         let filters = vec![
             DnsRecordFilter::All,
             DnsRecordFilter::A,
@@ -204,24 +300,28 @@ impl DnsRecordsComponent {
         .on_input(|string: String| MessageCategory::Dns(DnsMessage::DnsSearchChanged(string)))
         .width(Length::Fixed(200.0));
 
-        iced::widget::Row::<'_, MessageCategory, StyleType>::new()
+        let mut row = iced::widget::Row::<'_, MessageCategory, StyleType>::new()
             .push(
                 iced::widget::Row::<'_, MessageCategory, StyleType>::with_children(filter_buttons)
                     .spacing(5),
             )
-            .push(search_input)
-            .push(
+            .push(search_input);
+
+        // 仅当选中域名时才显示添加按钮
+        if state.data.selected_domain.is_some() {
+            let is_visible = state.data.add_dns_form.is_visible;
+            row = row.push(
                 iced::widget::Button::<'_, MessageCategory, StyleType>::new(iced::widget::Text::<
                     '_,
                     StyleType,
                 >::new(
-                    "添加记录"
+                    if is_visible { "隐藏表单" } else { "添加记录" }
                 ))
-                .on_press(MessageCategory::Navigation(
-                    NavigationMessage::PageChanged(Page::AddRecord),
-                )),
-            )
-            .align_y(Alignment::Center)
+                .on_press(MessageCategory::Dns(DnsMessage::ProviderSelected(99999))), // 临时使用此消息触发切换
+            );
+        }
+
+        row.align_y(Alignment::Center)
             .spacing(10)
             .padding(Padding::from([10, 0]))
             .into()
@@ -467,6 +567,11 @@ impl Component<AppState> for DnsRecordsComponent {
 
         // 添加过滤器栏
         content = content.push(self.render_filter_bar(state));
+
+        // 如果处于添加模式，显示添加表单
+        if state.data.add_dns_form.is_visible {
+            content = content.push(self.render_add_form(state));
+        }
 
         // 检查是否选择了域名
         let selected_domain = match &state.data.selected_domain {
