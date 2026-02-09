@@ -46,7 +46,7 @@ validator = { version = "0.18.1", features = ["derive"] }
 [dev-dependencies]
 serde_test = "1.0.177"
 serial_test = { version = "3.2.0", default-features = false }
-tracing-test = "0.2.5"
+tracing-test = "0.2.6"
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
