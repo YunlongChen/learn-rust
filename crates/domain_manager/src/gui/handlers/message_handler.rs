@@ -143,6 +143,7 @@ pub enum DnsMessage {
     FormRecordTypeChanged(Type),
     FormTtlChanged(i32),
     FormSubmit,
+    FormSubmitSuccess(usize),
 
     ProviderSelected(usize),
     ProviderChange(String),
@@ -150,6 +151,7 @@ pub enum DnsMessage {
     DnsSearchChanged(String),
     DnsToggleRecord(usize),
     DnsRecordSelected(usize),
+    RecordHovered(Option<usize>),
 
     // 重新加载域名解析
     ReloadDnsRecord(usize),

@@ -255,10 +255,11 @@ impl Component<AppState> for DomainListComponent {
                 .domain_list
                 .iter()
                 .map(|domain| {
-                    let is_selected = self
+                    let is_selected = state
+                        .data
                         .selected_domain
                         .as_ref()
-                        .map(|selected| selected == &domain.name)
+                        .map(|selected| selected.name == domain.name)
                         .unwrap_or(false);
 
                     let domain_model = Domain {

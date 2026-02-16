@@ -91,6 +91,9 @@ pub struct UiState {
 
     /// 错误消息
     pub error_message: Option<String>,
+
+    /// 悬停的DNS记录ID
+    pub hovered_dns_record: Option<usize>,
 }
 
 impl Default for UiState {
@@ -122,6 +125,7 @@ impl Default for UiState {
             window_state: WindowState::default(),
             id: None,
             error_message: None,
+            hovered_dns_record: None,
         }
     }
 }

@@ -379,6 +379,7 @@ impl DomainManagerV2 {
         let body: Element<MessageCategory, StyleType> = match self.state.ui.current_page {
             Page::Dashboard => self.render_main_page(),
             Page::DomainPage => self.render_main_page(),
+            Page::DnsRecord => self.render_main_page(), // Fix: Handle DnsRecord page
             Page::Settings(_) => self.render_settings_page(),
             Page::Help => self.render_help_page(),
             Page::AddDomain => self.render_add_domain_page(),

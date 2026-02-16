@@ -2,9 +2,9 @@
 server:
   port: 8080
 database:
-  db_type: sqlite
-  user: postgres
-  password: StrongPassword123!
+  db_type: postgres
+  user: domain_manager
+  password: 123456
   port: 5432
-  host: 127.0.0.1
-  schema: domain
+  host: 192.168.3.112
+  schema: domain_manager

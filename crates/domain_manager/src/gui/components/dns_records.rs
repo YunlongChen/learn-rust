@@ -14,7 +14,7 @@ use crate::gui::styles::ContainerType as ContainerClass;
 use crate::model::dns_record_response::Type as RecordType;
 use crate::storage::DnsRecordModal;
 use crate::StyleType;
-use iced::widget::{button, column, container, pick_list, row, text, text_input};
+use iced::widget::{button, column, container, mouse_area, pick_list, row, text, text_input};
 use iced::{Alignment, Element, Length, Padding};
 
 /// DNS记录组件
@@ -174,6 +174,7 @@ impl DnsRecordsComponent {
     /// 渲染内联添加表单
     fn render_add_form<'a>(&'a self, state: &'a State) -> Element<'a, MessageCategory, StyleType> {
         let form_state = &state.data.add_dns_form;
+        let is_edit = form_state.record_id.is_some();
 
         let record_types = vec![
             RecordType::A,
@@ -188,7 +189,7 @@ impl DnsRecordsComponent {
         ];
 
         let content = column![
-            text("添加DNS记录").size(14),
+            text(if is_edit { "编辑DNS记录" } else { "添加DNS记录" }).size(14),
             row![
                 // 记录类型
                 column![
@@ -238,7 +239,7 @@ impl DnsRecordsComponent {
             .align_y(Alignment::End),
             // 操作按钮
             row![
-                button("保存")
+                button(if is_edit { "更新" } else { "保存" })
                     .on_press(MessageCategory::Dns(DnsMessage::FormSubmit))
                     .class(ButtonType::Primary),
                 button("取消")
@@ -272,7 +273,7 @@ impl DnsRecordsComponent {
         let filter_buttons: Vec<Element<MessageCategory, StyleType>> = filters
             .into_iter()
             .map(|filter| {
-                let _is_active = match &self.filter_type {
+                let is_active = match &self.filter_type {
                     Some(current) => current == filter.as_str(),
                     None => filter == DnsRecordFilter::All,
                 };
@@ -289,6 +290,11 @@ impl DnsRecordsComponent {
                 .on_press(MessageCategory::Dns(DnsMessage::DnsFilterChanged(
                     filter_str,
                 )))
+                .class(if is_active {
+                    ButtonType::Primary
+                } else {
+                    ButtonType::Standard
+                })
                 .into()
             })
             .collect();
@@ -330,11 +336,12 @@ impl DnsRecordsComponent {
     /// 渲染DNS记录项
     fn render_record_item_simple<'a>(
         &'a self,
+        state: &'a State,
         record: &'a DnsRecordModal,
         is_selected: bool,
-        index: usize,
+        _index: usize,
     ) -> Element<'a, MessageCategory, StyleType> {
-        let mut content = iced::widget::Column::<'_, MessageCategory, StyleType>::new();
+        let is_hovered = state.ui.hovered_dns_record == Some(record.id as usize);
 
         // 主要信息行
         let mut main_row = iced::widget::Row::<'_, MessageCategory, StyleType>::new()
@@ -368,38 +375,51 @@ impl DnsRecordsComponent {
             iced::widget::Text::<'_, StyleType>::new(format!("TTL: {}", record.ttl)).size(10),
         );
 
-        content = content.push(main_row);
+        // 推送间隔，将按钮推到右边
+        main_row = main_row.push(iced::widget::Space::with_width(Length::Fill));
 
-        // 操作按钮
-        let actions = iced::widget::Row::<'_, MessageCategory, StyleType>::new()
-            .push(
-                iced::widget::Button::<'_, MessageCategory, StyleType>::new(
-                    iced::widget::Text::<'_, StyleType>::new("编辑").size(10),
+        // 操作按钮 (仅在悬停或选中时显示)
+        if is_hovered || is_selected {
+            let actions = iced::widget::Row::<'_, MessageCategory, StyleType>::new()
+                .push(
+                    iced::widget::Button::<'_, MessageCategory, StyleType>::new(
+                        iced::widget::Text::<'_, StyleType>::new("编辑").size(10),
+                    )
+                    .padding(Padding::from([4, 8]))
+                    .on_press(MessageCategory::Dns(DnsMessage::EditRecord(record.clone()))),
                 )
-                .padding(Padding::from([4, 8]))
-                .on_press(MessageCategory::Navigation(
-                    NavigationMessage::PageChanged(Page::AddRecord),
-                )),
-            )
-            .push(
-                iced::widget::Button::<'_, MessageCategory, StyleType>::new(
-                    iced::widget::Text::<'_, StyleType>::new("删除").size(10),
+                .push(
+                    iced::widget::Button::<'_, MessageCategory, StyleType>::new(
+                        iced::widget::Text::<'_, StyleType>::new("删除").size(10),
+                    )
+                    .padding(Padding::from([4, 8]))
+                    .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id as usize))),
                 )
-                .padding(Padding::from([4, 8]))
-                .on_press(MessageCategory::Dns(DnsMessage::Delete(index))),
-            )
-            .spacing(5);
+                .spacing(5);
 
-        content = content.push(actions);
+            main_row = main_row.push(actions);
+        }
 
-        iced::widget::Container::<'_, MessageCategory, StyleType>::new(content)
+        let item_container = iced::widget::Container::<'_, MessageCategory, StyleType>::new(main_row)
             .padding(10)
+            .width(Length::Fill)
             .class(if is_selected {
                 ContainerType::Selected
             } else {
                 ContainerType::Hoverable
-            })
-            .into()
+            });
+
+        mouse_area(
+            button(item_container)
+                .on_press(MessageCategory::Dns(DnsMessage::DnsRecordSelected(
+                    record.id as usize,
+                )))
+                .width(Length::Fill)
+                .class(ButtonType::Transparent)
+        )
+        .on_enter(MessageCategory::Dns(DnsMessage::RecordHovered(Some(record.id as usize))))
+        .on_exit(MessageCategory::Dns(DnsMessage::RecordHovered(None)))
+        .into()
     }
 
     fn render_record_item<'a>(
@@ -505,20 +525,26 @@ impl DnsRecordsComponent {
         }
 
         // 包装在容器中
-        let mut item_container = container(content)
+        let item_container = container(content)
             .padding(Padding::from([10, 12]))
-            .width(Length::Fill);
+            .width(Length::Fill)
+            .class(if is_selected {
+                ContainerType::Selected
+            } else {
+                ContainerType::Hoverable
+            }); // Fix: Apply class to item_container
 
         // 设置选中状态的样式
-        if is_selected {
-            item_container = item_container;
-        }
+        // if is_selected {
+        //    item_container = item_container;
+        // }
 
         button(item_container)
             .on_press(MessageCategory::Dns(DnsMessage::DnsRecordSelected(
                 record.id as usize,
             )))
             .width(Length::Fill)
+            .class(ButtonType::Transparent) // Fix: Transparent button
             .into()
     }
 
@@ -628,7 +654,7 @@ impl Component<AppState> for DnsRecordsComponent {
                     .as_ref()
                     .map(|selected| selected == &record.id.to_string())
                     .unwrap_or(false);
-                self.render_record_item_simple(record, is_selected, index)
+                self.render_record_item_simple(state, record, is_selected, index)
             })
             .collect();
 
