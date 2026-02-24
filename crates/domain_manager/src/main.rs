@@ -53,12 +53,12 @@ i18n!("locales", fallback = "en");
 #[tokio::main]
 pub async fn main() -> iced::Result {
     info!("Application Starting...");
-    // 开始记录日志
-    init_logging();
-
     // 读取配置文件
     let config: Config = Config::new_from_file("config.json");
     info!("配置文件信息：应用名称：{:?}", &config.name);
+
+    // 开始记录日志
+    init_logging(&config);
 
     // kill the main thread as soon as a secondary thread panics
     let _orig_hook = panic::take_hook();

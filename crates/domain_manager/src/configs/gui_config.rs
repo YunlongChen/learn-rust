@@ -7,7 +7,11 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Display;
 use std::fs::read_to_string;
+use sea_orm::sqlx::encode::IsNull::No;
 use tracing::{error, info};
+
+#[cfg(feature = "logging")]
+use super::logging_config::{LogLevel, LogOutput, LogFormat, LoggingConfig};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum LICENCE {
@@ -95,6 +99,10 @@ pub struct Config {
     pub color_gradient: GradientType,
     pub ali_access_key_id: Option<String>,
     pub ali_access_key_secret: Option<String>,
+    #[cfg(feature = "logging")]
+    pub logging_config: Option<LoggingConfig>,
+    #[cfg(not(feature = "logging"))]
+    pub logging_config: Option<String>,
 
     /// 窗口状态配置
     #[serde(default)]
@@ -119,6 +127,10 @@ impl From<String> for Config {
             color_gradient: GradientType::None,
             ali_access_key_id: None,
             ali_access_key_secret: None,
+            #[cfg(feature = "logging")]
+            logging_config: Some(LoggingConfig::default()),
+            #[cfg(not(feature = "logging"))]
+            logging_config: None,
             window_state: WindowState::default(),
             background_config: BackgroundConfig::default(),
         }
@@ -145,6 +157,10 @@ impl Default for Config {
             color_gradient: GradientType::None,
             ali_access_key_id: None,
             ali_access_key_secret: None,
+            #[cfg(feature = "logging")]
+            logging_config: Some(LoggingConfig::default()),
+            #[cfg(not(feature = "logging"))]
+            logging_config: Some("INFO".into()),
             window_state: WindowState::default(),
             background_config: BackgroundConfig::default(),
         }

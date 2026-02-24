@@ -385,17 +385,18 @@ impl DnsRecordsComponent {
                     iced::widget::Button::<'_, MessageCategory, StyleType>::new(
                         iced::widget::Text::<'_, StyleType>::new("编辑").size(10),
                     )
-                    .padding(Padding::from([4, 8]))
+                    .padding(Padding::from([2, 8]))
                     .on_press(MessageCategory::Dns(DnsMessage::EditRecord(record.clone()))),
                 )
                 .push(
                     iced::widget::Button::<'_, MessageCategory, StyleType>::new(
                         iced::widget::Text::<'_, StyleType>::new("删除").size(10),
                     )
-                    .padding(Padding::from([4, 8]))
+                    .padding(Padding::from([2, 8]))
                     .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id as usize))),
                 )
-                .spacing(5);
+                .spacing(5)
+                .height(Length::Shrink);
 
             main_row = main_row.push(actions);
         }

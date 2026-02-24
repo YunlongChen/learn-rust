@@ -65,6 +65,9 @@ async fn test_handle_auto_naming() {
         is_adding_domain: false,
         new_domain_name: "".to_string(),
         domains: vec![],
+        status: Default::default(),
+        last_synced_at: None,
+        domain_count: 0,
     });
 
     // 触发选择 Aliyun
@@ -128,6 +131,9 @@ async fn test_edit_flow() {
         is_adding_domain: false,
         new_domain_name: "".to_string(),
         domains: vec![],
+        status: Default::default(),
+        last_synced_at: None,
+        domain_count: 0,
     });
 
     // 请求编辑

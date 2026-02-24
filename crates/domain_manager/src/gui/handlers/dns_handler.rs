@@ -21,7 +21,7 @@ use crate::storage::{accounts, domains, records, DnsRecordModal};
 use iced::Task;
 use sea_orm::{DatabaseConnection, DbErr}; // Import DbErr
 use std::error::Error;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// DNS处理器
 ///
@@ -854,7 +854,10 @@ impl EventHandler<DnsMessage> for DnsHandler {
                 state.ui.is_loading = false;
                 HandlerResult::StateUpdated
             }
-            _ => HandlerResult::None,
+            _ => {
+                debug!("未处理事件！{:?}",event);
+                HandlerResult::None
+            },
         }
     }
 

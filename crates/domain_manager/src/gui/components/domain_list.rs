@@ -153,10 +153,11 @@ impl DomainListComponent {
             content = content.push(details_row);
         }
 
-        // 包装在容器中
+        // 包装在容器中 - 使用固定高度确保一致性
         let item_container = container(content)
             .padding(Padding::from([8, 12]))
             .width(Length::Fill)
+            .height(Length::Fixed(60.0)) // 固定高度，防止悬停时高度变化
             .class(if is_selected {
                 ContainerType::Selected
             } else {

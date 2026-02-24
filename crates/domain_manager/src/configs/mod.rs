@@ -15,6 +15,7 @@ pub mod config_settings;
 pub mod config_window;
 pub mod database;
 pub mod gui_config;
+pub mod logging_config;
 pub mod server;
 
 static CONFIG: LazyLock<AppConfig> = LazyLock::new(|| {

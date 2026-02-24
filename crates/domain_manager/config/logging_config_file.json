@@ -1,0 +1,15 @@
+{
+  "logging_config": {
+    "level": "DEBUG",
+    "output": {
+      "File": {
+        "path": "./logs/domain_manager.log",
+        "max_size_mb": 10,
+        "max_files": 5
+      }
+    },
+    "format": "Json",
+    "enable_colors": false,
+    "module_filter": ["domain_manager::gui", "domain_manager::dns"]
+  }
+}

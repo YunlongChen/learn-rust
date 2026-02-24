@@ -95,6 +95,9 @@ fn create_mock_providers() -> Vec<DomainProvider> {
         is_adding_domain: false,
         new_domain_name: "".to_string(),
         domains: vec![],
+        status: Default::default(),
+        last_synced_at: None,
+        domain_count: 0,
     }]
 }
 

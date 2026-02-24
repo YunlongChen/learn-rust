@@ -1,0 +1,15 @@
+{
+  "logging_config": {
+    "level": "INFO",
+    "output": {
+      "Both": {
+        "file_path": "./logs/domain_manager.log",
+        "max_size_mb": 10,
+        "max_files": 5
+      }
+    },
+    "format": "Text",
+    "enable_colors": true,
+    "module_filter": null
+  }
+}
