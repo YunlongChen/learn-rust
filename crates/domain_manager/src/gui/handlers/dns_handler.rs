@@ -137,11 +137,13 @@ impl DnsHandler {
         if let Some(conn) = &state.database {
             let conn_clone = conn.clone();
             // 返回删除DNS记录的异步任务
-            let domain_for_message = domain.clone();
             HandlerResult::StateUpdatedWithTask(Task::perform(
                 Self::delete_dns_record_async(conn_clone, domain, record_id),
                 move |result| match result {
-                    Ok(_) => MessageCategory::Dns(DnsMessage::Delete(domain_for_message.clone())),
+                    Ok(_) => {
+                         // 删除成功后，触发重新查询以刷新列表
+                         MessageCategory::Dns(DnsMessage::QueryRecord(domain))
+                    },
                     Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
                         "删除DNS记录失败: {}",
                         e
@@ -194,13 +196,24 @@ impl DnsHandler {
     fn handle_dns_delete(&self, state: &mut AppState, record_id: usize) -> HandlerResult {
         info!("删除DNS记录: {}", record_id);
 
+        // 获取当前选中的域名ID，以便刷新列表
+        let domain_id = state.data.selected_domain.as_ref().map(|d| d.id as usize).unwrap_or(0);
+
         if let Some(conn) = &state.database {
             let conn_clone = conn.clone();
             // 返回删除DNS记录的异步任务
             HandlerResult::Task(Task::perform(
-                Self::delete_dns_record_async(conn_clone, 0, record_id),
+                Self::delete_dns_record_async(conn_clone, domain_id, record_id),
                 move |result| match result {
-                    Ok(_) => MessageCategory::Dns(DnsMessage::RecordDeleted(record_id)),
+                    Ok(_) => {
+                        if domain_id > 0 {
+                            // 删除成功后，触发重新查询以刷新列表
+                            MessageCategory::Dns(DnsMessage::QueryRecord(domain_id))
+                        } else {
+                            // 如果没有选中域名，可能无法自动刷新
+                            MessageCategory::Notification(NotificationMessage::ShowToast("删除成功".to_string()))
+                        }
+                    },
                     Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
                         "删除DNS记录失败: {}",
                         e
@@ -375,6 +388,15 @@ impl DnsHandler {
             .data
             .dns_list
             .retain(|record| record.id as usize != record_id);
+
+        // 从当前显示的DNS记录中移除
+        if let Some(domain) = &state.data.selected_domain {
+            let domain_id = domain.id as usize;
+            state.data.remove_dns_record(domain_id, record_id as i64);
+        } else {
+            // 如果没有选中的域名，尝试直接从当前显示的记录中移除
+            state.data.current_dns_records.retain(|r| r.id != record_id as i64);
+        }
 
         // 返回到DNS记录页面
         state.update(StateUpdate::Navigation(Page::DnsRecord));
