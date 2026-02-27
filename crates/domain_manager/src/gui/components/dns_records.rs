@@ -22,8 +22,6 @@ use iced::{Alignment, Element, Length, Padding};
 pub struct DnsRecordsComponent {
     config: ComponentConfig,
     selected_record: Option<String>,
-    filter_type: Option<String>,
-    search_query: String,
     show_details: bool,
     edit_mode: bool,
     editing_record: Option<DnsRecordModal>,
@@ -101,8 +99,6 @@ impl DnsRecordsComponent {
         Self {
             config: ComponentConfig::default(),
             selected_record: None,
-            filter_type: None,
-            search_query: String::new(),
             show_details: true,
             edit_mode: false,
             editing_record: None,
@@ -120,16 +116,6 @@ impl DnsRecordsComponent {
         self.selected_record = record_id;
     }
 
-    /// 设置过滤类型
-    pub fn set_filter_type(&mut self, filter_type: Option<String>) {
-        self.filter_type = filter_type;
-    }
-
-    /// 设置搜索查询
-    pub fn set_search_query(&mut self, query: String) {
-        self.search_query = query;
-    }
-
     /// 开始编辑记录
     pub fn start_edit(&mut self, record: DnsRecordModal) {
         self.edit_mode = true;
@@ -143,20 +129,20 @@ impl DnsRecordsComponent {
     }
 
     /// 过滤DNS记录
-    fn filter_records<'a>(&self, records: &'a [DnsRecordModal]) -> Vec<&'a DnsRecordModal> {
+    fn filter_records<'a>(&self, records: &'a [DnsRecordModal], filter: &crate::gui::state::data_state::Filter) -> Vec<&'a DnsRecordModal> {
         records
             .iter()
             .filter(|record| {
                 // 类型过滤
-                if let Some(filter_type) = &self.filter_type {
+                if let Some(filter_type) = &filter.record_type {
                     if &record.record_type != filter_type {
                         return false;
                     }
                 }
 
                 // 搜索过滤
-                if !self.search_query.is_empty() {
-                    let query = self.search_query.to_lowercase();
+                if !filter.search_keyword.is_empty() {
+                    let query = filter.search_keyword.to_lowercase();
                     let matches = record.name.to_lowercase().contains(&query)
                         || record.value.to_lowercase().contains(&query)
                         || record.record_type.to_lowercase().contains(&query);
@@ -273,7 +259,7 @@ impl DnsRecordsComponent {
         let filter_buttons: Vec<Element<MessageCategory, StyleType>> = filters
             .into_iter()
             .map(|filter| {
-                let is_active = match &self.filter_type {
+                let is_active = match &state.data.dns_record_filter.record_type {
                     Some(current) => current == filter.as_str(),
                     None => filter == DnsRecordFilter::All,
                 };
@@ -301,7 +287,7 @@ impl DnsRecordsComponent {
 
         let search_input = iced::widget::TextInput::<'_, MessageCategory, StyleType>::new(
             "搜索DNS记录...",
-            &self.search_query,
+            &state.data.dns_record_filter.search_keyword,
         )
         .on_input(|string: String| MessageCategory::Dns(DnsMessage::DnsSearchChanged(string)))
         .width(Length::Fixed(200.0));
@@ -632,7 +618,7 @@ impl Component<AppState> for DnsRecordsComponent {
         }
 
         // 过滤记录
-        let filtered_records = self.filter_records(records);
+        let filtered_records = self.filter_records(records, &state.data.dns_record_filter);
 
         if filtered_records.is_empty() {
             content = content.push(

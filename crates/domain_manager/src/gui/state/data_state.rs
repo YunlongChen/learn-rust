@@ -39,6 +39,9 @@ pub struct DataState {
     /// 过滤器设置
     pub filter: Filter,
 
+    /// DNS记录过滤器设置
+    pub dns_record_filter: Filter,
+
     /// 域名统计信息
     pub stats: DomainStats,
 
@@ -124,6 +127,7 @@ impl Default for DataState {
             dns_list: Vec::new(),
             add_dns_form: AddDnsField::default(),
             filter: Filter::default(),
+            dns_record_filter: Filter::default(),
             stats: DomainStats::default(),
             search_content: String::new(),
             has_changes: false,

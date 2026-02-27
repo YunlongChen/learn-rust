@@ -38,6 +38,11 @@ impl UiHandler {
     fn handle_change_page(&self, state: &mut AppState, page: Page) -> HandlerResult {
         info!("切换到页面: {:?}", page);
 
+        // 如果从 DNS 记录页面离开，或者进入 DNS 记录页面，清除 DNS 过滤器
+        if state.ui.current_page == Page::DnsRecord || page == Page::DnsRecord {
+            state.data.dns_record_filter = Default::default();
+        }
+
         // 保存当前页面为上一页
         let current_page = state.ui.current_page.clone();
         state.update(StateUpdate::Ui(UiUpdate::SetLastPage(current_page)));

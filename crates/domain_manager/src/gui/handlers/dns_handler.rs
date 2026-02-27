@@ -39,6 +39,9 @@ impl DnsHandler {
 
     /// 处理查询DNS记录
     fn handle_query_record(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
+        // 清除过滤器
+        state.data.dns_record_filter = Default::default();
+
         // 设置加载状态
         state
             .ui
@@ -216,7 +219,7 @@ impl DnsHandler {
             ))
         } else {
             state.ui.set_message("数据库未连接".to_string());
-            HandlerResult::StateUpdated  
+            HandlerResult::StateUpdated
         }
     }
 
@@ -250,6 +253,22 @@ impl DnsHandler {
         state.data.add_dns_form.record_type = Some(record_type);
         state.data.add_dns_form.is_visible = true;
 
+        HandlerResult::StateUpdated
+    }
+
+    /// 处理DNS记录搜索变更
+    fn handle_dns_search_changed(&self, state: &mut AppState, keyword: String) -> HandlerResult {
+        state.data.dns_record_filter.search_keyword = keyword;
+        HandlerResult::StateUpdated
+    }
+
+    /// 处理DNS记录过滤器变更
+    fn handle_dns_filter_changed(
+        &self,
+        state: &mut AppState,
+        filter_type: Option<String>,
+    ) -> HandlerResult {
+        state.data.dns_record_filter.record_type = filter_type;
         HandlerResult::StateUpdated
     }
 
@@ -870,6 +889,8 @@ impl EventHandler<DnsMessage> for DnsHandler {
             DnsMessage::FormSubmit => self.handle_form_submit(state),
             DnsMessage::FormSubmitSuccess(domain_id) => self.handle_form_submit_success(state, domain_id),
             DnsMessage::FormCancelled => self.handle_form_cancelled(state),
+            DnsMessage::DnsFilterChanged(filter) => self.handle_dns_filter_changed(state, filter),
+            DnsMessage::DnsSearchChanged(keyword) => self.handle_dns_search_changed(state, keyword),
             DnsMessage::RecordDeleted(record_id) => self.handle_record_deleted(state, record_id),
             DnsMessage::ProviderSelected(account_id) => {
                 // 特殊处理：使用 99999 作为切换添加表单的信号
