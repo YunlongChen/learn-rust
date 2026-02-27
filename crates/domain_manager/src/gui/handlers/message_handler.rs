@@ -105,6 +105,8 @@ pub enum DomainMessage {
     AddFormChanged(AddDomainFormMessage),
     SubmitForm,
     Delete(usize),
+    DeleteRequest(usize),
+    DeleteCancel,
     Query(String),
     Reload,
     QueryDomainResult(Vec<Domain>),
@@ -132,6 +134,8 @@ pub enum DnsMessage {
         record_id: usize,
     },
     Delete(usize),
+    DeleteRequest(usize),
+    DeleteCancel,
     RecordDeleted(usize),
     TestRecord(usize),
 

@@ -149,9 +149,24 @@ impl DomainHandler {
         HandlerResult::StateUpdated
     }
 
+    /// 处理域名删除请求
+    fn handle_delete_request(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
+        state.data.deleting_domain_id = Some(domain_id);
+        HandlerResult::StateUpdated
+    }
+
+    /// 处理域名删除取消
+    fn handle_delete_cancel(&self, state: &mut AppState) -> HandlerResult {
+        state.data.deleting_domain_id = None;
+        HandlerResult::StateUpdated
+    }
+
     /// 处理删除域名
     fn handle_delete_domain(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
         info!("删除域名: {}", domain_id);
+
+        // 重置删除状态
+        state.data.deleting_domain_id = None;
 
         // 检查域名是否存在
         if !state
@@ -314,6 +329,8 @@ impl EventHandler<DomainMessage> for DomainHandler {
             DomainMessage::AddFormChanged(message) => self.handle_add_form_changed(state, message),
             DomainMessage::SubmitForm => self.handle_submit_form(state),
             DomainMessage::Delete(domain_id) => self.handle_delete_domain(state, domain_id),
+            DomainMessage::DeleteRequest(domain_id) => self.handle_delete_request(state, domain_id),
+            DomainMessage::DeleteCancel => self.handle_delete_cancel(state),
             DomainMessage::Query(domain_name) => self.handle_query_domain(state, domain_name),
             DomainMessage::Reload => HandlerResult::StateUpdated,
             DomainMessage::QueryDomainResult(_) => todo!(),

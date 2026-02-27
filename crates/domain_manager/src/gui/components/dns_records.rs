@@ -366,23 +366,47 @@ impl DnsRecordsComponent {
 
         // 操作按钮 (仅在悬停或选中时显示)
         if is_hovered || is_selected {
-            let actions = iced::widget::Row::<'_, MessageCategory, StyleType>::new()
-                .push(
-                    iced::widget::Button::<'_, MessageCategory, StyleType>::new(
-                        iced::widget::Text::<'_, StyleType>::new("编辑").size(10),
-                    )
-                    .padding(Padding::from([2, 8]))
-                    .on_press(MessageCategory::Dns(DnsMessage::EditRecord(record.clone()))),
-                )
-                .push(
-                    iced::widget::Button::<'_, MessageCategory, StyleType>::new(
-                        iced::widget::Text::<'_, StyleType>::new("删除").size(10),
-                    )
-                    .padding(Padding::from([2, 8]))
-                    .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id as usize))),
-                )
+            let mut actions = iced::widget::Row::<'_, MessageCategory, StyleType>::new()
                 .spacing(5)
                 .height(Length::Shrink);
+
+            // 检查是否正在删除
+            let is_deleting = state.data.deleting_dns_record_id == Some(record.id as usize);
+
+            if is_deleting {
+                actions = actions
+                    .push(
+                        iced::widget::Button::<'_, MessageCategory, StyleType>::new(
+                            iced::widget::Text::<'_, StyleType>::new("确认删除?").size(10),
+                        )
+                        .padding(Padding::from([2, 8]))
+                        .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id as usize)))
+                        .class(ButtonType::Alert),
+                    )
+                    .push(
+                        iced::widget::Button::<'_, MessageCategory, StyleType>::new(
+                            iced::widget::Text::<'_, StyleType>::new("取消").size(10),
+                        )
+                        .padding(Padding::from([2, 8]))
+                        .on_press(MessageCategory::Dns(DnsMessage::DeleteCancel)),
+                    );
+            } else {
+                actions = actions
+                    .push(
+                        iced::widget::Button::<'_, MessageCategory, StyleType>::new(
+                            iced::widget::Text::<'_, StyleType>::new("编辑").size(10),
+                        )
+                        .padding(Padding::from([2, 8]))
+                        .on_press(MessageCategory::Dns(DnsMessage::EditRecord(record.clone()))),
+                    )
+                    .push(
+                        iced::widget::Button::<'_, MessageCategory, StyleType>::new(
+                            iced::widget::Text::<'_, StyleType>::new("删除").size(10),
+                        )
+                        .padding(Padding::from([2, 8]))
+                        .on_press(MessageCategory::Dns(DnsMessage::DeleteRequest(record.id as usize))),
+                    );
+            }
 
             main_row = main_row.push(actions);
         }
@@ -409,131 +433,7 @@ impl DnsRecordsComponent {
         .into()
     }
 
-    fn render_record_item<'a>(
-        &'a self,
-        record: &'a DnsRecordModal,
-        is_selected: bool,
-        config: &'a DnsRecordDisplayConfig,
-    ) -> Element<'a, MessageCategory, StyleType> {
-        let mut content = iced::widget::Column::<'_, MessageCategory, StyleType>::new();
 
-        // 主要信息行
-        let mut main_row = row![text(&record.name).size(14)]
-            .align_y(Alignment::Center)
-            .spacing(10);
-
-        // 记录类型
-        if config.show_type {
-            let _type_color = match record.record_type.as_str() {
-                "A" => iced::Color::from_rgb(0.2, 0.7, 0.3),
-                "AAAA" => iced::Color::from_rgb(0.3, 0.6, 0.8),
-                "CNAME" => iced::Color::from_rgb(0.8, 0.6, 0.2),
-                "MX" => iced::Color::from_rgb(0.7, 0.3, 0.7),
-                "TXT" => iced::Color::from_rgb(0.6, 0.4, 0.2),
-                _ => iced::Color::from_rgb(0.5, 0.5, 0.5),
-            };
-
-            main_row = main_row
-                .push(container(text(&record.record_type).size(10)).padding(Padding::from([2, 6])));
-        }
-
-        // 状态指示器
-        if config.show_status {
-            let _status_color = if record.enabled {
-                iced::Color::from_rgb(0.2, 0.7, 0.3)
-            } else {
-                iced::Color::from_rgb(0.6, 0.6, 0.6)
-            };
-
-            main_row = main_row.push(text(if record.enabled { "●" } else { "○" }).size(12));
-        }
-
-        content = content.push(main_row);
-
-        // 详细信息行
-        if self.show_details {
-            let mut details_row = row![].spacing(15);
-
-            // 记录值
-            if config.show_value {
-                let value_text = if record.value.len() > 50 {
-                    format!("{}...", &record.value[..47])
-                } else {
-                    record.value.clone()
-                };
-
-                details_row = details_row.push(text(format!("值: {}", value_text)).size(12));
-            }
-
-            // TTL
-            if config.show_ttl {
-                details_row = details_row.push(text(format!("TTL: {}", record.ttl)).size(12));
-            }
-
-            // 优先级（MX记录）
-            if config.show_priority && record.record_type == "MX" {
-                if let Some(priority) = record.priority {
-                    details_row = details_row.push(text(format!("优先级: {}", priority)).size(12));
-                }
-            }
-
-            content = content.push(details_row);
-        }
-
-        // 操作按钮行
-        if config.show_actions {
-            let mut actions_row = row![].spacing(5);
-
-            if config.editable {
-                actions_row = actions_row.push(button("编辑").on_press(
-                    MessageCategory::Navigation(PageChanged(Page::EditRecord(DnsRecord {
-                        name: "".to_string(),
-                        record_type: "".to_string(),
-                        value: "".to_string(),
-                        ttl: "".to_string(),
-                    }))),
-                ));
-            }
-
-            if config.deletable {
-                actions_row = actions_row.push(
-                    button("删除")
-                        .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id as usize))),
-                );
-            }
-
-            actions_row = actions_row.push(
-                button(if record.enabled { "禁用" } else { "启用" }).on_press(
-                    MessageCategory::Dns(DnsMessage::DnsToggleRecord(record.id as usize)),
-                ),
-            );
-
-            content = content.push(actions_row);
-        }
-
-        // 包装在容器中
-        let item_container = container(content)
-            .padding(Padding::from([10, 12]))
-            .width(Length::Fill)
-            .class(if is_selected {
-                ContainerType::Selected
-            } else {
-                ContainerType::Hoverable
-            }); // Fix: Apply class to item_container
-
-        // 设置选中状态的样式
-        // if is_selected {
-        //    item_container = item_container;
-        // }
-
-        button(item_container)
-            .on_press(MessageCategory::Dns(DnsMessage::DnsRecordSelected(
-                record.id as usize,
-            )))
-            .width(Length::Fill)
-            .class(ButtonType::Transparent) // Fix: Transparent button
-            .into()
-    }
 
     /// 渲染空状态
     fn render_empty_state(&self, domain: Option<&str>) -> Element<'_, MessageCategory, StyleType> {

@@ -195,9 +195,24 @@ impl DnsHandler {
         HandlerResult::StateUpdated
     }
 
+    /// 处理DNS记录删除请求
+    fn handle_delete_request(&self, state: &mut AppState, record_id: usize) -> HandlerResult {
+        state.data.deleting_dns_record_id = Some(record_id);
+        HandlerResult::StateUpdated
+    }
+
+    /// 处理DNS记录删除取消
+    fn handle_delete_cancel(&self, state: &mut AppState) -> HandlerResult {
+        state.data.deleting_dns_record_id = None;
+        HandlerResult::StateUpdated
+    }
+
     /// 处理DNS记录删除（原版Message::DnsDelete）
     fn handle_dns_delete(&self, state: &mut AppState, record_id: usize) -> HandlerResult {
         info!("删除DNS记录: {}", record_id);
+
+        // 重置删除状态
+        state.data.deleting_dns_record_id = None;
 
         // 获取当前选中的域名ID，以便刷新列表
         let domain_id = state.data.selected_domain.as_ref().map(|d| d.id as usize).unwrap_or(0);
@@ -876,6 +891,8 @@ impl EventHandler<DnsMessage> for DnsHandler {
                 record_id,
             } => self.handle_delete_record(state, domain, record_id),
             DnsMessage::Delete(record_id) => self.handle_dns_delete(state, record_id),
+            DnsMessage::DeleteRequest(record_id) => self.handle_delete_request(state, record_id),
+            DnsMessage::DeleteCancel => self.handle_delete_cancel(state),
             DnsMessage::RecordHovered(record_id) => self.handle_record_hovered(state, record_id),
             DnsMessage::EditRecord(record) => self.handle_edit_record(state, record),
             DnsMessage::FormNameChanged(record_name) => {

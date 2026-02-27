@@ -62,6 +62,12 @@ pub struct DataState {
 
     /// 服务商管理页面状态
     pub provider_page: ProviderPageState,
+
+    /// 正在删除的DNS记录ID
+    pub deleting_dns_record_id: Option<usize>,
+
+    /// 正在删除的域名ID
+    pub deleting_domain_id: Option<usize>,
 }
 
 /// 过滤器设置
@@ -135,6 +141,8 @@ impl Default for DataState {
             syncing_domains: HashMap::new(),
             domain_stats: HashMap::new(),
             provider_page: ProviderPageState::default(),
+            deleting_dns_record_id: None,
+            deleting_domain_id: None,
         }
     }
 }
@@ -288,10 +296,16 @@ impl DataState {
         self.dns_records_cache.clear();
         self.current_dns_records.clear();
         self.filter = Filter::default();
+        self.dns_record_filter = Filter::default();
         self.stats = DomainStats::default();
         self.search_content.clear();
         self.has_changes = false;
         self.last_sync_time = None;
+        self.syncing_domains.clear();
+        self.domain_stats.clear();
+        self.provider_page = ProviderPageState::default();
+        self.deleting_dns_record_id = None;
+        self.deleting_domain_id = None;
     }
 
     /// 标记数据已保存

@@ -33,6 +33,7 @@ pub struct DomainListItemConfig {
     pub show_record_count: bool,
     pub show_last_sync: bool,
     pub clickable: bool,
+    pub deletable: bool,
 }
 
 impl Default for DomainListItemConfig {
@@ -43,6 +44,7 @@ impl Default for DomainListItemConfig {
             show_record_count: true,
             show_last_sync: true,
             clickable: true,
+            deletable: false,
         }
     }
 }
@@ -164,19 +166,57 @@ impl DomainListComponent {
                 ContainerType::Standard
             });
 
+        // 组合行内容：左侧是可点击区域，右侧是操作按钮
+        let mut main_row = row![].align_y(Alignment::Center).spacing(5);
+
         // 如果可点击，包装在按钮中（实际上是用 button 模拟点击区域，但样式自定义）
         if item_config.clickable {
-            button(item_container)
-                .on_press(MessageCategory::Domain(DomainMessage::Selected(
-                    domain.clone(),
-                )))
-                .padding(0) // 移除按钮内边距
-                .class(ButtonType::Transparent) // 移除按钮默认样式
-                .width(Length::Fill)
-                .into()
+            main_row = main_row.push(
+                button(item_container)
+                    .on_press(MessageCategory::Domain(DomainMessage::Selected(
+                        domain.clone(),
+                    )))
+                    .padding(0) // 移除按钮内边距
+                    .class(ButtonType::Transparent) // 移除按钮默认样式
+                    .width(Length::Fill),
+            );
         } else {
-            item_container.into()
+            main_row = main_row.push(item_container.width(Length::Fill));
         }
+
+        // 添加删除按钮
+        if item_config.deletable {
+            let is_deleting = state.data.deleting_domain_id == Some(domain.id as usize);
+
+            if is_deleting {
+                main_row = main_row
+                    .push(
+                        button(text("确认?").size(12))
+                            .on_press(MessageCategory::Domain(DomainMessage::Delete(
+                                domain.id as usize,
+                            )))
+                            .class(ButtonType::Alert)
+                            .padding(Padding::from([5, 10])),
+                    )
+                    .push(
+                        button(text("取消").size(12))
+                            .on_press(MessageCategory::Domain(DomainMessage::DeleteCancel))
+                            .class(ButtonType::Standard)
+                            .padding(Padding::from([5, 10])),
+                    );
+            } else {
+                main_row = main_row.push(
+                    button(text("删除").size(12))
+                        .on_press(MessageCategory::Domain(DomainMessage::DeleteRequest(
+                            domain.id as usize,
+                        )))
+                        .class(ButtonType::Standard)
+                        .padding(Padding::from([5, 10])),
+                );
+            }
+        }
+
+        main_row.into()
     }
 
     /// 渲染空状态

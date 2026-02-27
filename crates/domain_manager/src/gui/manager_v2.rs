@@ -19,7 +19,7 @@ use crate::gui::state::AppState;
 use crate::gui::styles::types::style_type::StyleType;
 use crate::storage::init_database;
 use crate::storage::{DnsRecordModal, DomainModal};
-use crate::configs;
+use crate::{configs, get_text};
 // TODO: 实现DatabaseConnection
 
 use crate::gui::handlers::message_handler::WindowMessage::Resized;
@@ -442,7 +442,7 @@ impl DomainManagerV2 {
             // 左侧域名列表
             Container::<'_, MessageCategory, StyleType>::new(
                 Column::<'_, MessageCategory, StyleType>::new()
-                    .push(Text::<'_, StyleType>::new("域名列表").size(16))
+                    .push(Text::<'_, StyleType>::new(get_text("domains")).size(16))
                     .push(Component::view(&self.domain_list_component, &self.state))
                     .spacing(10)
             )

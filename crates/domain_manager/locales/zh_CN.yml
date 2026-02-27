@@ -78,3 +78,4 @@ message:
   loading: 加载中...
   retry: 重试
   list_is_blank: 列表为空
+domains: 域名列表

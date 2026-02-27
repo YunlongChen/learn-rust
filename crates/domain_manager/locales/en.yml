@@ -70,3 +70,4 @@ message:
   loading: Loading...
   retry: Retry
   list_is_blank: List Is Empty
+domains: Domains

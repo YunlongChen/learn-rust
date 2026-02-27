@@ -6,6 +6,8 @@ use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::model::form::AddDomainField;
 use crate::gui::pages::names::Page;
+use crate::gui::state::AppState;
+use crate::gui::styles::button::ButtonType;
 use crate::gui::types::credential::Credential;
 use crate::models::account::Account;
 use crate::utils::i18_utils::get_text;
@@ -20,11 +22,16 @@ use rust_i18n::t;
 use std::default::Default;
 
 // 列表组件实现
-fn domain_list_view<'a>(domains: &[Domain]) -> Column<'a, MessageCategory, StyleType> {
+fn domain_list_view<'a>(
+    domains: &[Domain],
+    state: &AppState,
+) -> Column<'a, MessageCategory, StyleType> {
     // 将每个域名转换为行元素
     let mut container: Column<MessageCategory, StyleType> = Column::new().spacing(5);
     for domain in domains {
-        let domain_line: Row<MessageCategory, StyleType> = Row::new()
+        let is_deleting = state.data.deleting_domain_id == Some(domain.id as usize);
+
+        let mut domain_line: Row<MessageCategory, StyleType> = Row::new()
             .push(text!("选择").width(Length::Fill))
             .push(text!("{}", &domain.name).width(Length::Fill))
             .push(
@@ -42,14 +49,33 @@ fn domain_list_view<'a>(domains: &[Domain]) -> Column<'a, MessageCategory, Style
                     )))
                     .width(Length::Fixed(100.0)),
             )
-            .push(horizontal_space().width(Length::Fixed(4f32)).height(4))
-            .push(
+            .push(horizontal_space().width(Length::Fixed(4f32)).height(4));
+
+        if is_deleting {
+            domain_line = domain_line
+                .push(
+                    button(Text::new("确认删除?").center())
+                        .on_press(MessageCategory::Domain(DomainMessage::Delete(
+                            domain.id as usize,
+                        )))
+                        .width(Length::Fixed(100.0)), // 增加宽度以容纳文字
+                )
+                .push(horizontal_space().width(Length::Fixed(4f32)).height(4))
+                .push(
+                    button(Text::new("取消").center())
+                        .on_press(MessageCategory::Domain(DomainMessage::DeleteCancel))
+                        .width(Length::Fixed(60.0)),
+                );
+        } else {
+            domain_line = domain_line.push(
                 button(Text::new(t!("delete")).center())
-                    .on_press(MessageCategory::Domain(DomainMessage::Delete(
+                    .on_press(MessageCategory::Domain(DomainMessage::DeleteRequest(
                         domain.id as usize,
                     )))
                     .width(Length::Fixed(100.0)),
             );
+        }
+
         container = container.push(domain_line);
     }
     container.width(Length::Fill).into()
@@ -104,7 +130,7 @@ pub fn domain_page(app: &DomainManagerV2) -> Container<'_, MessageCategory, Styl
             )
             .push(
                 // 域名列表
-                scrollable(domain_list_view(&app.domain_list()))
+                scrollable(domain_list_view(&app.domain_list(), &app.state))
                     .height(Length::Fill)
                     .width(Length::Fill),
             ),
