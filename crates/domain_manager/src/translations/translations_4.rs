@@ -13,12 +13,12 @@ pub fn reserved_address_translation(language: Language, info: &str) -> String {
     }
 }
 
-pub fn share_feedback_translation(language: Language) -> &'static str {
+pub fn share_feedback_translation(language: Language) -> String {
     match language {
-        Language::EN => "Share your feedback",
-        Language::IT => "Condividi il tuo feedback",
-        Language::ZH_TW => "分享您的意見回饋",
-        _ => "Share your feedback",
+        Language::EN => "Share your feedback".into(),
+        Language::IT => "Condividi il tuo feedback".into(),
+        Language::ZH_TW => "分享您的意見回饋".into(),
+        _ => "Share your feedback".into(),
     }
 }
 

@@ -1,4 +1,4 @@
-// #![cfg_attr(windows, windows_subsystem = "windows")]
+ #![cfg_attr(windows, windows_subsystem = "windows")]
 #![allow(dead_code)]
 
 mod api;
@@ -38,7 +38,7 @@ use tracing::{error, info};
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;
 const CONTENT_SIZE: u16 = 20;
-pub const VERSION: &str = "0.0.1";
+pub const VERSION: &str = "1.0.0";
 pub const DOMAIN_MANAGER_LOWERCASE: &str = "domain_manager";
 
 /// Update period (milliseconds)

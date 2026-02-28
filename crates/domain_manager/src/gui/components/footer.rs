@@ -7,7 +7,6 @@ use crate::gui::handlers::message_handler::NavigationMessage::OpenWebPage;
 use crate::gui::handlers::message_handler::{
     MessageCategory, NavigationMessage, NotificationMessage,
 };
-use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::style_constants::FONT_SIZE_FOOTER;
 use crate::gui::styles::text::TextType;
@@ -19,7 +18,7 @@ use crate::translations::types::language::Language;
 use crate::utils::formatted_strings::APP_VERSION;
 use crate::utils::types::icon::Icon;
 use crate::utils::types::web_page::WebPage;
-use crate::DOMAIN_MANAGER_LOWERCASE;
+use crate::{get_text, DOMAIN_MANAGER_LOWERCASE};
 use iced::widget::text::LineHeight;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, rich_text, span, Column, Container, Row, Text, Tooltip};
@@ -115,7 +114,7 @@ fn get_button_wiki<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType> {
 
     Tooltip::new(
         content,
-        row_open_link_tooltip("Domain Manager Wiki", font),
+        row_open_link_tooltip(get_text("footer.wiki"), font),
         Position::Top,
     )
     .gap(7.5)
@@ -137,7 +136,7 @@ fn get_button_github<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType> 
 
     Tooltip::new(
         content,
-        row_open_link_tooltip("GitHub", font),
+        row_open_link_tooltip(get_text("footer.wiki"), font),
         Position::Top,
     )
     .gap(5)
@@ -161,7 +160,7 @@ fn get_button_news<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType> {
 
     Tooltip::new(
         content,
-        row_open_link_tooltip("Sniffnet News", font),
+        row_open_link_tooltip(get_text("footer.news"), font),
         Position::Top,
     )
     .gap(7.5)
@@ -187,7 +186,7 @@ fn get_button_sponsor<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType>
 
     Tooltip::new(
         content,
-        row_open_link_tooltip("Sponsor", font),
+        row_open_link_tooltip(get_text("footer.sponsor"), font),
         Position::Top,
     )
     .gap(10)
@@ -213,59 +212,27 @@ fn get_release_details<'a>(
         false
     };
 
-    // 创建可点击的版本号按钮
-    let version_button: Button<MessageCategory, StyleType> = button(
-        Row::new()
-            .spacing(8)
-            .align_y(Alignment::Center)
-            .push(
-                Icon::DomainManager
-                    .to_text()
-                    .size(16)
-                    .align_y(Alignment::Center)
-                    .class(if has_update {
-                        TextType::Danger
-                    } else {
-                        TextType::Standard
-                    }),
-            )
-            .push(
-                Text::new(format!("{DOMAIN_MANAGER_LOWERCASE} v{APP_VERSION}"))
-                    .size(FONT_SIZE_FOOTER)
-                    .font(font_footer)
-                    .class(if has_update {
-                        TextType::Danger
-                    } else {
-                        TextType::Standard
-                    }),
-            )
-            .push_maybe(if has_update {
-                Some(
-                    Icon::Update
-                        .to_text()
-                        .size(14)
-                        .class(TextType::Danger)
-                        .align_y(Alignment::Center),
-                )
-            } else {
-                Some(
-                    Text::new(" ✔")
-                        .size(12)
-                        .font(font_footer)
-                        .class(TextType::Subtitle)
-                        .align_y(Alignment::Center),
-                )
-            }),
-    )
-    .padding([4, 8])
-    .class(ButtonType::Neutral)
-    .on_press(if has_update {
-        MessageCategory::Navigation(OpenWebPage(WebPage::WebsiteDownload))
+    // 版本信息文本
+    let mut version_span = span(format!("{} v{}", DOMAIN_MANAGER_LOWERCASE, APP_VERSION));
+
+    if has_update {
+        version_span = version_span.link(MessageCategory::Navigation(OpenWebPage(
+            WebPage::WebsiteDownload,
+        )));
     } else {
-        MessageCategory::Notification(NotificationMessage::ShowToast(
-            "当前已是最新版本".to_string(),
-        ))
-    });
+        version_span = version_span.link(MessageCategory::Notification(
+            NotificationMessage::ShowToast("当前已是最新版本".to_string()),
+        ));
+    }
+
+    let version_text = rich_text![version_span]
+        .size(FONT_SIZE_FOOTER)
+        .font(font_footer)
+        .class(if has_update {
+            TextType::Danger
+        } else {
+            TextType::Standard
+        });
 
     let tooltip_text = if has_update {
         new_version_available_translation(language).to_string()
@@ -273,19 +240,46 @@ fn get_release_details<'a>(
         "点击检查更新".to_string()
     };
 
-    let version_tooltip: Tooltip<MessageCategory, StyleType> = Tooltip::new(
-        version_button,
-        Text::new(tooltip_text).font(font),
-        Position::Top,
-    )
-    .gap(5)
-    .class(ContainerType::Tooltip);
+    let content_row = Row::new()
+        .spacing(8)
+        .align_y(Alignment::Center)
+        .push(
+            Icon::DomainManager
+                .to_text()
+                .size(16)
+                .align_y(Alignment::Center)
+                .class(if has_update {
+                    TextType::Danger
+                } else {
+                    TextType::Standard
+                }),
+        )
+        .push(version_text)
+        .push_maybe(if has_update {
+            Some(
+                Icon::Update
+                    .to_text()
+                    .size(14)
+                    .class(TextType::Danger)
+                    .align_y(Alignment::Center),
+            )
+        } else {
+            None
+        });
+
+    // let version_tooltip: Tooltip<MessageCategory, StyleType> = Tooltip::new(
+    //     content_row,
+    //     Text::new(tooltip_text).font(font),
+    //     Position::Top,
+    // )
+    // .gap(5)
+    // .class(ContainerType::Tooltip);
 
     Row::new()
         .align_y(Alignment::Center)
         .height(Length::Fill)
         .width(Length::Fill)
-        .push(version_tooltip)
+        .push(content_row)
 }
 
 fn thumbnail_footer<'a>() -> Container<'a, MessageCategory, StyleType> {

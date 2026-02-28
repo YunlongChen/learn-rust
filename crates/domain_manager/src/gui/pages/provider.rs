@@ -24,7 +24,7 @@ pub fn provider_page(state: &ProviderPageState) -> Element<'_, MessageCategory, 
     };
 
     let header_row = Row::new()
-        .push(Text::new("域名服务商管理").size(24))
+        .push(Text::new(get_text("providers")).size(24))
         .push(horizontal_space())
         .push(
             button(Text::new(toggle_text).align_x(Alignment::Center))

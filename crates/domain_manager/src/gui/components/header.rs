@@ -70,7 +70,7 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     config.language,
                     SettingsPage::Appearance,
                     Some(MessageCategory::Sync(SyncAllDomains)),
-                    Icon::Sync,
+                    Icon::Restore,
                     get_text("reload"),
                 ))
                 .push(get_custom_button(
@@ -97,29 +97,23 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     Icon::Language,
                     get_text("change_locale"),
                 ))
-                .push(get_custom_button(
-                    font,
-                    config.language,
-                    SettingsPage::Appearance,
-                    Some(MessageCategory::Navigation(PageChanged(Page::Console))),
-                    Icon::Generals,
-                    get_text("console.title"),
-                ))
-                .push(get_custom_button(
-                    font,
-                    config.language,
-                    SettingsPage::Appearance,
-                    Some(MessageCategory::Navigation(PageChanged(Page::Settings(
-                        SettingsPage::General,
-                    )))),
-                    Icon::Settings,
-                    get_text("settings.title"),
-                ))
-                // todo 主题配置应该放到Settings页面下面去完成
-                // .push(get_background_button(
+                // .push(get_custom_button(
                 //     font,
                 //     config.language,
-                //     &app.config.background_config.background_type,
+                //     SettingsPage::Appearance,
+                //     Some(MessageCategory::Navigation(PageChanged(Page::Console))),
+                //     Icon::Generals,
+                //     get_text("console.title"),
+                // ))
+                // .push(get_custom_button(
+                //     font,
+                //     config.language,
+                //     SettingsPage::Appearance,
+                //     Some(MessageCategory::Navigation(PageChanged(Page::Settings(
+                //         SettingsPage::General,
+                //     )))),
+                //     Icon::Settings,
+                //     get_text("settings.title"),
                 // ))
                 .push(get_button_window_minimize(font, config.language))
                 .push(get_button_window_maximize(font, config.language))

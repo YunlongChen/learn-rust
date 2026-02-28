@@ -74,7 +74,7 @@ pub fn button_open_file<'a>(
 }
 
 pub fn row_open_link_tooltip<'a>(
-    text: &'static str,
+    text: String,
     font: Font,
 ) -> Row<'a, MessageCategory, StyleType> {
     Row::new()
