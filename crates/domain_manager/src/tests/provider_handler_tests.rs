@@ -75,10 +75,7 @@ async fn test_handle_auto_naming() {
     handler.handle(&mut state, message);
 
     // 应该自动命名为 "阿里云 1"
-    assert_eq!(
-        state.data.provider_page.form.provider_name,
-        "阿里云 1"
-    );
+    assert_eq!(state.data.provider_page.form.provider_name, "阿里云 1");
 }
 
 #[tokio::test]
@@ -91,7 +88,10 @@ async fn test_delete_flow() {
 
     // 1. 请求删除
     handler.handle(&mut state, ProviderMessage::Delete(provider_id));
-    assert_eq!(state.data.provider_page.deleting_provider_id, Some(provider_id));
+    assert_eq!(
+        state.data.provider_page.deleting_provider_id,
+        Some(provider_id)
+    );
 
     // 2. 取消删除
     handler.handle(&mut state, ProviderMessage::CancelDelete);
@@ -140,13 +140,13 @@ async fn test_edit_flow() {
     handler.handle(&mut state, ProviderMessage::Edit(provider_id));
 
     // 验证状态
-    assert_eq!(state.data.provider_page.editing_provider_id, Some(provider_id));
+    assert_eq!(
+        state.data.provider_page.editing_provider_id,
+        Some(provider_id)
+    );
     assert!(state.data.provider_page.form_visible);
 
     // 验证表单填充
-    assert_eq!(
-        state.data.provider_page.form.provider_name,
-        provider_name
-    );
+    assert_eq!(state.data.provider_page.form.provider_name, provider_name);
     assert!(state.data.provider_page.form.provider.is_some());
 }

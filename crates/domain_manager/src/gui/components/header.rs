@@ -3,7 +3,10 @@
 use crate::configs::gui_config::BackgroundType;
 use crate::gui::components::tab::notifications_badge;
 use crate::gui::handlers::message_handler::NavigationMessage::PageChanged;
-use crate::gui::handlers::message_handler::{MessageCategory, SyncMessage, UiMessage, WindowMessage};
+use crate::gui::handlers::message_handler::SyncMessage::SyncAllDomains;
+use crate::gui::handlers::message_handler::{
+    MessageCategory, SyncMessage, UiMessage, WindowMessage,
+};
 use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::pages::names::Page;
 use crate::gui::pages::types::settings::SettingsPage;
@@ -20,7 +23,6 @@ use iced::widget::tooltip::Position;
 use iced::widget::MouseArea;
 use iced::widget::{button, horizontal_space, Button, Container, Row, Space, Text, Tooltip};
 use iced::{Alignment, Font, Length};
-use crate::gui::handlers::message_handler::SyncMessage::SyncAllDomains;
 
 pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, StyleType> {
     let is_running = true;

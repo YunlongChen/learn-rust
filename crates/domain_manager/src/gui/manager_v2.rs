@@ -10,9 +10,7 @@ use crate::gui::components::{
 use crate::gui::handlers::message_handler::{
     AppMessage, DatabaseMessage, MessageCategory, SyncMessage, WindowMessage,
 };
-use crate::gui::handlers::{
-    DnsHandler, DomainHandler, MessageHandler, SyncHandler, WindowHandler,
-};
+use crate::gui::handlers::{DnsHandler, DomainHandler, MessageHandler, SyncHandler, WindowHandler};
 use crate::gui::services::{ServiceManager, ServiceResult};
 use crate::gui::state::app_state::{DataUpdate, StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
@@ -24,12 +22,12 @@ use crate::{configs, get_text};
 
 use crate::gui::handlers::message_handler::WindowMessage::Resized;
 use crate::gui::pages::names::Page;
+use crate::gui::pages::provider::provider_page;
 use chrono::{DateTime, Utc};
 use iced::widget::{row, Column, Container, Text};
 use iced::{Element, Length, Task};
 use std::sync::Mutex;
 use tracing::{debug, error, info, warn};
-use crate::gui::pages::provider::provider_page;
 
 /// DNS日志条目
 #[derive(Debug, Clone)]

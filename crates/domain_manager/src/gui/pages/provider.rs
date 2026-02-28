@@ -8,8 +8,8 @@ use crate::gui::styles::text::TextType;
 use crate::utils::i18_utils::get_text;
 use crate::StyleType;
 use iced::widget::{
-    button, horizontal_space, mouse_area, pick_list, scrollable, text_input, Column, Container, Row,
-    Space, Text,
+    button, horizontal_space, mouse_area, pick_list, scrollable, text_input, Column, Container,
+    Row, Space, Text,
 };
 use iced::{Alignment, Color, Element, Font, Length, Padding};
 
@@ -173,10 +173,7 @@ fn provider_row_view(
             Text::new(format!(
                 "已管理 {} 个域名 • 最后同步于 {}",
                 provider.domain_count,
-                provider
-                    .last_synced_at
-                    .as_deref()
-                    .unwrap_or("从未同步")
+                provider.last_synced_at.as_deref().unwrap_or("从未同步")
             ))
             .size(12)
             .class(TextType::Dimmed),
@@ -207,7 +204,9 @@ fn provider_row_view(
             .push(Text::new("确认删除?").class(TextType::Danger))
             .push(
                 button(Text::new("确认").size(14).align_x(Alignment::Center))
-                    .on_press(MessageCategory::Provider(ProviderMessage::ConfirmDelete(id)))
+                    .on_press(MessageCategory::Provider(ProviderMessage::ConfirmDelete(
+                        id,
+                    )))
                     .class(ButtonType::Alert)
                     .padding([5, 10]),
             )
@@ -266,14 +265,12 @@ fn provider_row_view(
 
     // 域名列表区域（展开时显示）
     if is_expanded {
-        let mut domains_column = Column::new()
-            .spacing(5)
-            .padding(Padding {
-                top: 10.0,
-                right: 0.0,
-                bottom: 0.0,
-                left: 24.0, // 与上方对齐调整
-            });
+        let mut domains_column = Column::new().spacing(5).padding(Padding {
+            top: 10.0,
+            right: 0.0,
+            bottom: 0.0,
+            left: 24.0, // 与上方对齐调整
+        });
 
         // 添加域名表单
         if provider.is_adding_domain {
@@ -292,9 +289,9 @@ fn provider_row_view(
                 )
                 .push(
                     button(Text::new("确认").size(14).align_x(Alignment::Center))
-                        .on_press(MessageCategory::Provider(ProviderMessage::ConfirmAddDomain(
-                            id,
-                        )))
+                        .on_press(MessageCategory::Provider(
+                            ProviderMessage::ConfirmAddDomain(id),
+                        ))
                         .class(ButtonType::Success)
                         .padding([5, 10]),
                 )
@@ -327,11 +324,7 @@ fn provider_row_view(
                 let domain_row = Row::new()
                     .align_y(Alignment::Center)
                     .spacing(10)
-                    .push(
-                        Text::new(&domain.name)
-                            .width(Length::Fill)
-                            .size(14),
-                    )
+                    .push(Text::new(&domain.name).width(Length::Fill).size(14))
                     .push(
                         button(Text::new("同步").size(12).align_x(Alignment::Center))
                             .on_press(MessageCategory::Provider(ProviderMessage::SyncDomainInfo(
@@ -351,7 +344,7 @@ fn provider_row_view(
                 domains_column = domains_column.push(
                     Container::new(domain_row)
                         .padding(5)
-                        .class(ContainerType::Standard) // 使用更轻量的样式
+                        .class(ContainerType::Standard), // 使用更轻量的样式
                 );
             }
         }
@@ -374,11 +367,11 @@ fn provider_row_view(
 /// 获取服务商对应的颜色
 fn get_provider_color(provider: &DnsProvider) -> Color {
     match provider {
-        DnsProvider::Aliyun => Color::from_rgb8(255, 106, 0),       // 阿里云橙
+        DnsProvider::Aliyun => Color::from_rgb8(255, 106, 0), // 阿里云橙
         DnsProvider::TencentCloud => Color::from_rgb8(0, 164, 255), // 腾讯蓝
-        DnsProvider::CloudFlare => Color::from_rgb8(243, 128, 32),  // Cloudflare 橙
-        DnsProvider::Aws => Color::from_rgb8(35, 47, 62),           // AWS 深蓝
-        DnsProvider::Google => Color::from_rgb8(66, 133, 244),      // Google 蓝
-        _ => Color::from_rgb8(100, 100, 100),                       // 默认灰
+        DnsProvider::CloudFlare => Color::from_rgb8(243, 128, 32), // Cloudflare 橙
+        DnsProvider::Aws => Color::from_rgb8(35, 47, 62),     // AWS 深蓝
+        DnsProvider::Google => Color::from_rgb8(66, 133, 244), // Google 蓝
+        _ => Color::from_rgb8(100, 100, 100),                 // 默认灰
     }
 }

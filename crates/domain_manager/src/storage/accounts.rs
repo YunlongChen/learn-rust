@@ -280,7 +280,10 @@ pub fn add_api_key(
 }
 
 /// 删除账户
-pub async fn delete_account(conn: &DatabaseConnection, account_id: i64) -> Result<(), Box<dyn Error>> {
+pub async fn delete_account(
+    conn: &DatabaseConnection,
+    account_id: i64,
+) -> Result<(), Box<dyn Error>> {
     use crate::storage::entities::account;
     use sea_orm::EntityTrait;
 

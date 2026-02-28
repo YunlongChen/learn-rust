@@ -30,7 +30,7 @@ pub use crate::gui::styles::types::style_type::StyleType;
 pub use crate::utils::i18_utils::get_text;
 use iced::window::icon::from_rgba;
 use iced::window::Position;
-use iced::{application, window, Font, Pixels, Settings, Size, Task};
+use iced::{application, window, Font, Pixels, Point, Settings, Size, Task};
 use rust_i18n::i18n;
 use std::{panic, process};
 use tracing::{error, info};
@@ -96,12 +96,22 @@ pub async fn main() -> iced::Result {
         }
     };
 
-    // 移除同步数据库连接代码
-    // let connection: DatabaseConnection = init_database(database_config)
-    //     .await
-    //     .expect("Cannot connect to database.");
-
-    let settings = Settings {
+    let window_state = &config.window_state;
+    let app = application(
+        DOMAIN_MANAGER_LOWERCASE,
+        DomainManagerV2::update,
+        DomainManagerV2::view,
+    )
+    .theme(DomainManagerV2::theme)
+    .window(window::Settings {
+        size: Size::new(window_state.width, window_state.height),
+        position: Position::Specific(Point::new(window_state.x, window_state.y)),
+        icon,
+        decorations: false, // 禁用窗口装饰器以实现自定义拖动
+        ..Default::default()
+    })
+    .subscription(DomainManagerV2::subscription)
+    .settings(Settings {
         id: Some(String::from(DOMAIN_MANAGER_LOWERCASE)),
         fonts: vec![
             ICONS_BYTES.into(),
@@ -112,26 +122,7 @@ pub async fn main() -> iced::Result {
         default_font: Font::with_name(FONT_CN_FAMILY_NAME),
         default_text_size: Pixels::from(FONT_SIZE_BODY),
         ..Default::default()
-    };
-
-    let app = application(
-        DOMAIN_MANAGER_LOWERCASE,
-        DomainManagerV2::update,
-        DomainManagerV2::view,
-    )
-    .theme(DomainManagerV2::theme)
-    .window(window::Settings {
-        size: Size::new(config.window_state.width, config.window_state.height),
-        position: Position::Specific(iced::Point::new(
-            config.window_state.x,
-            config.window_state.y,
-        )),
-        icon,
-        decorations: false, // 禁用窗口装饰器以实现自定义拖动
-        ..Default::default()
-    })
-    .subscription(DomainManagerV2::subscription)
-    .settings(settings);
+    });
     app.run_with(move || {
         (
             DomainManagerV2::new(config),

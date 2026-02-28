@@ -151,9 +151,11 @@ impl ButtonType {
                 ButtonType::Primary => Background::Color(Color::from_rgb8(37, 99, 235)), // 深蓝
                 ButtonType::Alert => Background::Color(Color::from_rgb8(200, 50, 50)),   // 深红
                 ButtonType::Starred => Background::Color(colors.starred),
-                ButtonType::SortArrows | ButtonType::SortArrowActive | ButtonType::Thumbnail | ButtonType::Link | ButtonType::Transparent => {
-                    Background::Color(Color::TRANSPARENT)
-                }
+                ButtonType::SortArrows
+                | ButtonType::SortArrowActive
+                | ButtonType::Thumbnail
+                | ButtonType::Link
+                | ButtonType::Transparent => Background::Color(Color::TRANSPARENT),
                 ButtonType::Success => Background::Color(Color::from_rgb8(0, 180, 0)),
                 ButtonType::Neutral => Background::Color(Color {
                     a: ext.alpha_round_borders,

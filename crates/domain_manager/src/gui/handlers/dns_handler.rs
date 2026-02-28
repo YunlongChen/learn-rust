@@ -3,12 +3,12 @@
 //! 负责处理所有与DNS记录相关的业务逻辑，包括DNS记录的增删改查、
 //! 提供商管理等操作。
 
+use crate::api::dns_client::DnsClientTrait;
+use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::handlers::message_handler::{
     DnsMessage, MessageCategory, NavigationMessage, NotificationMessage,
 };
 use crate::gui::handlers::{EventHandler, HandlerResult};
-use crate::api::dns_client::DnsClientTrait;
-use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::model::domain::{DnsProvider, DomainName};
 use crate::gui::model::form::AddDnsField;
 use crate::gui::pages::Page;
@@ -56,10 +56,9 @@ impl DnsHandler {
                     Ok(records) => {
                         MessageCategory::Dns(DnsMessage::DnsRecordReloaded(domain_id, records))
                     }
-                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                        "加载DNS记录失败: {}",
-                        e
-                    ))),
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(
+                        format!("加载DNS记录失败: {}", e),
+                    )),
                 },
             ))
         } else {
@@ -88,7 +87,7 @@ impl DnsHandler {
 
         // 创建新的DNS记录
         let new_record = DnsRecordModal {
-            id: 0,        // 临时ID，数据库会自动生成
+            id: 0, // 临时ID，数据库会自动生成
             domain_id: domain_id as i64,
             record_type: record_type.clone(),
             name: name.clone(),
@@ -114,10 +113,9 @@ impl DnsHandler {
                     Ok(_record) => MessageCategory::Notification(NotificationMessage::ShowToast(
                         format!("DNS记录已添加到域名: {}", domain_id),
                     )),
-                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                        "添加DNS记录失败: {}",
-                        e
-                    ))),
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(
+                        format!("添加DNS记录失败: {}", e),
+                    )),
                 },
             ))
         } else {
@@ -144,13 +142,12 @@ impl DnsHandler {
                 Self::delete_and_reload_dns_record_async(conn_clone, domain, record_id),
                 move |result| match result {
                     Ok((domain_id, records)) => {
-                         // 删除并重载成功，直接更新UI
-                         MessageCategory::Dns(DnsMessage::DnsRecordReloaded(domain_id, records))
-                    },
-                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                        "删除DNS记录失败: {}",
-                        e
-                    ))),
+                        // 删除并重载成功，直接更新UI
+                        MessageCategory::Dns(DnsMessage::DnsRecordReloaded(domain_id, records))
+                    }
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(
+                        format!("删除DNS记录失败: {}", e),
+                    )),
                 },
             ))
         } else {
@@ -164,7 +161,8 @@ impl DnsHandler {
         // 查找提供商
         if let Some(provider) = state
             .data
-            .provider_page.providers
+            .provider_page
+            .providers
             .iter()
             .find(|provider| provider.account_id as usize == provider_id)
             .cloned()
@@ -215,7 +213,12 @@ impl DnsHandler {
         state.data.deleting_dns_record_id = None;
 
         // 获取当前选中的域名ID，以便刷新列表
-        let domain_id = state.data.selected_domain.as_ref().map(|d| d.id as usize).unwrap_or(0);
+        let domain_id = state
+            .data
+            .selected_domain
+            .as_ref()
+            .map(|d| d.id as usize)
+            .unwrap_or(0);
 
         if let Some(conn) = &state.database {
             let conn_clone = conn.clone();
@@ -225,11 +228,10 @@ impl DnsHandler {
                 move |result| match result {
                     Ok((domain_id, records)) => {
                         MessageCategory::Dns(DnsMessage::DnsRecordReloaded(domain_id, records))
-                    },
-                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(format!(
-                        "删除DNS记录失败: {}",
-                        e
-                    ))),
+                    }
+                    Err(e) => MessageCategory::Notification(NotificationMessage::ShowToast(
+                        format!("删除DNS记录失败: {}", e),
+                    )),
                 },
             ))
         } else {
@@ -239,7 +241,11 @@ impl DnsHandler {
     }
 
     /// 处理DNS记录悬停
-    fn handle_record_hovered(&self, state: &mut AppState, record_id: Option<usize>) -> HandlerResult {
+    fn handle_record_hovered(
+        &self,
+        state: &mut AppState,
+        record_id: Option<usize>,
+    ) -> HandlerResult {
         state.ui.hovered_dns_record = record_id;
         HandlerResult::StateUpdated
     }
@@ -353,19 +359,19 @@ impl DnsHandler {
             let task = if is_update {
                 Task::perform(
                     Self::handle_dns_record_update_async(conn_clone, form_data, domain_id),
-                    move |result| Self::handle_form_result(result, domain_id)
+                    move |result| Self::handle_form_result(result, domain_id),
                 )
             } else {
                 Task::perform(
                     Self::handle_dns_record_add_async(conn_clone, form_data, domain_id),
-                    move |result| Self::handle_form_result(result, domain_id)
+                    move |result| Self::handle_form_result(result, domain_id),
                 )
             };
 
             HandlerResult::Task(task)
         } else {
-             state.ui.set_message("数据库未连接".to_string());
-             HandlerResult::StateUpdated
+            state.ui.set_message("数据库未连接".to_string());
+            HandlerResult::StateUpdated
         }
     }
 
@@ -376,14 +382,14 @@ impl DnsHandler {
                 info!("DNS记录操作成功，刷新列表");
                 // 刷新当前域名的DNS记录
                 MessageCategory::Dns(DnsMessage::FormSubmitSuccess(domain_id))
-            },
+            }
             Err(e) => {
-                 let msg = if e.contains("DomainRecordDuplicate") || e.contains("already exists") {
-                     "DNS记录已存在".to_string()
-                 } else {
-                     format!("操作失败: {}", e)
-                 };
-                 MessageCategory::Notification(NotificationMessage::ShowToast(msg))
+                let msg = if e.contains("DomainRecordDuplicate") || e.contains("already exists") {
+                    "DNS记录已存在".to_string()
+                } else {
+                    format!("操作失败: {}", e)
+                };
+                MessageCategory::Notification(NotificationMessage::ShowToast(msg))
             }
         }
     }
@@ -456,7 +462,10 @@ impl DnsHandler {
     }
 
     /// 异步同步DNS记录
-    async fn sync_dns_records_async(domain: usize, conn: DatabaseConnection) -> Result<Vec<DnsRecordModal>, String> {
+    async fn sync_dns_records_async(
+        domain: usize,
+        conn: DatabaseConnection,
+    ) -> Result<Vec<DnsRecordModal>, String> {
         // 使用 load_dns_records_from_db 代替 query_dns_records_async
         Self::load_dns_records_from_db(conn, domain).await
     }
@@ -627,11 +636,11 @@ impl DnsHandler {
         // 1. 确定目标域名ID
         // 如果传入的 domain_id 为 0，我们需要先查询记录所属的域名
         let target_domain_id = if domain_id == 0 {
-             let record = records::find_record_by_id(&conn, record_id as i64)
+            let record = records::find_record_by_id(&conn, record_id as i64)
                 .await
                 .map_err(|e| e.to_string())?
                 .ok_or("记录不存在")?;
-             record.domain_id as usize
+            record.domain_id as usize
         } else {
             domain_id
         };
@@ -794,7 +803,10 @@ impl DnsHandler {
         form_data: AddDnsField,
         domain_id: usize,
     ) -> Result<(), String> {
-        info!("开始异步添加DNS记录: {:?}，域名ID: {}", form_data, domain_id);
+        info!(
+            "开始异步添加DNS记录: {:?}，域名ID: {}",
+            form_data, domain_id
+        );
 
         // 构建 DnsRecordModal
         let record = DnsRecordModal {
@@ -825,7 +837,10 @@ impl DnsHandler {
         form_data: AddDnsField,
         domain_id: usize,
     ) -> Result<(), String> {
-        info!("开始异步更新DNS记录: {:?}，域名ID: {}", form_data, domain_id);
+        info!(
+            "开始异步更新DNS记录: {:?}，域名ID: {}",
+            form_data, domain_id
+        );
 
         let record_id = form_data
             .record_id
@@ -850,7 +865,7 @@ impl DnsHandler {
             priority: None,
             enabled: true,
             created_at: chrono::Utc::now().naive_utc(), // RecordEntity 缺少 created_at，使用当前时间代替
-            updated_at: None, // RecordEntity 缺少 updated_at
+            updated_at: None,                           // RecordEntity 缺少 updated_at
         };
 
         let new_record = DnsRecordModal {
@@ -904,7 +919,9 @@ impl EventHandler<DnsMessage> for DnsHandler {
             DnsMessage::FormValueChanged(value) => self.handle_form_value_changed(state, value),
             DnsMessage::FormTtlChanged(ttl) => self.handle_form_ttl_changed(state, ttl),
             DnsMessage::FormSubmit => self.handle_form_submit(state),
-            DnsMessage::FormSubmitSuccess(domain_id) => self.handle_form_submit_success(state, domain_id),
+            DnsMessage::FormSubmitSuccess(domain_id) => {
+                self.handle_form_submit_success(state, domain_id)
+            }
             DnsMessage::FormCancelled => self.handle_form_cancelled(state),
             DnsMessage::DnsFilterChanged(filter) => self.handle_dns_filter_changed(state, filter),
             DnsMessage::DnsSearchChanged(keyword) => self.handle_dns_search_changed(state, keyword),
@@ -920,18 +937,25 @@ impl EventHandler<DnsMessage> for DnsHandler {
             }
             DnsMessage::ProviderChange(provider) => self.handle_provider_change(state, provider),
             DnsMessage::DnsRecordReloaded(domain_id, records) => {
-                info!("DNS记录重新加载完成，域名ID: {}，记录数: {}", domain_id, records.len());
+                info!(
+                    "DNS记录重新加载完成，域名ID: {}，记录数: {}",
+                    domain_id,
+                    records.len()
+                );
                 // 更新数据状态
                 state.data.set_dns_records(domain_id, records);
                 // 更新UI状态
-                state.ui.set_message(format!("DNS记录已更新，共 {} 条", state.data.current_dns_records.len()));
+                state.ui.set_message(format!(
+                    "DNS记录已更新，共 {} 条",
+                    state.data.current_dns_records.len()
+                ));
                 state.ui.is_loading = false;
                 HandlerResult::StateUpdated
             }
             _ => {
-                debug!("未处理事件！{:?}",event);
+                debug!("未处理事件！{:?}", event);
                 HandlerResult::None
-            },
+            }
         }
     }
 

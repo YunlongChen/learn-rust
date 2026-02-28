@@ -119,12 +119,10 @@ impl ContainerType {
                 }),
                 ContainerType::Custom(color) => Background::Color(*color),
                 ContainerType::CustomRound(color) => Background::Color(*color),
-                ContainerType::HoveredRow => {
-                    Background::Color(Color {
-                        a: 0.05,
-                        ..colors.text_body
-                    })
-                }
+                ContainerType::HoveredRow => Background::Color(Color {
+                    a: 0.05,
+                    ..colors.text_body
+                }),
             }),
             border: Border {
                 radius: match self {

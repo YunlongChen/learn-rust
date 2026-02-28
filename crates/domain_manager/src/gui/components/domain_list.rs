@@ -89,9 +89,9 @@ impl DomainListComponent {
         // 添加状态指示器
         if item_config.show_status {
             let status_color = match domain.status.as_str() {
-                "Active" => iced::Color::from_rgb(0.2, 0.7, 0.3),   // 绿色
-                "Error" => iced::Color::from_rgb(0.8, 0.2, 0.2),    // 红色
-                _ => iced::Color::from_rgb(0.6, 0.6, 0.6),          // 灰色
+                "Active" => iced::Color::from_rgb(0.2, 0.7, 0.3), // 绿色
+                "Error" => iced::Color::from_rgb(0.8, 0.2, 0.2),  // 红色
+                _ => iced::Color::from_rgb(0.6, 0.6, 0.6),        // 灰色
             };
 
             row_content = row_content.push(

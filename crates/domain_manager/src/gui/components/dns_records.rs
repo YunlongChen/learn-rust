@@ -129,7 +129,11 @@ impl DnsRecordsComponent {
     }
 
     /// 过滤DNS记录
-    fn filter_records<'a>(&self, records: &'a [DnsRecordModal], filter: &crate::gui::state::data_state::Filter) -> Vec<&'a DnsRecordModal> {
+    fn filter_records<'a>(
+        &self,
+        records: &'a [DnsRecordModal],
+        filter: &crate::gui::state::data_state::Filter,
+    ) -> Vec<&'a DnsRecordModal> {
         records
             .iter()
             .filter(|record| {
@@ -175,16 +179,19 @@ impl DnsRecordsComponent {
         ];
 
         let content = column![
-            text(if is_edit { "编辑DNS记录" } else { "添加DNS记录" }).size(14),
+            text(if is_edit {
+                "编辑DNS记录"
+            } else {
+                "添加DNS记录"
+            })
+            .size(14),
             row![
                 // 记录类型
                 column![
                     text("类型").size(12),
-                    pick_list(
-                        record_types,
-                        form_state.record_type.clone(),
-                        |t| MessageCategory::Dns(DnsMessage::FormRecordTypeChanged(t))
-                    )
+                    pick_list(record_types, form_state.record_type.clone(), |t| {
+                        MessageCategory::Dns(DnsMessage::FormRecordTypeChanged(t))
+                    })
                     .width(Length::Fixed(100.0))
                 ]
                 .spacing(5),
@@ -302,15 +309,17 @@ impl DnsRecordsComponent {
         // 仅当选中域名时才显示添加按钮
         if state.data.selected_domain.is_some() {
             let is_visible = state.data.add_dns_form.is_visible;
-            row = row.push(
-                iced::widget::Button::<'_, MessageCategory, StyleType>::new(iced::widget::Text::<
-                    '_,
-                    StyleType,
-                >::new(
-                    if is_visible { "隐藏表单" } else { "添加记录" }
-                ))
-                .on_press(MessageCategory::Dns(DnsMessage::ProviderSelected(99999))), // 临时使用此消息触发切换
-            );
+            row =
+                row.push(
+                    iced::widget::Button::<'_, MessageCategory, StyleType>::new(
+                        iced::widget::Text::<'_, StyleType>::new(if is_visible {
+                            "隐藏表单"
+                        } else {
+                            "添加记录"
+                        }),
+                    )
+                    .on_press(MessageCategory::Dns(DnsMessage::ProviderSelected(99999))), // 临时使用此消息触发切换
+                );
         }
 
         row.align_y(Alignment::Center)
@@ -404,21 +413,24 @@ impl DnsRecordsComponent {
                             iced::widget::Text::<'_, StyleType>::new("删除").size(10),
                         )
                         .padding(Padding::from([2, 8]))
-                        .on_press(MessageCategory::Dns(DnsMessage::DeleteRequest(record.id as usize))),
+                        .on_press(MessageCategory::Dns(
+                            DnsMessage::DeleteRequest(record.id as usize),
+                        )),
                     );
             }
 
             main_row = main_row.push(actions);
         }
 
-        let item_container = iced::widget::Container::<'_, MessageCategory, StyleType>::new(main_row)
-            .padding(10)
-            .width(Length::Fill)
-            .class(if is_selected {
-                ContainerType::Selected
-            } else {
-                ContainerType::Hoverable
-            });
+        let item_container =
+            iced::widget::Container::<'_, MessageCategory, StyleType>::new(main_row)
+                .padding(10)
+                .width(Length::Fill)
+                .class(if is_selected {
+                    ContainerType::Selected
+                } else {
+                    ContainerType::Hoverable
+                });
 
         mouse_area(
             button(item_container)
@@ -426,14 +438,14 @@ impl DnsRecordsComponent {
                     record.id as usize,
                 )))
                 .width(Length::Fill)
-                .class(ButtonType::Transparent)
+                .class(ButtonType::Transparent),
         )
-        .on_enter(MessageCategory::Dns(DnsMessage::RecordHovered(Some(record.id as usize))))
+        .on_enter(MessageCategory::Dns(DnsMessage::RecordHovered(Some(
+            record.id as usize,
+        ))))
         .on_exit(MessageCategory::Dns(DnsMessage::RecordHovered(None)))
         .into()
     }
-
-
 
     /// 渲染空状态
     fn render_empty_state(&self, domain: Option<&str>) -> Element<'_, MessageCategory, StyleType> {

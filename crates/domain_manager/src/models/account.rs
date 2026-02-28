@@ -1,7 +1,6 @@
-
-use serde::{Deserialize, Serialize};
 use crate::gui::model::domain::DnsProvider;
 use crate::gui::types::credential::Credential;
+use serde::{Deserialize, Serialize};
 
 /// 账户模型
 #[derive(Debug, Clone, Serialize, Deserialize)]

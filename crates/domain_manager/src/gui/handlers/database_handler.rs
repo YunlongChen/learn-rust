@@ -109,12 +109,12 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                     HandlerResult::Task(Task::perform(
                         async move {
                             match crate::storage::delete_account(&conn_clone, account_id).await {
-                                Ok(_) => MessageCategory::Database(DatabaseMessage::AccountDeleted(Ok(
-                                    account_id,
-                                ))),
-                                Err(e) => MessageCategory::Database(DatabaseMessage::AccountDeleted(
-                                    Err(e.to_string()),
-                                )),
+                                Ok(_) => MessageCategory::Database(
+                                    DatabaseMessage::AccountDeleted(Ok(account_id)),
+                                ),
+                                Err(e) => MessageCategory::Database(
+                                    DatabaseMessage::AccountDeleted(Err(e.to_string())),
+                                ),
                             }
                         },
                         |msg| msg,
@@ -258,9 +258,7 @@ impl EventHandler<DatabaseMessage> for DataStoreHandler {
                     )))
                 }
             }
-            DatabaseMessage::DomainAdded(_) => {
-                 HandlerResult::None
-            }
+            DatabaseMessage::DomainAdded(_) => HandlerResult::None,
         }
     }
 

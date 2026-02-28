@@ -226,12 +226,12 @@ pub enum ProviderMessage {
     Loaded(Result<Vec<Account>, String>),
     // 域名管理
     ToggleExpand(i64),
-    ToggleAddDomain(i64, bool), // AccountID, is_adding
+    ToggleAddDomain(i64, bool),        // AccountID, is_adding
     NewDomainNameChanged(i64, String), // AccountID, name
-    ConfirmAddDomain(i64),      // AccountID
-    AddDomain(i64),             // 原有的 AddDomain 保留，可能用于触发添加模式
-    DeleteDomain(i64, i64),     // (AccountID, DomainID)
-    SyncDomainInfo(i64),        // AccountID
+    ConfirmAddDomain(i64),             // AccountID
+    AddDomain(i64),                    // 原有的 AddDomain 保留，可能用于触发添加模式
+    DeleteDomain(i64, i64),            // (AccountID, DomainID)
+    SyncDomainInfo(i64),               // AccountID
     DomainDeleted(Result<i64, String>),
     DomainAdded(Result<i64, String>), // 域名添加结果
     LoadDomains(i64),                 // AccountID

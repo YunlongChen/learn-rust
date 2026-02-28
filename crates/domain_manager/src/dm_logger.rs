@@ -2,7 +2,7 @@ use crate::configs::gui_config::Config;
 use tracing::{info, Level};
 
 #[cfg(feature = "logging")]
-use crate::configs::logging_config::{LogLevel, LogOutput, LogFormat};
+use crate::configs::logging_config::{LogFormat, LogLevel, LogOutput};
 
 /// 初始化日志系统
 pub fn init_logging(config: &Config) {
@@ -30,10 +30,18 @@ fn init_advanced_logging(config: &crate::configs::logging_config::LoggingConfig)
         LogOutput::Console => {
             init_console_logging(&config, max_level);
         }
-        LogOutput::File { path, max_size_mb: _, max_files: _ } => {
+        LogOutput::File {
+            path,
+            max_size_mb: _,
+            max_files: _,
+        } => {
             init_file_logging(&config, max_level, path);
         }
-        LogOutput::Both { file_path, max_size_mb: _, max_files: _ } => {
+        LogOutput::Both {
+            file_path,
+            max_size_mb: _,
+            max_files: _,
+        } => {
             init_both_logging(&config, max_level, file_path);
         }
     }

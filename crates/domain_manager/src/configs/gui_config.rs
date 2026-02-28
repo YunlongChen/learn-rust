@@ -3,15 +3,15 @@ use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE, VERSION};
+use sea_orm::sqlx::encode::IsNull::No;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Display;
 use std::fs::read_to_string;
-use sea_orm::sqlx::encode::IsNull::No;
 use tracing::{error, info};
 
 #[cfg(feature = "logging")]
-use super::logging_config::{LogLevel, LogOutput, LogFormat, LoggingConfig};
+use super::logging_config::{LogFormat, LogLevel, LogOutput, LoggingConfig};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum LICENCE {

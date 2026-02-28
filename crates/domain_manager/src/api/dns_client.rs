@@ -141,7 +141,7 @@ impl DnsClientTrait for DnsClient {
         // 如果凭证无效，API调用会失败
         match self.get_all_domain_info().await {
             Ok(domains) => {
-                info!("凭证验证成功,查询到域名数量：{}",domains.len());
+                info!("凭证验证成功,查询到域名数量：{}", domains.len());
                 Ok(())
             }
             Err(err) => {

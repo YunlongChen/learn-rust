@@ -7,7 +7,6 @@ use crate::{FONT_FAMILY_NAME, ICON_FONT_FAMILY_NAME};
 use iced::font::{Family, Stretch, Style, Weight};
 use iced::{Color, Font};
 
-
 // night theme - 优化后的深色主题
 const PRIMARY_NIGHT: Color = Color {
     r: 0.11, // #1c1c1c - 更深的背景色

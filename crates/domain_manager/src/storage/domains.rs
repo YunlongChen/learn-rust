@@ -356,7 +356,10 @@ pub fn get_expiring_domains(
 }
 
 /// 删除域名
-pub async fn delete_domain(conn: &DatabaseConnection, domain_id: i64) -> Result<(), Box<dyn Error>> {
+pub async fn delete_domain(
+    conn: &DatabaseConnection,
+    domain_id: i64,
+) -> Result<(), Box<dyn Error>> {
     use crate::storage::entities::domain;
     use sea_orm::EntityTrait;
 

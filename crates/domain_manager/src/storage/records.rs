@@ -2,9 +2,7 @@ use crate::models::domain::DomainEntity;
 use crate::models::record::{NewRecord, RecordEntity};
 use crate::storage::{dns_record, DnsRecordDbEntity};
 use anyhow::Result;
-use sea_orm::{
-    ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-};
+use sea_orm::{ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::error::Error;
 use tracing::{error, info};
 use ActiveValue::Set;
@@ -122,7 +120,10 @@ pub async fn find_record_by_id(
 }
 
 /// 删除记录
-pub async fn delete_record(conn: &DatabaseConnection, record_id: i64) -> Result<(), Box<dyn Error>> {
+pub async fn delete_record(
+    conn: &DatabaseConnection,
+    record_id: i64,
+) -> Result<(), Box<dyn Error>> {
     DnsRecordDbEntity::delete_by_id(record_id)
         .exec(conn)
         .await
