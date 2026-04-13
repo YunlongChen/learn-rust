@@ -25,7 +25,7 @@ chrono = { version = "0.4.41", default-features = false, features = ["clock", "s
 confy = { version = "1.0.0" }
 cloudflare = { version = "0.14.0" }  # Cloudflare API客户端
 clap = { version = "4.5.41", features = ["derive"] }
-rand = { version = "0.9.1" }
+rand = { version = "0.9.3" }
 secrecy = { version = "0.10.3", features = ["serde"] }
 directories = { version = "6.0.0" }
 anyhow = { version = "1.0.98" }
