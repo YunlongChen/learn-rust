@@ -1,4 +1,4 @@
- #![cfg_attr(windows, windows_subsystem = "windows")]
+#![cfg_attr(windows, windows_subsystem = "windows")]
 #![allow(dead_code)]
 
 mod api;
@@ -6,6 +6,7 @@ mod cli;
 mod configs;
 mod countries;
 mod dm_logger;
+pub mod error;
 mod gui;
 mod mmdb;
 mod model;

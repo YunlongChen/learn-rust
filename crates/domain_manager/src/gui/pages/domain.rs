@@ -29,7 +29,7 @@ fn domain_list_view<'a>(
     // 将每个域名转换为行元素
     let mut container: Column<MessageCategory, StyleType> = Column::new().spacing(5);
     for domain in domains {
-        let is_deleting = state.data.deleting_domain_id == Some(domain.id as usize);
+        let is_deleting = state.data.deleting_domain_id == Some(domain.id);
 
         let mut domain_line: Row<MessageCategory, StyleType> = Row::new()
             .push(text!("选择").width(Length::Fill))
@@ -55,9 +55,7 @@ fn domain_list_view<'a>(
             domain_line = domain_line
                 .push(
                     button(Text::new("确认删除?").center())
-                        .on_press(MessageCategory::Domain(DomainMessage::Delete(
-                            domain.id as usize,
-                        )))
+                        .on_press(MessageCategory::Domain(DomainMessage::Delete(domain.id)))
                         .width(Length::Fixed(100.0)), // 增加宽度以容纳文字
                 )
                 .push(horizontal_space().width(Length::Fixed(4f32)).height(4))
@@ -70,7 +68,7 @@ fn domain_list_view<'a>(
             domain_line = domain_line.push(
                 button(Text::new(t!("delete")).center())
                     .on_press(MessageCategory::Domain(DomainMessage::DeleteRequest(
-                        domain.id as usize,
+                        domain.id,
                     )))
                     .width(Length::Fixed(100.0)),
             );

@@ -154,7 +154,7 @@ pub enum DataUpdate {
     AddDomain(DomainModel),
 
     /// 删除域名
-    RemoveDomain(usize),
+    RemoveDomain(i64),
 
     /// 选择域名
     SelectDomain(DomainModel),
@@ -437,6 +437,21 @@ impl AppState {
     /// 检查应用是否准备就绪
     pub fn is_ready(&self) -> bool {
         self.initialized && self.database.is_some()
+    }
+
+    /// 设置数据库连接
+    pub fn set_database(&mut self, conn: DatabaseConnection) {
+        self.database = Some(conn);
+    }
+
+    /// 获取数据库连接
+    pub fn get_database(&self) -> Option<&DatabaseConnection> {
+        self.database.as_ref()
+    }
+
+    /// 获取可变数据库连接
+    pub fn get_database_mut(&mut self) -> Option<&mut DatabaseConnection> {
+        self.database.as_mut()
     }
 }
 

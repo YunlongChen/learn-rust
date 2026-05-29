@@ -33,7 +33,7 @@ impl DomainHandler {
     }
 
     /// 处理域名选择
-    fn handle_domain_selected(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
+    fn handle_domain_selected(&self, state: &mut AppState, domain_id: i64) -> HandlerResult {
         info!("选择域名: {}", domain_id);
 
         // 查找域名
@@ -41,7 +41,7 @@ impl DomainHandler {
             .data
             .domain_list
             .iter()
-            .find(|d| d.id as usize == domain_id)
+            .find(|d| d.id == domain_id)
             .cloned()
         {
             // 更新选中的域名
@@ -150,7 +150,7 @@ impl DomainHandler {
     }
 
     /// 处理域名删除请求
-    fn handle_delete_request(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
+    fn handle_delete_request(&self, state: &mut AppState, domain_id: i64) -> HandlerResult {
         state.data.deleting_domain_id = Some(domain_id);
         HandlerResult::StateUpdated
     }
@@ -162,7 +162,7 @@ impl DomainHandler {
     }
 
     /// 处理删除域名
-    fn handle_delete_domain(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
+    fn handle_delete_domain(&self, state: &mut AppState, domain_id: i64) -> HandlerResult {
         info!("删除域名: {}", domain_id);
 
         // 重置删除状态
@@ -173,7 +173,7 @@ impl DomainHandler {
             .data
             .domain_list
             .iter()
-            .any(|domain| domain.id as usize == domain_id)
+            .any(|domain| domain.id == domain_id)
         {
             warn!("尝试删除不存在的域名: {}", domain_id);
             state.update(StateUpdate::Ui(UiUpdate::ShowToast(format!(
@@ -184,17 +184,14 @@ impl DomainHandler {
         }
 
         // 从域名列表中移除
-        state
-            .data
-            .domain_list
-            .retain(|d| d.id as usize != domain_id);
+        state.data.domain_list.retain(|d| d.id != domain_id);
 
         // 清除DNS记录缓存
         state.data.dns_records_cache.remove(&domain_id);
 
         // 如果删除的是当前选中的域名，清除选中状态
         if let Some(selected) = &state.data.selected_domain {
-            if selected.id as usize == domain_id {
+            if selected.id == domain_id {
                 state.data.selected_domain = None;
                 state.ui.selected_domain = None;
                 state.data.dns_list.clear();
@@ -323,9 +320,7 @@ impl DomainHandler {
 impl EventHandler<DomainMessage> for DomainHandler {
     fn handle(&self, state: &mut AppState, event: DomainMessage) -> HandlerResult {
         match event {
-            DomainMessage::Selected(domain) => {
-                self.handle_domain_selected(state, domain.id as usize)
-            }
+            DomainMessage::Selected(domain) => self.handle_domain_selected(state, domain.id),
             DomainMessage::AddFormChanged(message) => self.handle_add_form_changed(state, message),
             DomainMessage::SubmitForm => self.handle_submit_form(state),
             DomainMessage::Delete(domain_id) => self.handle_delete_domain(state, domain_id),

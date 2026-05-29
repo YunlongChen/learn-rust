@@ -38,7 +38,7 @@ impl DnsHandler {
     }
 
     /// 处理查询DNS记录
-    fn handle_query_record(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
+    fn handle_query_record(&self, state: &mut AppState, domain_id: i64) -> HandlerResult {
         // 清除过滤器
         state.data.dns_record_filter = Default::default();
 
@@ -71,7 +71,7 @@ impl DnsHandler {
     fn handle_add_record(
         &self,
         state: &mut AppState,
-        domain_id: usize,
+        domain_id: i64,
         record_type: String,
         name: String,
         value: String,
@@ -88,7 +88,7 @@ impl DnsHandler {
         // 创建新的DNS记录
         let new_record = DnsRecordModal {
             id: 0, // 临时ID，数据库会自动生成
-            domain_id: domain_id as i64,
+            domain_id,
             record_type: record_type.clone(),
             name: name.clone(),
             value: value.clone(),
@@ -128,8 +128,8 @@ impl DnsHandler {
     fn handle_delete_record(
         &self,
         state: &mut AppState,
-        domain: usize,
-        record_id: usize,
+        domain: i64,
+        record_id: i64,
     ) -> HandlerResult {
         state
             .ui
@@ -194,7 +194,7 @@ impl DnsHandler {
     }
 
     /// 处理DNS记录删除请求
-    fn handle_delete_request(&self, state: &mut AppState, record_id: usize) -> HandlerResult {
+    fn handle_delete_request(&self, state: &mut AppState, record_id: i64) -> HandlerResult {
         state.data.deleting_dns_record_id = Some(record_id);
         HandlerResult::StateUpdated
     }
@@ -206,7 +206,7 @@ impl DnsHandler {
     }
 
     /// 处理DNS记录删除（原版Message::DnsDelete）
-    fn handle_dns_delete(&self, state: &mut AppState, record_id: usize) -> HandlerResult {
+    fn handle_dns_delete(&self, state: &mut AppState, record_id: i64) -> HandlerResult {
         info!("删除DNS记录: {}", record_id);
 
         // 重置删除状态
@@ -217,7 +217,7 @@ impl DnsHandler {
             .data
             .selected_domain
             .as_ref()
-            .map(|d| d.id as usize)
+            .map(|d| d.id)
             .unwrap_or(0);
 
         if let Some(conn) = &state.database {
@@ -343,7 +343,7 @@ impl DnsHandler {
 
         // 获取当前选中的域名ID
         let domain_id = match &state.data.selected_domain {
-            Some(domain) => domain.id as usize,
+            Some(domain) => domain.id,
             None => {
                 warn!("未选择域名，无法添加DNS记录");
                 return HandlerResult::StateUpdated;
@@ -376,7 +376,7 @@ impl DnsHandler {
     }
 
     /// 统一处理表单结果
-    fn handle_form_result(result: Result<(), String>, domain_id: usize) -> MessageCategory {
+    fn handle_form_result(result: Result<(), String>, domain_id: i64) -> MessageCategory {
         match result {
             Ok(_) => {
                 info!("DNS记录操作成功，刷新列表");
@@ -395,7 +395,7 @@ impl DnsHandler {
     }
 
     /// 处理DNS表单提交成功
-    fn handle_form_submit_success(&self, state: &mut AppState, domain_id: usize) -> HandlerResult {
+    fn handle_form_submit_success(&self, state: &mut AppState, domain_id: i64) -> HandlerResult {
         info!("DNS记录表单提交成功，清空表单并刷新列表");
         state.data.add_dns_form = Default::default();
         self.handle_query_record(state, domain_id)
@@ -417,7 +417,7 @@ impl DnsHandler {
     ///
     /// 注意：现在的删除逻辑通常通过 `delete_and_reload` 直接触发 `DnsRecordReloaded`，
     /// 这个方法仅保留作为兼容性处理或备用。
-    fn handle_record_deleted(&self, state: &mut AppState, record_id: usize) -> HandlerResult {
+    fn handle_record_deleted(&self, state: &mut AppState, record_id: i64) -> HandlerResult {
         info!("DNS记录删除消息收到: {} (Legacy)", record_id);
 
         // 仅处理导航，数据更新已由 DnsRecordReloaded 处理
@@ -428,11 +428,11 @@ impl DnsHandler {
     /// 从数据库加载DNS记录
     async fn load_dns_records_from_db(
         conn: DatabaseConnection,
-        domain_id: usize,
+        domain_id: i64,
     ) -> Result<Vec<DnsRecordModal>, String> {
         info!("开始从数据库加载域名 {} 的DNS记录", domain_id);
 
-        let records = records::get_records_by_domain(&conn, Some(domain_id as i64))
+        let records = records::get_records_by_domain(&conn, Some(domain_id))
             .await
             .map_err(|e: anyhow::Error| e.to_string())?;
 
@@ -463,7 +463,7 @@ impl DnsHandler {
 
     /// 异步同步DNS记录
     async fn sync_dns_records_async(
-        domain: usize,
+        domain: i64,
         conn: DatabaseConnection,
     ) -> Result<Vec<DnsRecordModal>, String> {
         // 使用 load_dns_records_from_db 代替 query_dns_records_async
@@ -555,11 +555,11 @@ impl DnsHandler {
     /// 异步删除DNS记录
     async fn delete_dns_record_async(
         conn: DatabaseConnection,
-        _domain_id: usize,
-        record_id: usize,
+        _domain_id: i64,
+        record_id: i64,
     ) -> Result<(), String> {
         // 1. 获取记录信息
-        let record = records::find_record_by_id(&conn, record_id as i64)
+        let record = records::find_record_by_id(&conn, record_id)
             .await
             .map_err(|e| e.to_string())?
             .ok_or("记录不存在")?;
@@ -615,7 +615,7 @@ impl DnsHandler {
             .map_err(|e| e.to_string())?;
 
         // 6. 删除本地数据库记录
-        records::delete_record(&conn, record_id as i64)
+        records::delete_record(&conn, record_id)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -630,17 +630,17 @@ impl DnsHandler {
     /// 3. 重新加载最新数据
     async fn delete_and_reload_dns_record_async(
         conn: DatabaseConnection,
-        domain_id: usize,
-        record_id: usize,
-    ) -> Result<(usize, Vec<DnsRecordModal>), String> {
+        domain_id: i64,
+        record_id: i64,
+    ) -> Result<(i64, Vec<DnsRecordModal>), String> {
         // 1. 确定目标域名ID
         // 如果传入的 domain_id 为 0，我们需要先查询记录所属的域名
         let target_domain_id = if domain_id == 0 {
-            let record = records::find_record_by_id(&conn, record_id as i64)
+            let record = records::find_record_by_id(&conn, record_id)
                 .await
                 .map_err(|e| e.to_string())?
                 .ok_or("记录不存在")?;
-            record.domain_id as usize
+            record.domain_id
         } else {
             domain_id
         };
@@ -801,7 +801,7 @@ impl DnsHandler {
     async fn handle_dns_record_add_async(
         conn: DatabaseConnection,
         form_data: AddDnsField,
-        domain_id: usize,
+        domain_id: i64,
     ) -> Result<(), String> {
         info!(
             "开始异步添加DNS记录: {:?}，域名ID: {}",
@@ -811,7 +811,7 @@ impl DnsHandler {
         // 构建 DnsRecordModal
         let record = DnsRecordModal {
             id: 0, // 临时ID
-            domain_id: domain_id as i64,
+            domain_id,
             record_type: form_data
                 .record_type
                 .map(|t| t.get_value().to_string())
@@ -835,7 +835,7 @@ impl DnsHandler {
     async fn handle_dns_record_update_async(
         conn: DatabaseConnection,
         form_data: AddDnsField,
-        domain_id: usize,
+        domain_id: i64,
     ) -> Result<(), String> {
         info!(
             "开始异步更新DNS记录: {:?}，域名ID: {}",
@@ -870,7 +870,7 @@ impl DnsHandler {
 
         let new_record = DnsRecordModal {
             id: old_record.id,
-            domain_id: domain_id as i64,
+            domain_id,
             record_type: form_data
                 .record_type
                 .map(|t| t.get_value().to_string())

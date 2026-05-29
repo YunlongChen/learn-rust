@@ -132,7 +132,7 @@ impl DomainListComponent {
                     .data
                     .dns_records_cache
                     // Fixme 这里没有错误处理，后续进行修复
-                    .get(&(domain.id as usize))
+                    .get(&domain.id)
                     .map(|records| records.len())
                     .unwrap_or(0);
 
@@ -186,15 +186,13 @@ impl DomainListComponent {
 
         // 添加删除按钮
         if item_config.deletable {
-            let is_deleting = state.data.deleting_domain_id == Some(domain.id as usize);
+            let is_deleting = state.data.deleting_domain_id == Some(domain.id);
 
             if is_deleting {
                 main_row = main_row
                     .push(
                         button(text("确认?").size(12))
-                            .on_press(MessageCategory::Domain(DomainMessage::Delete(
-                                domain.id as usize,
-                            )))
+                            .on_press(MessageCategory::Domain(DomainMessage::Delete(domain.id)))
                             .class(ButtonType::Alert)
                             .padding(Padding::from([5, 10])),
                     )
@@ -208,7 +206,7 @@ impl DomainListComponent {
                 main_row = main_row.push(
                     button(text("删除").size(12))
                         .on_press(MessageCategory::Domain(DomainMessage::DeleteRequest(
-                            domain.id as usize,
+                            domain.id,
                         )))
                         .class(ButtonType::Standard)
                         .padding(Padding::from([5, 10])),

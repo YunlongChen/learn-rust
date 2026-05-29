@@ -25,7 +25,7 @@ pub struct DataState {
     pub selected_provider: Option<DomainProvider>,
 
     /// DNS记录缓存 (域名 -> DNS记录列表)
-    pub dns_records_cache: HashMap<usize, Vec<DnsRecordModal>>,
+    pub dns_records_cache: HashMap<i64, Vec<DnsRecordModal>>,
 
     /// 当前显示的DNS记录
     pub current_dns_records: Vec<DnsRecordModal>,
@@ -64,10 +64,10 @@ pub struct DataState {
     pub provider_page: ProviderPageState,
 
     /// 正在删除的DNS记录ID
-    pub deleting_dns_record_id: Option<usize>,
+    pub deleting_dns_record_id: Option<i64>,
 
     /// 正在删除的域名ID
-    pub deleting_domain_id: Option<usize>,
+    pub deleting_domain_id: Option<i64>,
 }
 
 /// 过滤器设置
@@ -168,13 +168,13 @@ impl DataState {
     }
 
     /// 删除域名
-    pub fn remove_domain(&mut self, domain_id: usize) {
-        self.domain_list.retain(|d| d.id as usize != domain_id);
+    pub fn remove_domain(&mut self, domain_id: i64) {
+        self.domain_list.retain(|d| d.id != domain_id);
         self.dns_records_cache.remove(&domain_id);
 
         // 如果删除的是当前选中的域名，清除选择
         if let Some(selected) = &self.selected_domain {
-            if selected.id as usize == domain_id {
+            if selected.id == domain_id {
                 self.selected_domain = None;
                 self.current_dns_records.clear();
             }
@@ -187,7 +187,7 @@ impl DataState {
     /// 选择域名
     pub fn select_domain(&mut self, domain: DomainModal) {
         // 从缓存中加载DNS记录
-        if let Some(records) = self.dns_records_cache.get(&(domain.id as usize)) {
+        if let Some(records) = self.dns_records_cache.get(&domain.id) {
             self.current_dns_records = records.clone();
         } else {
             self.current_dns_records.clear();
@@ -197,13 +197,12 @@ impl DataState {
     }
 
     /// 设置DNS记录
-    pub fn set_dns_records(&mut self, domain_id: usize, records: Vec<DnsRecordModal>) {
-        self.dns_records_cache
-            .insert(domain_id.clone(), records.clone());
+    pub fn set_dns_records(&mut self, domain_id: i64, records: Vec<DnsRecordModal>) {
+        self.dns_records_cache.insert(domain_id, records.clone());
 
         // 如果是当前选中域名的记录，更新当前显示
         if let Some(selected) = &self.selected_domain {
-            if selected.id as usize == domain_id {
+            if selected.id == domain_id {
                 self.current_dns_records = records;
             }
         }
@@ -213,16 +212,16 @@ impl DataState {
     }
 
     /// 添加DNS记录
-    pub fn add_dns_record(&mut self, domain_name: usize, record: DnsRecordModal) {
+    pub fn add_dns_record(&mut self, domain_id: i64, record: DnsRecordModal) {
         let records = self
             .dns_records_cache
-            .entry(domain_name.clone())
+            .entry(domain_id)
             .or_insert_with(Vec::new);
         records.push(record.clone());
 
         // 如果是当前选中域名的记录，更新当前显示
         if let Some(selected) = &self.selected_domain {
-            if selected.id as usize == domain_name {
+            if selected.id == domain_id {
                 self.current_dns_records.push(record);
             }
         }
@@ -232,14 +231,14 @@ impl DataState {
     }
 
     /// 删除DNS记录
-    pub fn remove_dns_record(&mut self, domain_id: usize, record_id: i64) {
+    pub fn remove_dns_record(&mut self, domain_id: i64, record_id: i64) {
         if let Some(records) = self.dns_records_cache.get_mut(&domain_id) {
             records.retain(|r| r.id != record_id);
         }
 
         // 如果是当前选中域名的记录，更新当前显示
         if let Some(selected) = &self.selected_domain {
-            if selected.id as usize == domain_id {
+            if selected.id == domain_id {
                 self.current_dns_records.retain(|r| r.id != record_id);
             }
         }

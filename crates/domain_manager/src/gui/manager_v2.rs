@@ -97,8 +97,8 @@ impl DomainManagerV2 {
     pub fn new(config: Config) -> Self {
         info!("创建新的域名管理器实例 (V2)");
         Self {
-            state: AppState::with_config(config),
-            config: Config::default(),
+            state: AppState::with_config(config.clone()),
+            config: config,
             message: String::new(),
             last_page: Page::DomainPage,
             message_handler: MessageHandler::new(),

@@ -54,13 +54,11 @@ pub fn dns_record<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, S
                         .width(Length::Fixed(80.0)),
                     horizontal_space().width(Length::Fixed(5f32)),
                     button(Text::new(get_text("delete")).align_x(Alignment::Center))
-                        .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id as usize)))
+                        .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id)))
                         .width(Length::Fixed(80.0)),
                     horizontal_space().width(Length::Fixed(5f32)),
                     button(Text::new(get_text("test")).align_x(Alignment::Center))
-                        .on_press(MessageCategory::Dns(DnsMessage::TestRecord(
-                            record.id as usize
-                        )))
+                        .on_press(MessageCategory::Dns(DnsMessage::TestRecord(record.id)))
                         .width(Length::Fixed(80.0))
                 ];
                 dns_content = dns_content.push(row)

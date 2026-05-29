@@ -73,10 +73,7 @@ pub fn button_open_file<'a>(
         .class(tooltip_style)
 }
 
-pub fn row_open_link_tooltip<'a>(
-    text: String,
-    font: Font,
-) -> Row<'a, MessageCategory, StyleType> {
+pub fn row_open_link_tooltip<'a>(text: String, font: Font) -> Row<'a, MessageCategory, StyleType> {
     Row::new()
         .align_y(Alignment::Center)
         .spacing(10)

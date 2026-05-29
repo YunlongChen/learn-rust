@@ -3,7 +3,7 @@ use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::model::domain::DnsProvider::Aliyun;
 use crate::gui::model::domain::{DnsProvider, Domain, DomainName, DomainStatus};
 use crate::model::dns_record_response::Record;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use reqwest::Client;
 use tracing::{error, info};
@@ -110,28 +110,57 @@ impl DnsClientTrait for DnsClient {
         todo!("query_domain not implemented for DnsClient")
     }
 
-    async fn list_dns_records(&self, _domain_name: String) -> Result<Vec<Record>> {
-        // 这里需要根据具体的提供商实现DNS记录查询
-        // 目前暂不实现
-        todo!("list_dns_records not implemented for DnsClient")
+    async fn list_dns_records(&self, domain_name: String) -> Result<Vec<Record>> {
+        match self.dns_provider.first() {
+            Some(Aliyun) => {
+                let client = AliyunDnsClient::new(
+                    self.access_key_id.clone(),
+                    self.access_key_secret.clone(),
+                );
+                client.list_dns_records(domain_name).await
+            }
+            _ => Err(anyhow!("DNS records not implemented for this provider")),
+        }
     }
 
-    async fn add_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
-        // 这里需要根据具体的提供商实现添加DNS记录
-        // 目前暂不实现
-        todo!("add_dns_record not implemented for DnsClient")
+    async fn add_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+        match self.dns_provider.first() {
+            Some(Aliyun) => {
+                let client = AliyunDnsClient::new(
+                    self.access_key_id.clone(),
+                    self.access_key_secret.clone(),
+                );
+                client.add_dns_record(domain_name, record).await
+            }
+            _ => Err(anyhow!("DNS records not implemented for this provider")),
+        }
     }
 
-    async fn delete_dns_record(&self, _domain_name: &DomainName, _record_id: &str) -> Result<()> {
-        // 这里需要根据具体的提供商实现删除DNS记录
-        // 目前暂不实现
-        todo!("delete_dns_record not implemented for DnsClient")
+    async fn delete_dns_record(&self, domain_name: &DomainName, record_id: &str) -> Result<()> {
+        match self.dns_provider.first() {
+            Some(Aliyun) => {
+                let client = AliyunDnsClient::new(
+                    self.access_key_id.clone(),
+                    self.access_key_secret.clone(),
+                );
+                client.delete_dns_record(domain_name, record_id).await
+            }
+            _ => Err(anyhow!("DNS records not implemented for this provider")),
+        }
     }
 
-    async fn update_dns_record(&self, _domain_name: &DomainName, _record: &Record) -> Result<()> {
-        // 这里需要根据具体的提供商实现更新DNS记录
-        // 目前暂不实现
-        todo!("update_dns_record not implemented for DnsClient")
+    async fn update_dns_record(&self, domain_name: &DomainName, record: &Record) -> Result<()> {
+        match self.dns_provider.first() {
+            Some(Aliyun) => {
+                let client = AliyunDnsClient::new(
+                    self.access_key_id.clone(),
+                    self.access_key_secret.clone(),
+                );
+                client.update_dns_record(domain_name, record).await
+            }
+            _ => Err(anyhow!("DNS records not implemented for this provider")),
+            None => Err(anyhow!("No DNS provider configured")),
+        }
     }
 
     /// 验证凭证是否有效

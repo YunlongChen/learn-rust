@@ -380,7 +380,7 @@ impl DnsRecordsComponent {
                 .height(Length::Shrink);
 
             // 检查是否正在删除
-            let is_deleting = state.data.deleting_dns_record_id == Some(record.id as usize);
+            let is_deleting = state.data.deleting_dns_record_id == Some(record.id);
 
             if is_deleting {
                 actions = actions
@@ -389,7 +389,7 @@ impl DnsRecordsComponent {
                             iced::widget::Text::<'_, StyleType>::new("确认删除?").size(10),
                         )
                         .padding(Padding::from([2, 8]))
-                        .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id as usize)))
+                        .on_press(MessageCategory::Dns(DnsMessage::Delete(record.id)))
                         .class(ButtonType::Alert),
                     )
                     .push(
@@ -413,9 +413,7 @@ impl DnsRecordsComponent {
                             iced::widget::Text::<'_, StyleType>::new("删除").size(10),
                         )
                         .padding(Padding::from([2, 8]))
-                        .on_press(MessageCategory::Dns(
-                            DnsMessage::DeleteRequest(record.id as usize),
-                        )),
+                        .on_press(MessageCategory::Dns(DnsMessage::DeleteRequest(record.id))),
                     );
             }
 
@@ -518,7 +516,7 @@ impl Component<AppState> for DnsRecordsComponent {
         let records = state
             .data
             .dns_records_cache
-            .get(&(selected_domain.id as usize))
+            .get(&selected_domain.id)
             .map(|records| records.as_slice())
             .unwrap_or(&[]);
 

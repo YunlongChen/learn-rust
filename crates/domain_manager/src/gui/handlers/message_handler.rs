@@ -104,8 +104,8 @@ pub enum DomainMessage {
     Selected(Domain),
     AddFormChanged(AddDomainFormMessage),
     SubmitForm,
-    Delete(usize),
-    DeleteRequest(usize),
+    Delete(i64),
+    DeleteRequest(i64),
     DeleteCancel,
     Query(String),
     Reload,
@@ -121,23 +121,23 @@ pub enum AddDomainFormMessage {
 /// DNS消息
 #[derive(Debug, Clone)]
 pub enum DnsMessage {
-    QueryRecord(usize),
+    QueryRecord(i64),
     AddRecord {
-        domain_id: usize,
+        domain_id: i64,
         record_type: String,
         name: String,
         value: String,
         ttl: u32,
     },
     DeleteRecord {
-        domain_id: usize,
-        record_id: usize,
+        domain_id: i64,
+        record_id: i64,
     },
-    Delete(usize),
-    DeleteRequest(usize),
+    Delete(i64),
+    DeleteRequest(i64),
     DeleteCancel,
-    RecordDeleted(usize),
-    TestRecord(usize),
+    RecordDeleted(i64),
+    TestRecord(i64),
 
     EditRecord(DnsRecordModal),
 
@@ -147,7 +147,7 @@ pub enum DnsMessage {
     FormRecordTypeChanged(Type),
     FormTtlChanged(i32),
     FormSubmit,
-    FormSubmitSuccess(usize),
+    FormSubmitSuccess(i64),
 
     ProviderSelected(usize),
     ProviderChange(String),
@@ -159,7 +159,7 @@ pub enum DnsMessage {
 
     // 重新加载域名解析
     ReloadDnsRecord(usize),
-    DnsRecordReloaded(usize, Vec<DnsRecordModal>),
+    DnsRecordReloaded(i64, Vec<DnsRecordModal>),
     QueryDnsResult(Vec<Record>),
 }
 
