@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  domain_stun:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: domain_stun:latest
+    container_name: domain_stun
+    restart: unless-stopped
+    ports:
+      - "3479:3479/tcp"   # HTTP API / Web UI
+      - "3478:3478/udp"   # STUN/TURN
+    volumes:
+      - stun_data:/data
+      - ./templates:/app/templates:ro
+    environment:
+      - RUST_LOG=info
+      - SERVER_PORT=3479
+      - STUN_PORT=3478
+      - TURN_PORT=3478
+    networks:
+      - stun_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3479/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  stun_data:
+    driver: local
+
+networks:
+  stun_network:
+    driver: bridge

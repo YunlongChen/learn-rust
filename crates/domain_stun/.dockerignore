@@ -1,0 +1,37 @@
+# Build artifacts
+target/
+debug/
+release/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cargo
+Cargo.lock
+# Keep local override if exists
+# Cargo.toml.local
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.db-journal
+
+# Temp files
+*.tmp
+*.bak
+*.orig
