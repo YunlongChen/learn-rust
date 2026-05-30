@@ -6,6 +6,7 @@
 use crate::gui::model::domain::DomainStatus;
 use crate::gui::model::form::AddDnsField;
 use crate::gui::pages::domain::DomainProvider;
+use crate::gui::state::pages::agent_state::AgentPageState;
 use crate::gui::state::pages::provider_state::ProviderPageState;
 use crate::storage::{DnsRecordModal, DomainModal};
 use std::collections::HashMap;
@@ -62,6 +63,9 @@ pub struct DataState {
 
     /// 服务商管理页面状态
     pub provider_page: ProviderPageState,
+
+    /// Agent管理页面状态
+    pub agent_page: AgentPageState,
 
     /// 正在删除的DNS记录ID
     pub deleting_dns_record_id: Option<i64>,
@@ -141,6 +145,7 @@ impl Default for DataState {
             syncing_domains: HashMap::new(),
             domain_stats: HashMap::new(),
             provider_page: ProviderPageState::default(),
+            agent_page: AgentPageState::default(),
             deleting_dns_record_id: None,
             deleting_domain_id: None,
         }
@@ -303,6 +308,7 @@ impl DataState {
         self.syncing_domains.clear();
         self.domain_stats.clear();
         self.provider_page = ProviderPageState::default();
+        self.agent_page = AgentPageState::default();
         self.deleting_dns_record_id = None;
         self.deleting_domain_id = None;
     }

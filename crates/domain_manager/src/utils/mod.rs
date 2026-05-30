@@ -1,4 +1,5 @@
 pub mod aliyun_utils;
+pub mod clipboard;
 pub mod error_logger;
 pub mod formatted_strings;
 pub mod i18_utils;

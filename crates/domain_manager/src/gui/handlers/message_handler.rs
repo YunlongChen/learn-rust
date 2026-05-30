@@ -17,7 +17,7 @@ use crate::gui::state::AppState;
 use crate::gui::types::credential::CredentialMessage;
 use crate::model::dns_record_response::{Record, Type};
 use crate::models::account::{Account, NewAccount};
-use crate::storage::{DnsRecordModal, DomainModal};
+use crate::storage::{DnsRecordModal, DomainModal, agents};
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::utils::types::file_info::FileInfo;
@@ -56,6 +56,8 @@ pub enum MessageCategory {
     Notification(NotificationMessage),
     /// 数据库消息
     Database(DatabaseMessage),
+    /// Agent相关消息
+    Agent(AgentMessage),
     /// 其他消息
     Other(OtherMessage),
 }
@@ -156,6 +158,7 @@ pub enum DnsMessage {
     DnsToggleRecord(usize),
     DnsRecordSelected(usize),
     RecordHovered(Option<usize>),
+    CopyRecordUrl(i64),
 
     // 重新加载域名解析
     ReloadDnsRecord(usize),
@@ -275,6 +278,31 @@ pub enum OtherMessage {
     MockDataGenerated(Vec<DomainModal>),
 }
 
+/// Agent相关消息
+#[derive(Debug, Clone)]
+pub enum AgentMessage {
+    /// 切换添加模式
+    ToggleAddMode,
+    /// 添加表单名称变更
+    AddFormNameChanged(String),
+    /// 添加表单端点变更
+    AddFormEndpointChanged(String),
+    /// 添加表单密钥变更
+    AddFormKeyChanged(String),
+    /// 保存新Agent
+    SaveAgent,
+    /// 取消添加
+    CancelAdd,
+    /// 删除Agent
+    DeleteAgent(String),
+    /// 加载Agent列表
+    LoadAgents,
+    /// Agent列表已加载
+    AgentsLoaded(Result<Vec<crate::agent::model::Agent>, String>),
+    /// 测试连接
+    TestConnection,
+}
+
 /// 消息处理器
 ///
 /// 负责将消息分发到对应的专门处理器
@@ -324,6 +352,7 @@ impl MessageHandler {
             MessageCategory::Database(message) => {
                 self.database_handler.handle(state, message).into()
             }
+            MessageCategory::Agent(msg) => self.handle_agent(state, msg),
             MessageCategory::Console(_) => Task::none(),
             MessageCategory::Notification(_) => Task::none(),
             MessageCategory::Other(_) => Task::none(),
@@ -364,6 +393,7 @@ impl MessageHandler {
                 // 页面切换时的自动刷新逻辑
                 match page {
                     Page::Providers => Task::done(MessageCategory::Provider(ProviderMessage::Load)),
+                    Page::Agent => Task::done(MessageCategory::Agent(AgentMessage::LoadAgents)),
                     _ => Task::none(),
                 }
             }
@@ -433,6 +463,111 @@ impl MessageHandler {
                 state.update(StateUpdate::Config(
                     crate::gui::state::app_state::ConfigUpdate::Save,
                 ));
+                Task::none()
+            }
+        }
+    }
+
+    /// 处理Agent消息
+    fn handle_agent(&self, state: &mut AppState, message: AgentMessage) -> Task<MessageCategory> {
+        match message {
+            AgentMessage::ToggleAddMode => {
+                state.data.agent_page.toggle_add_mode();
+                Task::none()
+            }
+            AgentMessage::AddFormNameChanged(name) => {
+                state.data.agent_page.new_agent_name = name;
+                Task::none()
+            }
+            AgentMessage::AddFormEndpointChanged(endpoint) => {
+                state.data.agent_page.new_agent_endpoint = endpoint;
+                Task::none()
+            }
+            AgentMessage::AddFormKeyChanged(key) => {
+                state.data.agent_page.new_agent_key = key;
+                Task::none()
+            }
+            AgentMessage::SaveAgent => {
+                // 保存Agent到数据库
+                if let Some(conn) = &state.database {
+                    let agent = state.data.agent_page.create_agent();
+                    if let Some(agent) = agent {
+                        let conn_clone = conn.clone();
+                        return Task::perform(
+                            async move {
+                                agents::create_agent(&conn_clone, agent)
+                                    .await
+                                    .map_err(|e| e.to_string())
+                            },
+                            |result| {
+                                match result {
+                                    Ok(_) => MessageCategory::Agent(AgentMessage::LoadAgents),
+                                    Err(e) => MessageCategory::Ui(UiMessage::ShowToast(format!(
+                                        "保存Agent失败: {}",
+                                        e
+                                    ))),
+                                }
+                            },
+                        );
+                    }
+                }
+                Task::none()
+            }
+            AgentMessage::CancelAdd => {
+                state.data.agent_page.cancel_add();
+                Task::none()
+            }
+            AgentMessage::DeleteAgent(id) => {
+                if let Some(conn) = &state.database {
+                    let conn_clone = conn.clone();
+                    // 先更新内存中的数据
+                    state.data.agent_page.delete_agent(&id);
+                    // 然后异步删除数据库中的记录
+                    let id_clone = id.clone();
+                    return Task::perform(
+                        async move {
+                            agents::delete_agent(&conn_clone, uuid::Uuid::parse_str(&id_clone).unwrap_or_default())
+                                .await
+                                .map_err(|e| e.to_string())
+                        },
+                        |result| {
+                            if let Err(e) = result {
+                                tracing::error!("删除Agent失败: {}", e);
+                            }
+                            MessageCategory::Agent(AgentMessage::LoadAgents)
+                        },
+                    );
+                }
+                state.data.agent_page.delete_agent(&id);
+                Task::none()
+            }
+            AgentMessage::LoadAgents => {
+                if let Some(conn) = &state.database {
+                    let conn_clone = conn.clone();
+                    return Task::perform(
+                        async move {
+                            agents::find_all_agents(&conn_clone)
+                                .await
+                                .map_err(|e| e.to_string())
+                        },
+                        |result| MessageCategory::Agent(AgentMessage::AgentsLoaded(result)),
+                    );
+                }
+                Task::none()
+            }
+            AgentMessage::AgentsLoaded(result) => {
+                match result {
+                    Ok(agents) => {
+                        state.data.agent_page.agents = agents;
+                    }
+                    Err(e) => {
+                        tracing::error!("加载Agent失败: {}", e);
+                    }
+                }
+                Task::none()
+            }
+            AgentMessage::TestConnection => {
+                state.data.agent_page.test_connection();
                 Task::none()
             }
         }

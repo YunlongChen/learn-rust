@@ -18,6 +18,7 @@ use crate::gui::types::credential::Credential;
 use crate::model::dns_record_response::{Record, Status, Type as RecordType};
 use crate::models::record::NewRecord;
 use crate::storage::{accounts, domains, records, DnsRecordModal};
+use crate::utils::clipboard::copy_to_clipboard;
 use iced::Task;
 use sea_orm::{DatabaseConnection, DbErr}; // Import DbErr
 use std::error::Error;
@@ -422,6 +423,53 @@ impl DnsHandler {
 
         // 仅处理导航，数据更新已由 DnsRecordReloaded 处理
         state.update(StateUpdate::Navigation(Page::DnsRecord));
+        HandlerResult::StateUpdated
+    }
+
+    /// 处理复制DNS记录URL
+    fn handle_copy_record_url(&self, state: &mut AppState, record_id: i64) -> HandlerResult {
+        info!("复制DNS记录URL: {}", record_id);
+
+        // 获取当前选中的域名
+        let domain_name = match &state.data.selected_domain {
+            Some(domain) => domain.name.clone(),
+            None => {
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast("请先选择域名".to_string())));
+                return HandlerResult::StateUpdated;
+            }
+        };
+
+        // 从缓存中查找记录
+        let record = state
+            .data
+            .current_dns_records
+            .iter()
+            .find(|r| r.id == record_id)
+            .cloned();
+
+        let record = match record {
+            Some(r) => r,
+            None => {
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast("未找到DNS记录".to_string())));
+                return HandlerResult::StateUpdated;
+            }
+        };
+
+        // 生成URL: {record_name}.{domain_name}
+        let url = format!("{}.{}", record.name, domain_name);
+
+        // 复制到剪贴板
+        match copy_to_clipboard(&url) {
+            Ok(_) => {
+                info!("已复制到剪贴板: {}", url);
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(format!("已复制: {}", url))));
+            }
+            Err(e) => {
+                warn!("复制到剪贴板失败: {}", e);
+                state.update(StateUpdate::Ui(UiUpdate::ShowToast(format!("复制失败: {}", e))));
+            }
+        }
+
         HandlerResult::StateUpdated
     }
 
@@ -926,6 +974,7 @@ impl EventHandler<DnsMessage> for DnsHandler {
             DnsMessage::DnsFilterChanged(filter) => self.handle_dns_filter_changed(state, filter),
             DnsMessage::DnsSearchChanged(keyword) => self.handle_dns_search_changed(state, keyword),
             DnsMessage::RecordDeleted(record_id) => self.handle_record_deleted(state, record_id),
+            DnsMessage::CopyRecordUrl(record_id) => self.handle_copy_record_url(state, record_id),
             DnsMessage::ProviderSelected(account_id) => {
                 // 特殊处理：使用 99999 作为切换添加表单的信号
                 if account_id == 99999 {

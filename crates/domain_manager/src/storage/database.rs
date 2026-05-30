@@ -9,7 +9,7 @@ use sea_orm_migration::MigratorTrait;
 use std::cmp::min;
 use std::time::Duration;
 use tracing::log::LevelFilter::Info;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 // 数据库配置
 pub(crate) const DB_FILE_NAME: &str = "domain_manager.db";
@@ -46,6 +46,9 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
             info!("连接创建成功");
             Migrator::up(&connection, None)
                 .await
+                .inspect_err(|e| {
+                    error!("迁移数据库失败: {:?}", e);
+                })
                 .expect("迁移数据库发生了异常！");
             Ok(connection)
         }

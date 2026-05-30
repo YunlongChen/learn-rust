@@ -17,7 +17,8 @@ members = [
     "crates/test_db",
     "crates/domain_server",
     "crates/domain_manager",
-    "crates/http_server"]
+    "crates/http_server",
+    "crates/domain_agent"]
 resolver = "2"
 
 

@@ -17,6 +17,7 @@ pub enum Page {
     Console,
     Dashboard,
     EditDomain,
+    Agent,
 }
 
 impl Display for Page {
@@ -34,6 +35,7 @@ impl Display for Page {
             Page::Console => write!(f, "控制台"),
             Page::Dashboard => write!(f, "dashboard"),
             Page::EditDomain => write!(f, "编辑域名"),
+            Page::Agent => write!(f, "Agent管理"),
         }
     }
 }

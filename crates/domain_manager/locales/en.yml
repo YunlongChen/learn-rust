@@ -11,6 +11,7 @@ in_query: querying...
 add_dns_record: Add DNS Record
 modify_dns_record: Modify DNS Record
 domain_manager: Domain Manager
+agent_manage: Agent Management
 help:
   title: Help
 sync: sync

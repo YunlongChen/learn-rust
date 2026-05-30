@@ -432,9 +432,7 @@ impl DnsRecordsComponent {
 
         mouse_area(
             button(item_container)
-                .on_press(MessageCategory::Dns(DnsMessage::DnsRecordSelected(
-                    record.id as usize,
-                )))
+                .on_press(MessageCategory::Dns(DnsMessage::CopyRecordUrl(record.id)))
                 .width(Length::Fill)
                 .class(ButtonType::Transparent),
         )

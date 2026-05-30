@@ -383,6 +383,7 @@ impl DomainManagerV2 {
             Page::AddDomain => self.render_add_domain_page(),
             Page::Providers => provider_page(&self.state.data.provider_page),
             Page::EditDomain => self.render_edit_domain_page(),
+            Page::Agent => crate::gui::pages::agent::agent_page(&self.state.data.agent_page),
             _ => self.render_unknown_page(),
         };
 

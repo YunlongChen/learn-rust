@@ -7,7 +7,6 @@ use crate::gui::model::domain::{DnsProvider, Domain};
 use crate::gui::model::form::AddDomainField;
 use crate::gui::pages::names::Page;
 use crate::gui::state::AppState;
-use crate::gui::styles::button::ButtonType;
 use crate::gui::types::credential::Credential;
 use crate::models::account::Account;
 use crate::utils::i18_utils::get_text;

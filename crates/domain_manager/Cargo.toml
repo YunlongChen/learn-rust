@@ -20,6 +20,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 reqwest = { version = "0.12.22", features = ["json", "rustls-tls"], default-features = false }
 tokio = { version = "1.46.1", features = ["rt-multi-thread", "macros", "net", "time"], default-features = false }
+tokio-tungstenite = "0.24"
+futures-util = "0.3"  # for StreamExt
 toml = { version = "0.9.1", default-features = false }
 chrono = { version = "0.4.41", default-features = false, features = ["clock", "std"] }
 confy = { version = "1.0.0" }
@@ -29,6 +31,7 @@ rand = { version = "0.9.1" }
 secrecy = { version = "0.10.3", features = ["serde"] }
 directories = { version = "6.0.0" }
 anyhow = { version = "1.0.98" }
+arboard = "3.4"
 base64 = { version = "0.22.1" }
 mockall = "0.13.1"
 sea-orm = { version = "2.0.0-rc.1", features = ["sqlx-sqlite", "sqlx-postgres", "macros", "with-uuid", "with-chrono", "runtime-tokio", "with-json"], default-features = false }
@@ -40,7 +43,8 @@ tracing-appender = { version = "0.2.3", default-features = false }
 percent-encoding = "2.3.1"
 config = { version = "0.15.13", features = ["yaml"] }
 num_cpus = "1.17.0"
-uuid = { version = "1.17.0", features = ["v4"] }
+uuid = { version = "1.17.0", features = ["v4", "serde"] }
+sha2 = "0.10"
 async-trait = "0.1.83"
 validator = { version = "0.18.1", features = ["derive"] }
 thiserror = "1.0.50"

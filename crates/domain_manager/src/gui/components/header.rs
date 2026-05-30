@@ -85,6 +85,14 @@ pub fn header<'a>(app: &DomainManagerV2) -> Container<'a, MessageCategory, Style
                     font,
                     config.language,
                     SettingsPage::Appearance,
+                    Some(MessageCategory::Navigation(PageChanged(Page::Agent))),
+                    Icon::Rocket,
+                    get_text("agent_manage"),
+                ))
+                .push(get_custom_button(
+                    font,
+                    config.language,
+                    SettingsPage::Appearance,
                     Some(MessageCategory::Ui(UiMessage::ToggleTheme)),
                     Icon::HalfSun,
                     get_text("change_theme"),
