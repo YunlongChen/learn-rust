@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  domain_agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: domain_agent:latest
+    container_name: domain_agent
+    restart: unless-stopped
+    environment:
+      - DOMAIN_AGENT_HUB=${HUB_ADDRESS:-hub:8080}
+      - DOMAIN_AGENT_NAME=${AGENT_NAME:-agent-1}
+      - DOMAIN_AGENT_KEY=${AGENT_KEY:-secret}
+      - DOMAIN_AGENT_TUNNEL_PORT=${TUNNEL_PORT:-0}
+      - DOMAIN_AGENT_P2P_PORT=${P2P_PORT:-0}
+      - RUST_LOG=${RUST_LOG:-info}
+    volumes:
+      - ./agent.toml:/app/agent.toml:ro
+    networks:
+      - agent_network
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "domain_agent"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  agent_network:
+    driver: bridge
