@@ -26,5 +26,4 @@ resolver = "2"
 [dependencies]
 
 [workspace.dependencies]
-concurrency = { version = "0.1.0", path = "./crates/concurrency" }
 bytes.version = "1"
