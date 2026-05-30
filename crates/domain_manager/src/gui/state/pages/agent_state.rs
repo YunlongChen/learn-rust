@@ -24,6 +24,10 @@ pub struct AgentPageState {
     pub is_testing: bool,
     /// 测试结果消息
     pub test_result: Option<String>,
+    /// 选中的Agent ID（用于详情视图）
+    pub selected_agent_id: Option<String>,
+    /// 是否显示详情视图
+    pub showing_detail: bool,
 }
 
 impl Default for AgentPageState {
@@ -38,6 +42,8 @@ impl Default for AgentPageState {
             agents: Vec::new(),
             is_testing: false,
             test_result: None,
+            selected_agent_id: None,
+            showing_detail: false,
         }
     }
 }
@@ -159,6 +165,27 @@ impl AgentPageState {
     /// 删除Agent
     pub fn delete_agent(&mut self, id: &str) {
         self.agents.retain(|a| a.id.to_string() != id);
+    }
+
+    /// 选择Agent查看详情
+    pub fn select_agent(&mut self, id: &str) {
+        self.selected_agent_id = Some(id.to_string());
+        self.showing_detail = true;
+    }
+
+    /// 关闭详情视图
+    pub fn close_detail(&mut self) {
+        self.selected_agent_id = None;
+        self.showing_detail = false;
+    }
+
+    /// 获取选中的Agent
+    pub fn get_selected_agent(&self) -> Option<&Agent> {
+        if let Some(ref id) = self.selected_agent_id {
+            self.agents.iter().find(|a| a.id.to_string() == *id)
+        } else {
+            None
+        }
     }
 }
 

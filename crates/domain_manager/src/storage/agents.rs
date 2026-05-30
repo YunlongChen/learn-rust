@@ -96,6 +96,8 @@ impl From<Model> for Agent {
             agent_key_hash: model.agent_key_hash,
             approved_at: model.approved_at,
             approved_by: model.approved_by,
+            version: None,
+            hostname: None,
             created_at: model.created_at,
             updated_at: model.updated_at,
         }

@@ -40,6 +40,7 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn load() -> anyhow::Result<Self> {
+        info!("正在加载配置文件");
         Config::builder()
             .add_source(
                 config::File::with_name("application")

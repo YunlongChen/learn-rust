@@ -1,5 +1,5 @@
-#![cfg_attr(windows, windows_subsystem = "windows")]
-#![allow(dead_code)]
+// #![cfg_attr(windows, windows_subsystem = "windows")]
+// #![allow(dead_code)]
 
 mod agent;
 mod api;

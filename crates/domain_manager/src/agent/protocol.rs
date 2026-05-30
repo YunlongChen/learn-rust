@@ -173,6 +173,94 @@ pub enum AgentMessage {
     Pong {
         timestamp: i64,
     },
+
+    // ==================== 隧道相关 ====================
+
+    /// Agent 请求反向隧道 (Agent -> Hub)
+    TunnelRequest {
+        tunnel_id: Uuid,
+        bind_port: u16,
+        tunnel_type: TunnelType,
+    },
+
+    /// Hub 响应隧道请求 (Hub -> Agent)
+    TunnelResponse {
+        tunnel_id: Uuid,
+        success: bool,
+        public_port: Option<u16>,
+        error: Option<String>,
+    },
+
+    /// Hub 通过隧道转发数据 (Hub -> Agent)
+    TunnelData {
+        tunnel_id: Uuid,
+        data: Vec<u8>,
+    },
+
+    /// Agent 透传数据 (Agent -> Hub)
+    TunnelDataForward {
+        tunnel_id: Uuid,
+        data: Vec<u8>,
+    },
+
+    /// 关闭隧道
+    TunnelClose {
+        tunnel_id: Uuid,
+        reason: Option<String>,
+    },
+
+    // ==================== P2P/ICE 相关 ====================
+
+    /// Agent 请求与另一个 Agent 建立 P2P 连接
+    P2pConnectRequest {
+        request_id: Uuid,
+        target_agent_id: Uuid,
+    },
+
+    /// Hub 转发 P2P 连接请求给目标 Agent
+    P2pConnectOffer {
+        request_id: Uuid,
+        source_agent_id: Uuid,
+        sdp_offer: String,
+    },
+
+    /// 目标 Agent 返回 SDP Answer
+    P2pAnswer {
+        request_id: Uuid,
+        target_agent_id: Uuid,
+        sdp_answer: String,
+    },
+
+    /// ICE 候选地址交换
+    P2pIceCandidate {
+        request_id: Uuid,
+        candidate: String,
+        sdp_mid: Option<String>,
+        sdp_m_line_index: Option<u16>,
+    },
+
+    /// P2P 连接已建立
+    P2pConnected {
+        request_id: Uuid,
+    },
+
+    /// P2P 连接失败
+    P2pFailed {
+        request_id: Uuid,
+        reason: String,
+    },
+}
+
+/// 隧道类型
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TunnelType {
+    /// TCP 直连
+    Tcp,
+    /// HTTP 代理
+    Http,
+    /// WebSocket
+    WebSocket,
 }
 
 /// 任务类型

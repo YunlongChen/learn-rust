@@ -301,6 +301,14 @@ pub enum AgentMessage {
     AgentsLoaded(Result<Vec<crate::agent::model::Agent>, String>),
     /// 测试连接
     TestConnection,
+    /// 选择Agent查看详情
+    SelectAgent(String),
+    /// 关闭详情视图
+    CloseAgentDetail,
+    /// 批准Agent
+    ApproveAgent(String),
+    /// 拒绝Agent
+    DenyAgent(String),
 }
 
 /// 消息处理器
@@ -489,10 +497,13 @@ impl MessageHandler {
             }
             AgentMessage::SaveAgent => {
                 // 保存Agent到数据库
+                tracing::info!("SaveAgent called, database present: {}", state.database.is_some());
                 if let Some(conn) = &state.database {
                     let agent = state.data.agent_page.create_agent();
+                    tracing::info!("create_agent returned: {:?}, name: '{}'", agent.is_some(), state.data.agent_page.new_agent_name);
                     if let Some(agent) = agent {
                         let conn_clone = conn.clone();
+                        tracing::info!("Saving agent: {}", agent.name);
                         return Task::perform(
                             async move {
                                 agents::create_agent(&conn_clone, agent)
@@ -509,9 +520,14 @@ impl MessageHandler {
                                 }
                             },
                         );
+                    } else {
+                        tracing::warn!("create_agent returned None - agent name may be empty");
+                        return Task::done(MessageCategory::Ui(UiMessage::ShowToast("请输入Agent名称".to_string())));
                     }
+                } else {
+                    tracing::warn!("Database connection not available");
+                    return Task::done(MessageCategory::Ui(UiMessage::ShowToast("数据库未连接".to_string())));
                 }
-                Task::none()
             }
             AgentMessage::CancelAdd => {
                 state.data.agent_page.cancel_add();
@@ -568,6 +584,28 @@ impl MessageHandler {
             }
             AgentMessage::TestConnection => {
                 state.data.agent_page.test_connection();
+                Task::none()
+            }
+            AgentMessage::SelectAgent(id) => {
+                state.data.agent_page.select_agent(&id);
+                Task::none()
+            }
+            AgentMessage::CloseAgentDetail => {
+                state.data.agent_page.close_detail();
+                Task::none()
+            }
+            AgentMessage::ApproveAgent(id) => {
+                tracing::info!("批准Agent: {}", id);
+                // TODO: 实现批准逻辑 - 更新数据库中的审批状态
+                // 目前只是关闭详情视图
+                state.data.agent_page.close_detail();
+                Task::none()
+            }
+            AgentMessage::DenyAgent(id) => {
+                tracing::info!("拒绝Agent: {}", id);
+                // TODO: 实现拒绝逻辑 - 更新数据库中的审批状态
+                // 目前只是关闭详情视图
+                state.data.agent_page.close_detail();
                 Task::none()
             }
         }

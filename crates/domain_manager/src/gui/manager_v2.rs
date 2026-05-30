@@ -322,6 +322,7 @@ impl DomainManagerV2 {
                                 async {
                                     info!("正在后台连接数据库...");
                                     let database_config = &configs::get().database;
+                                    debug!("数据库配置: db_type={}, host={}", database_config.db_type(), database_config.host());
                                     match init_database(database_config).await {
                                         Ok(conn) => {
                                             info!("数据库连接窗口成功！");

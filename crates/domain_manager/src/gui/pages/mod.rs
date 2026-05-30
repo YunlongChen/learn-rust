@@ -1,4 +1,5 @@
 pub mod agent;
+pub mod agent_detail;
 pub mod domain;
 pub mod domain_dns_record;
 pub mod help;

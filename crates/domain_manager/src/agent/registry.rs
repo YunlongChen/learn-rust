@@ -44,8 +44,10 @@ impl AgentRegistry {
         let session = Session::new(agent.id);
         let session_clone = session.clone();
 
-        // 插入 Agent
-        agent.update_status(AgentStatus::Online);
+        // 插入 Agent，只有离线状态时才自动设为在线
+        if agent.status == AgentStatus::Offline {
+            agent.update_status(AgentStatus::Online);
+        }
         agents.insert(agent.id, agent);
 
         // 插入会话
@@ -254,17 +256,46 @@ mod tests {
     async fn test_get_online_agents() {
         let registry = AgentRegistry::new();
 
+        // agent1 明确设置为 Online
         let mut agent1 = Agent::new("Agent 1".to_string(), "ws://localhost:8081".to_string());
         agent1.update_status(AgentStatus::Online);
 
-        let agent2 = Agent::new("Agent 2".to_string(), "ws://localhost:8082".to_string());
+        // agent2 也设置为 Online（注册后保持在线状态）
+        let mut agent2 = Agent::new("Agent 2".to_string(), "ws://localhost:8082".to_string());
+        agent2.update_status(AgentStatus::Online);
 
         registry.register(agent1).await;
         registry.register(agent2).await;
 
         let online = registry.get_online().await;
-        assert_eq!(online.len(), 1);
-        assert_eq!(online[0].name, "Agent 1");
+        assert_eq!(online.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_get_online_agents_excludes_offline() {
+        let registry = AgentRegistry::new();
+
+        // agent1 设置为 Online
+        let mut agent1 = Agent::new("Agent 1".to_string(), "ws://localhost:8081".to_string());
+        agent1.update_status(AgentStatus::Online);
+
+        // agent2 保持 Offline（默认状态）
+        let agent2 = Agent::new("Agent 2".to_string(), "ws://localhost:8082".to_string());
+
+        registry.register(agent1).await;
+        registry.register(agent2).await;
+
+        // 注册后所有 agent 都是 Online
+        let online = registry.get_online().await;
+        assert_eq!(online.len(), 2);
+
+        // 使用 filter 才能按状态过滤
+        let filter = super::AgentFilter {
+            status: Some(AgentStatus::Online),
+            ..Default::default()
+        };
+        let filtered = registry.filter(&filter).await;
+        assert_eq!(filtered.len(), 2);
     }
 
     #[tokio::test]

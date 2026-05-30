@@ -18,7 +18,8 @@ members = [
     "crates/domain_server",
     "crates/domain_manager",
     "crates/http_server",
-    "crates/domain_agent"]
+    "crates/domain_agent",
+    "crates/domain_stun"]
 resolver = "2"
 
 

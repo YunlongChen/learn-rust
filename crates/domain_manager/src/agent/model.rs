@@ -18,6 +18,10 @@ pub enum Capability {
     ScriptRunner,
     /// 文件传输能力
     FileTransfer,
+    /// 隧道客户端能力
+    TunnelClient,
+    /// P2P 节点能力
+    P2pNode,
 }
 
 impl std::fmt::Display for Capability {
@@ -28,6 +32,8 @@ impl std::fmt::Display for Capability {
             Capability::ShellExecutor => write!(f, "Shell执行"),
             Capability::ScriptRunner => write!(f, "脚本运行"),
             Capability::FileTransfer => write!(f, "文件传输"),
+            Capability::TunnelClient => write!(f, "隧道客户端"),
+            Capability::P2pNode => write!(f, "P2P节点"),
         }
     }
 }
@@ -171,6 +177,10 @@ pub struct Agent {
     pub approved_at: Option<DateTime<Utc>>,
     /// 批准人
     pub approved_by: Option<String>,
+    /// Agent 版本
+    pub version: Option<String>,
+    /// 主机名
+    pub hostname: Option<String>,
     /// 创建时间
     pub created_at: DateTime<Utc>,
     /// 更新时间
@@ -198,6 +208,8 @@ impl Agent {
             agent_key_hash: None,
             approved_at: None,
             approved_by: None,
+            version: None,
+            hostname: None,
             created_at: now,
             updated_at: now,
         }

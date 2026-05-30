@@ -7,15 +7,23 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use futures_util::{SinkExt, StreamExt};
+use sha2::{Sha256, Digest};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::RwLock;
 use tokio_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use super::model::{Agent, AgentStatus};
-use super::protocol::{AgentMessage, Session};
+use super::model::{Agent, AgentStatus, Capability};
+use super::protocol::{AgentMessage, AgentMessage::*, Session, TunnelType};
 use super::registry::AgentRegistry;
+
+/// 计算密钥哈希
+fn hash_key(key: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(key.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
 
 /// Agent 连接信息
 #[derive(Debug, Clone)]
@@ -30,6 +38,23 @@ pub struct AgentConnection {
     pub agent_id: Uuid,
     pub session_id: String,
     pub ws_stream: Option<WebSocketStream<TcpStream>>,
+    pub tunnels: HashMap<Uuid, TunnelInfo>,
+    pub p2p_connections: HashMap<Uuid, P2pConnectionInfo>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TunnelInfo {
+    pub tunnel_id: Uuid,
+    pub bind_port: u16,
+    pub tunnel_type: TunnelType,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct P2pConnectionInfo {
+    pub request_id: Uuid,
+    pub peer_agent_id: Uuid,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl AgentConnection {
@@ -38,6 +63,8 @@ impl AgentConnection {
             agent_id,
             session_id,
             ws_stream: None,
+            tunnels: HashMap::new(),
+            p2p_connections: HashMap::new(),
         }
     }
 
@@ -88,6 +115,41 @@ impl AgentConnection {
         }
         Ok(())
     }
+
+    /// 添加隧道
+    pub fn add_tunnel(&mut self, tunnel_id: Uuid, bind_port: u16, tunnel_type: TunnelType) {
+        self.tunnels.insert(tunnel_id, TunnelInfo {
+            tunnel_id,
+            bind_port,
+            tunnel_type: tunnel_type.clone(),
+            created_at: chrono::Utc::now(),
+        });
+        info!("Agent {} 添加隧道 {}, 端口: {}, 类型: {:?}", self.agent_id, tunnel_id, bind_port, tunnel_type);
+    }
+
+    /// 移除隧道
+    pub fn remove_tunnel(&mut self, tunnel_id: &Uuid) -> Option<TunnelInfo> {
+        self.tunnels.remove(tunnel_id)
+    }
+
+    /// 获取隧道数量
+    pub fn tunnel_count(&self) -> usize {
+        self.tunnels.len()
+    }
+
+    /// 添加 P2P 连接
+    pub fn add_p2p_connection(&mut self, request_id: Uuid, peer_agent_id: Uuid) {
+        self.p2p_connections.insert(request_id, P2pConnectionInfo {
+            request_id,
+            peer_agent_id,
+            created_at: chrono::Utc::now(),
+        });
+    }
+
+    /// 移除 P2P 连接
+    pub fn remove_p2p_connection(&mut self, request_id: &Uuid) -> Option<P2pConnectionInfo> {
+        self.p2p_connections.remove(request_id)
+    }
 }
 
 /// Agent Hub - 管理所有 Agent 连接
@@ -96,6 +158,8 @@ pub struct AgentHub {
     connections: Arc<RwLock<HashMap<Uuid, Arc<RwLock<AgentConnection>>>>>,
     listener: Option<TcpListener>,
     listen_addr: String,
+    /// 已注册的密钥哈希（用于简单验证，生产环境应从数据库加载）
+    registered_keys: Arc<RwLock<HashMap<String, Uuid>>>,
 }
 
 impl AgentHub {
@@ -106,7 +170,21 @@ impl AgentHub {
             connections: Arc::new(RwLock::new(HashMap::new())),
             listener: None,
             listen_addr: listen_addr.to_string(),
+            registered_keys: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    /// 注册密钥（将密钥哈希与 Agent ID 关联）
+    pub async fn register_key(&self, key_hash: String, agent_id: Uuid) {
+        let mut keys = self.registered_keys.write().await;
+        keys.insert(key_hash, agent_id);
+    }
+
+    /// 验证密钥
+    pub async fn verify_key(&self, key: &str) -> Option<Uuid> {
+        let key_hash = hash_key(key);
+        let keys = self.registered_keys.read().await;
+        keys.get(&key_hash).copied()
     }
 
     /// 启动 WebSocket 服务器
@@ -136,11 +214,12 @@ impl AgentHub {
                 Ok((stream, addr)) => {
                     let registry = self.registry.clone();
                     let connections = Arc::clone(&self.connections);
+                    let registered_keys = self.registered_keys.clone();
 
                     info!("收到来自 {} 的连接", addr);
 
                     tokio::spawn(async move {
-                        if let Err(e) = handle_new_connection(registry, connections, stream, addr).await {
+                        if let Err(e) = handle_new_connection(registry, connections, stream, addr, registered_keys).await {
                             error!("处理连接失败: {}", e);
                         }
                     });
@@ -195,6 +274,7 @@ async fn handle_new_connection(
     connections: Arc<RwLock<HashMap<Uuid, Arc<RwLock<AgentConnection>>>>>,
     stream: TcpStream,
     addr: SocketAddr,
+    registered_keys: Arc<RwLock<HashMap<String, Uuid>>>,
 ) -> Result<(), String> {
     let ws_stream = accept_async(stream)
         .await
@@ -210,6 +290,9 @@ async fn handle_new_connection(
         conn_guard.ws_stream = Some(ws_stream);
     }
 
+    // 用于存储验证后的 agent_id
+    let mut verified_agent_id: Option<Uuid> = None;
+
     loop {
         let msg = {
             let mut conn = agent_conn.write().await;
@@ -223,7 +306,7 @@ async fn handle_new_connection(
         };
 
         match msg {
-            AgentMessage::RegisterWithSecret {
+            RegisterWithSecret {
                 agent_name,
                 agent_key,
                 capabilities,
@@ -231,20 +314,32 @@ async fn handle_new_connection(
                 hostname,
             } => {
                 info!(
-                    "收到 Agent 注册请求: name={}, key={}, capabilities={:?}",
-                    agent_name, agent_key, capabilities
+                    "收到 Agent 注册请求: name={}, capabilities={:?}, version={:?}",
+                    agent_name, capabilities, version
                 );
 
-                // 验证密钥并获取agent_id
-                // TODO: 从数据库验证密钥
-                let agent_id = Uuid::new_v4(); // 临时生成
+                // 验证密钥
+                let key_hash = hash_key(&agent_key);
+                let keys = registered_keys.read().await;
+                let agent_id = if let Some(id) = keys.get(&key_hash) {
+                    info!("密钥验证成功，Agent ID: {}", id);
+                    *id
+                } else {
+                    // 简单模式：使用密钥哈希的前8字节生成一个稳定的 ID
+                    let generated_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, key_hash.as_bytes());
+                    info!("使用生成的 Agent ID（密钥未在 Hub 注册）: {}", generated_id);
+                    generated_id
+                };
+
+                // 检查是否需要审批
+                let requires_approval = false; // TODO: 根据配置决定
 
                 // 发送注册接受消息
-                let _ = broadcast_msg(&agent_conn, &AgentMessage::RegisterAccepted {
+                let _ = broadcast_msg(&agent_conn, &RegisterAccepted {
                     agent_id,
                     session_id: Uuid::new_v4().to_string(),
                     server_time: chrono::Utc::now().timestamp(),
-                    requires_approval: false, // TODO: 根据配置决定是否需要审批
+                    requires_approval,
                     message: Some("注册已接受".to_string()),
                 }).await;
 
@@ -254,9 +349,21 @@ async fn handle_new_connection(
                     conn.agent_id = agent_id;
                 }
 
+                // 保存 agent_id
+                verified_agent_id = Some(agent_id);
+
+                // 在注册表中注册
+                let mut agent = Agent::new(agent_name.clone(), format!("ws://{}", addr));
+                agent.capabilities = capabilities;
+                agent.version = version;
+                agent.hostname = hostname;
+                agent.status = AgentStatus::Online;
+                agent.update_heartbeat();
+                registry.register(agent).await;
+
                 info!("Agent {} 注册已接受，等待心跳", agent_id);
             }
-            AgentMessage::Register {
+            Register {
                 agent_id: _,
                 name: _,
                 endpoint: _,
@@ -264,13 +371,13 @@ async fn handle_new_connection(
                 version: _,
             } => {
                 // 旧版注册消息，已废弃，发送拒绝
-                let _ = broadcast_msg(&agent_conn, &AgentMessage::RegisterRejected {
+                let _ = broadcast_msg(&agent_conn, &RegisterRejected {
                     reason: "Unsupported registration format".to_string(),
                     code: "OLD_PROTOCOL".to_string(),
                 }).await;
                 break;
             }
-            AgentMessage::Heartbeat { status, metrics, timestamp } => {
+            Heartbeat { status, metrics, timestamp: _ } => {
                 let agent_id = agent_conn.read().await.agent_id;
                 if agent_id == Uuid::nil() {
                     warn!("收到未注册 Agent 的心跳");
@@ -281,30 +388,126 @@ async fn handle_new_connection(
                 registry.update_heartbeat(agent_id).await;
                 registry.update_status(agent_id, status).await;
 
-                let _ = broadcast_msg(&agent_conn, &AgentMessage::HeartbeatAck {
+                let _ = broadcast_msg(&agent_conn, &HeartbeatAck {
                     server_time: chrono::Utc::now().timestamp(),
                 }).await;
             }
-            AgentMessage::DdnsUpdateResult { domain, success, old_ip, new_ip, error } => {
+            DdnsUpdateResult { domain, success, old_ip, new_ip, error } => {
                 let agent_id = agent_conn.read().await.agent_id;
                 info!("DDNS 更新结果 from {}: {} - success={}, old={:?}, new={:?}", agent_id, domain, success, old_ip, new_ip);
             }
-            AgentMessage::SslChallengeResponse { domain, success, key_authorization, error } => {
+            SslChallengeResponse { domain, success, key_authorization: _, error } => {
                 let agent_id = agent_conn.read().await.agent_id;
                 info!("SSL 挑战响应 from {}: {} - success={}", agent_id, domain, success);
             }
-            AgentMessage::TaskResult { task_id, success, output, error, exit_code, duration_ms } => {
+            TaskResult { task_id, success, output: _, error: _, exit_code, duration_ms: _ } => {
                 let agent_id = agent_conn.read().await.agent_id;
                 info!("任务结果 from {}: task_id={}, success={}, exit_code={:?}", agent_id, task_id, success, exit_code);
             }
-            _ => {
-                debug!("收到未处理的消息类型: {:?}", msg);
+
+            // ==================== Tunnel 消息处理 ====================
+            TunnelRequest { tunnel_id, bind_port, tunnel_type } => {
+                let agent_id = agent_conn.read().await.agent_id;
+                info!("收到 Tunnel 请求: tunnel_id={}, port={}, type={:?}", tunnel_id, bind_port, tunnel_type);
+
+                // 添加隧道
+                {
+                    let mut conn = agent_conn.write().await;
+                    conn.add_tunnel(tunnel_id, bind_port, tunnel_type.clone());
+                }
+
+                // 发送成功响应
+                let _ = broadcast_msg(&agent_conn, &TunnelResponse {
+                    tunnel_id,
+                    success: true,
+                    public_port: Some(bind_port), // TODO: 实际应分配公网端口
+                    error: None,
+                }).await;
+
+                info!("Tunnel {} 已创建，端口 {}", tunnel_id, bind_port);
+            }
+            TunnelData { tunnel_id, data } => {
+                debug!("收到 Tunnel {} 数据，字节数: {}", tunnel_id, data.len());
+                // TODO: 实际应将数据转发到目标地址
+            }
+            TunnelDataForward { tunnel_id, data } => {
+                debug!("Tunnel {} 转发数据，字节数: {}", tunnel_id, data.len());
+                // TODO: 实际应将数据转发到 Hub
+            }
+            TunnelClose { tunnel_id, reason } => {
+                info!("关闭 Tunnel {}: {:?}", tunnel_id, reason);
+                {
+                    let mut conn = agent_conn.write().await;
+                    conn.remove_tunnel(&tunnel_id);
+                }
+            }
+
+            // ==================== P2P 消息处理 ====================
+            P2pConnectRequest { request_id, target_agent_id } => {
+                let agent_id = agent_conn.read().await.agent_id;
+                info!("P2P 连接请求: request_id={}, from={}, target={}", request_id, agent_id, target_agent_id);
+                // TODO: 查找目标 Agent 并转发请求
+            }
+            P2pConnectOffer { request_id, source_agent_id, sdp_offer } => {
+                info!("P2P Offer: request_id={}, from={}, sdp_len={}", request_id, source_agent_id, sdp_offer.len());
+                // TODO: 转发 Offer 给目标 Agent
+            }
+            P2pAnswer { request_id, target_agent_id, sdp_answer } => {
+                info!("P2P Answer: request_id={}, to={}, sdp_len={}", request_id, target_agent_id, sdp_answer.len());
+                // TODO: 转发 Answer 给源 Agent
+            }
+            P2pIceCandidate { request_id, candidate, sdp_mid, sdp_m_line_index } => {
+                debug!("P2P ICE Candidate: request_id={}, candidate={}, mid={:?}, index={:?}", request_id, candidate, sdp_mid, sdp_m_line_index);
+                // TODO: 转发 ICE Candidate 给对等方
+            }
+            P2pConnected { request_id } => {
+                let agent_id = agent_conn.read().await.agent_id;
+                info!("P2P 连接已建立: request_id={}, agent={}", request_id, agent_id);
+            }
+            P2pFailed { request_id, reason } => {
+                let agent_id = agent_conn.read().await.agent_id;
+                warn!("P2P 连接失败: request_id={}, agent={}, reason={}", request_id, agent_id, reason);
+                {
+                    let mut conn = agent_conn.write().await;
+                    conn.remove_p2p_connection(&request_id);
+                }
+            }
+
+            // ==================== 其他消息 ====================
+            Unregister { reason } => {
+                info!("Agent 主动断开: {:?}", reason);
+                break;
+            }
+            Error { code, message, details } => {
+                let agent_id = agent_conn.read().await.agent_id;
+                error!("Agent {} 错误: {} - {} (details: {:?})", agent_id, code, message, details);
+            }
+            Ping { timestamp } => {
+                debug!("Ping from {}", addr);
+                let _ = broadcast_msg(&agent_conn, &Pong { timestamp }).await;
+            }
+            Pong { timestamp: _ } => {
+                debug!("Pong from {}", addr);
+            }
+            // Hub 发送的消息不应该从 Agent 收到，但为了 exhaustive matching 添加
+            RegisterAccepted { .. } |
+            RegisterRejected { .. } |
+            RegisterAck { .. } |
+            ApprovalGranted { .. } |
+            ApprovalDenied { .. } |
+            TaskAssigned { .. } |
+            DdnsUpdateRequest { .. } |
+            SslChallengeRequest { .. } |
+            TaskCancelled { .. } |
+            HeartbeatAck { .. } |
+            TunnelResponse { .. } => {
+                warn!("收到 Hub 消息但这是 Hub 角色，忽略: {:?}", msg);
             }
         }
     }
 
-    let agent_id = agent_conn.read().await.agent_id;
-    if agent_id != Uuid::nil() {
+    // 清理连接
+    if let Some(agent_id) = verified_agent_id {
         connections.write().await.remove(&agent_id);
         let _ = registry.unregister(agent_id).await;
     }
@@ -326,6 +529,15 @@ async fn broadcast_msg(
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_key_hash() {
+        let key = "test-secret-key";
+        let hash1 = hash_key(key);
+        let hash2 = hash_key(key);
+        assert_eq!(hash1, hash2);
+        assert_eq!(hash1.len(), 64); // SHA-256 produces 64 hex chars
+    }
+
     #[tokio::test]
     async fn test_agent_connection_new() {
         let agent_id = Uuid::new_v4();
@@ -336,5 +548,19 @@ mod tests {
         assert_eq!(conn.agent_id, agent_id);
         assert_eq!(conn.session_id, session_id);
         assert!(conn.ws_stream.is_none());
+        assert_eq!(conn.tunnel_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_tunnel_management() {
+        let agent_id = Uuid::new_v4();
+        let mut conn = AgentConnection::new(agent_id, "test".to_string());
+
+        let tunnel_id = Uuid::new_v4();
+        conn.add_tunnel(tunnel_id, 8080, TunnelType::Tcp);
+
+        assert_eq!(conn.tunnel_count(), 1);
+        assert!(conn.remove_tunnel(&tunnel_id).is_some());
+        assert_eq!(conn.tunnel_count(), 0);
     }
 }

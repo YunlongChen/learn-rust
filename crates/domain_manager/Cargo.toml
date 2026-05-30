@@ -43,7 +43,7 @@ tracing-appender = { version = "0.2.3", default-features = false }
 percent-encoding = "2.3.1"
 config = { version = "0.15.13", features = ["yaml"] }
 num_cpus = "1.17.0"
-uuid = { version = "1.17.0", features = ["v4", "serde"] }
+uuid = { version = "1.17.0", features = ["v4", "v5", "serde"] }
 sha2 = "0.10"
 async-trait = "0.1.83"
 validator = { version = "0.18.1", features = ["derive"] }

@@ -159,9 +159,11 @@ impl Capability {
             Capability::ShellExecutor,
             Capability::ScriptRunner,
             Capability::FileTransfer,
+            Capability::TunnelClient,
+            Capability::P2pNode,
         ]
     }
-    
+
     /// 从字符串解析能力
     pub fn from_str(s: &str) -> Option<Capability> {
         match s.to_lowercase().as_str() {
@@ -170,6 +172,8 @@ impl Capability {
             "shell_executor" | "shell" => Some(Capability::ShellExecutor),
             "script_runner" | "script" => Some(Capability::ScriptRunner),
             "file_transfer" | "file" => Some(Capability::FileTransfer),
+            "tunnel_client" | "tunnel" => Some(Capability::TunnelClient),
+            "p2p_node" | "p2p" => Some(Capability::P2pNode),
             _ => None,
         }
     }
@@ -206,14 +210,19 @@ mod tests {
     async fn test_get_online_agents() {
         let registry = Arc::new(AgentRegistry::new());
         let service = AgentService::new(registry);
-        
+
         let agent1 = service.create_agent("Agent 1".to_string(), "ws://1".to_string()).await;
         service.create_agent("Agent 2".to_string(), "ws://2".to_string()).await;
-        
-        service.agent_online(agent1.id).await.unwrap();
-        
+
+        // 注册后所有 agent 都是 Online
         let online = service.get_online_agents().await;
-        assert_eq!(online.len(), 1);
-        assert_eq!(online[0].name, "Agent 1");
+        assert_eq!(online.len(), 2);
+
+        // 设置 agent1 为 Offline
+        service.agent_offline(agent1.id).await.unwrap();
+
+        let online_after = service.get_online_agents().await;
+        assert_eq!(online_after.len(), 1);
+        assert_eq!(online_after[0].name, "Agent 2");
     }
 }

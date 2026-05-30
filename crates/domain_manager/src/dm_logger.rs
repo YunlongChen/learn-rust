@@ -150,7 +150,7 @@ fn init_simple_logging(config: &Config) {
                 Level::INFO // 默认级别
             }
         }
-        None => Level::INFO,
+        None => Level::DEBUG,
     };
 
     let subscriber = tracing_subscriber::fmt()

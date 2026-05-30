@@ -3,6 +3,7 @@
 //! 显示和管理已连接的 Agent
 
 use crate::gui::handlers::message_handler::{AgentMessage, MessageCategory};
+use crate::gui::pages::agent_detail::agent_detail_page;
 use crate::gui::state::pages::agent_state::AgentPageState;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::text::TextType;
@@ -13,6 +14,13 @@ use iced::{Alignment, Element, Font, Length, Padding};
 
 /// Agent 管理页面
 pub fn agent_page(state: &AgentPageState) -> Element<'_, MessageCategory, StyleType> {
+    // 如果显示详情视图，渲染详情页
+    if state.showing_detail {
+        if let Some(agent) = state.get_selected_agent() {
+            return agent_detail_page(agent);
+        }
+    }
+
     let is_adding = state.is_adding;
 
     let add_button_text = if is_adding { "取消添加" } else { "+ 添加" };
@@ -219,11 +227,14 @@ fn agent_list_view<'a>(state: &'a AgentPageState) -> Element<'a, MessageCategory
                         .collect::<Vec<_>>()
                         .join(", ");
 
-                    row!(
+                    // 点击整行查看详情
+                    let agent_id = agent.id.to_string();
+                    let row_element: Element<'a, MessageCategory, StyleType> = row!(
                         text(format!("{} {}", status_color, agent.status))
                             .size(12)
                             .width(Length::Fixed(80.0)),
-                        text(&agent.name).size(12).width(Length::Fixed(150.0)),
+                        button(text(&agent.name))
+                            .on_press(MessageCategory::Agent(AgentMessage::SelectAgent(agent_id.clone()))),
                         text(&agent.endpoint).size(12).width(Length::Fixed(150.0)),
                         text(capabilities).size(12).width(Length::Fill),
                         text(agent.last_heartbeat
@@ -239,7 +250,8 @@ fn agent_list_view<'a>(state: &'a AgentPageState) -> Element<'a, MessageCategory
                     )
                     .spacing(10)
                     .padding(5)
-                    .into()
+                    .into();
+                    row_element
                 })
                 .collect::<Column<'a, MessageCategory, StyleType>>()
             )

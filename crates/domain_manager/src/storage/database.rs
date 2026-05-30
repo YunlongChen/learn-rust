@@ -19,7 +19,17 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
     debug!("建立数据库连接");
     // postgres
     let url: String = database_config.into();
-    debug!("建立数据库连接，地址：「{}」", &url);
+    debug!("数据库连接字符串: {}", &url);
+
+    // 打印数据库路径信息
+    let db_path = crate::configs::get_database_path();
+    debug!("数据库文件路径: {:?}", db_path);
+    debug!("数据库文件是否存在: {}", db_path.exists());
+    if db_path.exists() {
+        if let Ok(metadata) = std::fs::metadata(&db_path) {
+            debug!("数据库文件大小: {} bytes", metadata.len());
+        }
+    }
 
     let mut options = ConnectOptions::new(url);
 
@@ -43,13 +53,19 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
 
     match result {
         Ok(connection) => {
-            info!("连接创建成功");
-            Migrator::up(&connection, None)
-                .await
-                .inspect_err(|e| {
-                    error!("迁移数据库失败: {:?}", e);
-                })
-                .expect("迁移数据库发生了异常！");
+            info!("连接创建成功，准备运行迁移...");
+            debug!("开始执行数据库迁移...");
+            match Migrator::up(&connection, None).await {
+                Ok(_) => {
+                    debug!("数据库迁移执行完成");
+                    info!("数据库迁移完成");
+                }
+                Err(e) => {
+                    error!("数据库迁移失败: {:?}", e);
+                    // 返回错误而不是 panic，让调用者知道迁移失败了
+                    return Err(anyhow::anyhow!("数据库迁移失败: {:?}", e));
+                }
+            }
             Ok(connection)
         }
         Err(err) => Err(err),
