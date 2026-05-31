@@ -166,7 +166,7 @@ pub struct Agent {
     /// 连接信息
     pub connection_info: Option<ConnectionInfo>,
     /// 最后心跳时间
-    pub last_heartbeat: Option<DateTime<Utc>>,
+    pub last_heartbeat: Option<sea_orm::prelude::DateTime>,
     /// 是否启用
     pub enabled: bool,
     /// 审批状态
@@ -174,7 +174,7 @@ pub struct Agent {
     /// 密钥哈希（SHA-256）
     pub agent_key_hash: Option<String>,
     /// 批准时间
-    pub approved_at: Option<DateTime<Utc>>,
+    pub approved_at: Option<sea_orm::prelude::DateTime>,
     /// 批准人
     pub approved_by: Option<String>,
     /// Agent 版本
@@ -182,15 +182,15 @@ pub struct Agent {
     /// 主机名
     pub hostname: Option<String>,
     /// 创建时间
-    pub created_at: DateTime<Utc>,
+    pub created_at: Option<sea_orm::prelude::DateTime>,
     /// 更新时间
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: Option<sea_orm::prelude::DateTime>,
 }
 
 impl Agent {
     /// 创建新的 Agent
     pub fn new(name: String, endpoint: String) -> Self {
-        let now = Utc::now();
+        let now = Utc::now().naive_utc();
         Self {
             id: Uuid::new_v4(),
             name,
@@ -210,8 +210,8 @@ impl Agent {
             approved_by: None,
             version: None,
             hostname: None,
-            created_at: now,
-            updated_at: now,
+            created_at: Some(now),
+            updated_at: Some(now),
         }
     }
 
@@ -232,14 +232,15 @@ impl Agent {
 
     /// 更新心跳时间
     pub fn update_heartbeat(&mut self) {
-        self.last_heartbeat = Some(Utc::now());
-        self.updated_at = Utc::now();
+        let now = Utc::now().naive_utc();
+        self.last_heartbeat = Some(now);
+        self.updated_at = Some(now);
     }
 
     /// 更新状态
     pub fn update_status(&mut self, status: AgentStatus) {
         self.status = status;
-        self.updated_at = Utc::now();
+        self.updated_at = Some(Utc::now().naive_utc());
     }
 }
 
@@ -284,7 +285,7 @@ mod tests {
     #[test]
     fn test_agent_creation() {
         let agent = Agent::new("Test Agent".to_string(), "ws://localhost:8080".to_string());
-        
+
         assert!(!agent.id.is_nil());
         assert_eq!(agent.name, "Test Agent");
         assert_eq!(agent.endpoint, "ws://localhost:8080");
@@ -296,7 +297,7 @@ mod tests {
     fn test_agent_capabilities() {
         let mut agent = Agent::new("Test".to_string(), "ws://localhost".to_string());
         agent.capabilities.push(Capability::ShellExecutor);
-        
+
         assert!(agent.has_capability(&Capability::ShellExecutor));
         assert!(!agent.has_capability(&Capability::DdnsClient));
     }

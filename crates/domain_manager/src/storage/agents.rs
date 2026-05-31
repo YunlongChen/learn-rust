@@ -8,50 +8,7 @@ use sea_orm::{ActiveValue, DeleteResult};
 use serde::{Deserialize, Serialize};
 
 use crate::agent::model::{Agent, AgentApprovalState, AgentStatus};
-
-/// Agent ActiveModel
-#[derive(Clone, Debug, PartialEq, Eq, Hash, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "agents")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: Uuid,
-    #[sea_orm(column_name = "name")]
-    pub name: String,
-    #[sea_orm(nullable)]
-    pub description: Option<String>,
-    #[sea_orm(column_name = "endpoint")]
-    pub endpoint: String,
-    #[sea_orm(nullable, column_name = "auth_key")]
-    pub auth_key: Option<String>,
-    #[sea_orm(nullable, column_type = "Json")]
-    pub capabilities: Option<Json>,
-    #[sea_orm(column_name = "status")]
-    pub status: String,
-    #[sea_orm(nullable, column_type = "Json")]
-    pub tags: Option<Json>,
-    #[sea_orm(nullable, column_type = "Json")]
-    pub system_info: Option<Json>,
-    #[sea_orm(nullable, column_type = "Json")]
-    pub connection_info: Option<Json>,
-    #[sea_orm(nullable)]
-    pub last_heartbeat: Option<chrono::DateTime<chrono::Utc>>,
-    #[sea_orm(nullable, column_name = "enabled")]
-    pub enabled: bool,
-    #[sea_orm(column_name = "approval_state")]
-    pub approval_state: String,
-    #[sea_orm(nullable, column_name = "agent_key_hash")]
-    pub agent_key_hash: Option<String>,
-    #[sea_orm(nullable)]
-    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
-    #[sea_orm(nullable, column_name = "approved_by")]
-    pub approved_by: Option<String>,
-    #[sea_orm(nullable)]
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    #[sea_orm(nullable)]
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-}
-
-impl ActiveModelBehavior for ActiveModel {}
+use crate::storage::entities::agents::{ActiveModel, Column, Entity, Model};
 
 /// Agent 到 Model 的转换
 impl From<Model> for Agent {
@@ -171,4 +128,142 @@ pub async fn update_agent(db: &DbConn, agent: Agent) -> Result<(), DbErr> {
 
 pub async fn delete_agent(db: &DbConn, id: Uuid) -> Result<DeleteResult, DbErr> {
     Entity::delete_by_id(id).exec(db).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::agent::model::Capability;
+    use crate::storage::database::init_memory_database;
+    use crate::tests::test_utils::init_test_env;
+
+    fn create_test_agent() -> Agent {
+        Agent::new("Test Agent".to_string(), "ws://localhost:8080".to_string())
+    }
+
+    #[tokio::test]
+    async fn it_works() {
+        init_test_env();
+        let connection = init_memory_database().await.expect("初始化数据库失败");
+
+        let agent = create_test_agent();
+        let created = create_agent(&connection, agent.clone())
+            .await
+            .expect("创建 Agent 失败");
+
+        assert_eq!(created.name, "Test Agent");
+        assert_eq!(created.endpoint, "ws://localhost:8080");
+        assert_eq!(created.status, AgentStatus::Offline);
+        assert_eq!(created.approval_state, AgentApprovalState::Pending);
+
+        let all_agents = find_all_agents(&connection).await.expect("查询所有 Agent 失败");
+        assert_eq!(all_agents.len(), 1);
+
+        let found = find_agent_by_id(&connection, created.id)
+            .await
+            .expect("根据 ID 查询 Agent 失败");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().name, "Test Agent");
+    }
+
+    #[tokio::test]
+    async fn test_find_online_agents() {
+        init_test_env();
+        let connection = init_memory_database().await.expect("初始化数据库失败");
+
+        let agent = create_test_agent();
+        create_agent(&connection, agent).await.expect("创建 Agent 失败");
+
+        let online_agents = find_online_agents(&connection)
+            .await
+            .expect("查询在线 Agent 失败");
+        assert_eq!(online_agents.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_find_enabled_agents() {
+        init_test_env();
+        let connection = init_memory_database().await.expect("初始化数据库失败");
+
+        let agent = create_test_agent();
+        let created = create_agent(&connection, agent).await.expect("创建 Agent 失败");
+
+        let enabled_agents = find_enabled_agents(&connection)
+            .await
+            .expect("查询启用 Agent 失败");
+        assert_eq!(enabled_agents.len(), 1);
+        assert_eq!(enabled_agents[0].id, created.id);
+    }
+
+    #[tokio::test]
+    async fn test_update_agent() {
+        init_test_env();
+        let connection = init_memory_database().await.expect("初始化数据库失败");
+
+        let mut agent = create_test_agent();
+        let created = create_agent(&connection, agent.clone())
+            .await
+            .expect("创建 Agent 失败");
+
+        let mut updated_agent = created.clone();
+        updated_agent.name = "Updated Agent".to_string();
+        updated_agent.status = AgentStatus::Online;
+
+        update_agent(&connection, updated_agent)
+            .await
+            .expect("更新 Agent 失败");
+
+        let found = find_agent_by_id(&connection, created.id)
+            .await
+            .expect("根据 ID 查询 Agent 失败");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().name, "Updated Agent");
+    }
+
+    #[tokio::test]
+    async fn test_delete_agent() {
+        init_test_env();
+        let connection = init_memory_database().await.expect("初始化数据库失败");
+
+        let agent = create_test_agent();
+        let created = create_agent(&connection, agent).await.expect("创建 Agent 失败");
+
+        delete_agent(&connection, created.id)
+            .await
+            .expect("删除 Agent 失败");
+
+        let all_agents = find_all_agents(&connection).await.expect("查询所有 Agent 失败");
+        assert_eq!(all_agents.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_agent_with_capabilities() {
+        init_test_env();
+        let connection = init_memory_database().await.expect("初始化数据库失败");
+
+        let mut agent = create_test_agent();
+        agent.capabilities.push(Capability::ShellExecutor);
+        agent.capabilities.push(Capability::DdnsClient);
+
+        let created = create_agent(&connection, agent).await.expect("创建 Agent 失败");
+
+        assert!(created.has_capability(&Capability::ShellExecutor));
+        assert!(created.has_capability(&Capability::DdnsClient));
+        assert!(!created.has_capability(&Capability::SslValidator));
+    }
+
+    #[tokio::test]
+    async fn test_agent_is_available() {
+        let mut agent = create_test_agent();
+        assert!(!agent.is_available());
+
+        agent.status = AgentStatus::Online;
+        assert!(agent.is_available());
+
+        agent.status = AgentStatus::Busy;
+        assert!(agent.is_available());
+
+        agent.status = AgentStatus::Offline;
+        assert!(!agent.is_available());
+    }
 }

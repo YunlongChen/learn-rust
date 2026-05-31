@@ -31,8 +31,12 @@ pub fn agent_detail_page(
     let last_heartbeat = agent.last_heartbeat
         .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
         .unwrap_or_else(|| "-".to_string());
-    let created_at = agent.created_at.format("%Y-%m-%d %H:%M:%S").to_string();
-    let updated_at = agent.updated_at.format("%Y-%m-%d %H:%M:%S").to_string();
+    let created_at = agent.created_at
+        .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+        .unwrap_or_else(|| "-".to_string());
+    let updated_at = agent.updated_at
+        .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+        .unwrap_or_else(|| "-".to_string());
     let key_hash = agent.agent_key_hash.clone().unwrap_or_else(|| "-".to_string());
     let approved_at = agent.approved_at
         .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())

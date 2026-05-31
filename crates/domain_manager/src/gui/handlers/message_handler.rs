@@ -25,6 +25,7 @@ use crate::utils::types::web_page::WebPage;
 use iced::{window, Point, Size, Task};
 use sea_orm::DatabaseConnection;
 use std::process;
+use tracing::{error, info};
 use window::Id;
 
 /// 消息分类枚举
@@ -497,15 +498,16 @@ impl MessageHandler {
             }
             AgentMessage::SaveAgent => {
                 // 保存Agent到数据库
-                tracing::info!("SaveAgent called, database present: {}", state.database.is_some());
+                info!("SaveAgent called, database present: {}", state.database.is_some());
                 if let Some(conn) = &state.database {
                     let agent = state.data.agent_page.create_agent();
-                    tracing::info!("create_agent returned: {:?}, name: '{}'", agent.is_some(), state.data.agent_page.new_agent_name);
+                    info!("create_agent returned: {:?}, name: '{}'", agent.is_some(), state.data.agent_page.new_agent_name);
                     if let Some(agent) = agent {
                         let conn_clone = conn.clone();
-                        tracing::info!("Saving agent: {}", agent.name);
+                        info!("Saving agent: {}", agent.name);
                         return Task::perform(
                             async move {
+                                info!("");
                                 agents::create_agent(&conn_clone, agent)
                                     .await
                                     .map_err(|e| e.to_string())
@@ -548,7 +550,7 @@ impl MessageHandler {
                         },
                         |result| {
                             if let Err(e) = result {
-                                tracing::error!("删除Agent失败: {}", e);
+                                error!("删除Agent失败: {}", e);
                             }
                             MessageCategory::Agent(AgentMessage::LoadAgents)
                         },
@@ -562,6 +564,7 @@ impl MessageHandler {
                     let conn_clone = conn.clone();
                     return Task::perform(
                         async move {
+                            info!("查询所有Agents");
                             agents::find_all_agents(&conn_clone)
                                 .await
                                 .map_err(|e| e.to_string())
@@ -577,7 +580,7 @@ impl MessageHandler {
                         state.data.agent_page.agents = agents;
                     }
                     Err(e) => {
-                        tracing::error!("加载Agent失败: {}", e);
+                        error!("加载Agent失败: {}", e);
                     }
                 }
                 Task::none()
@@ -595,14 +598,14 @@ impl MessageHandler {
                 Task::none()
             }
             AgentMessage::ApproveAgent(id) => {
-                tracing::info!("批准Agent: {}", id);
+                info!("批准Agent: {}", id);
                 // TODO: 实现批准逻辑 - 更新数据库中的审批状态
                 // 目前只是关闭详情视图
                 state.data.agent_page.close_detail();
                 Task::none()
             }
             AgentMessage::DenyAgent(id) => {
-                tracing::info!("拒绝Agent: {}", id);
+                info!("拒绝Agent: {}", id);
                 // TODO: 实现拒绝逻辑 - 更新数据库中的审批状态
                 // 目前只是关闭详情视图
                 state.data.agent_page.close_detail();

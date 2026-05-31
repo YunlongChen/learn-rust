@@ -1,6 +1,7 @@
 use crate::storage::migration::{
     m20250712_000001_create_account_table, m20250712_000001_create_dns_record_table,
     m20250712_000001_create_domain_table, m20250712_000001_create_provider_table,
+    m20250720_000001_create_agent_table,
 };
 pub use sea_orm_migration::prelude::*;
 use tracing::info;
@@ -16,6 +17,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250712_000001_create_dns_record_table::Migration),
             Box::new(m20250712_000001_create_account_table::Migration),
             Box::new(m20250712_000001_create_domain_table::Migration),
+            Box::new(m20250720_000001_create_agent_table::Migration),
         ]
     }
 }
