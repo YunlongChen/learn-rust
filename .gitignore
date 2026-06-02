@@ -1,4 +1,5 @@
-/target
 .idea
 release
-dist/
+dist
+target
+domain_stun.db

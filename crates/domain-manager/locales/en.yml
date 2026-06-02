@@ -1,0 +1,77 @@
+_version: 1
+hello: Hello World!
+messages: Hello,this is home message
+add_domain: Add Domain
+add_provider: Add Provider
+dns_record: DNS Record
+return: Return
+reload: Reload
+delete: Delete
+in_query: querying...
+add_dns_record: Add DNS Record
+modify_dns_record: Modify DNS Record
+domain_manager: Domain Manager
+agent_manage: Agent Management
+help:
+  title: Help
+sync: sync
+syncing: syncing...
+exit: Exit
+minimize: Minimize
+maximize: Maximize
+change_locale: Change Locale
+provider:
+  add: Provider Management
+  validate_credential: Validate Credential
+settings:
+  title: Settings
+  appearance: Appearance
+  notifications: Notifications
+  general: General
+  background_type: Background Type
+  background_opacity: Background Opacity
+  theme: Theme
+  language: Language
+  none: None
+  gradient: Gradient
+  image: Image
+  light: Light
+  dark: Dark
+  Chinese: Chinese
+  English: English
+  auto_sync: Auto Sync
+  sync_interval: Sync Interval
+  minutes: Minutes
+  china_red: China Red
+  qipao_girl: Qipao Girl
+  toggle_theme: Toggle Theme
+  enable_notifications: Enable Notifications
+  notification_preferences: Notification Preferences
+  auto_start: Auto Start
+  check_updates: Check Updates
+  export_data: Export Data
+  import_data: Import Data
+  floating_window: Floating Window
+  enable_floating_window: Enable Floating Window
+  disable_floating_window: Disable Floating Window
+notifications_under_development: Notifications settings under development...
+general_settings_under_development: General settings under development...
+feature_under_development: This feature is under development
+floating_window_enabled: Floating window enabled
+floating_window_disabled: Floating window disabled
+floating_window_created: Floating window created
+floating_window_closed: Floating window closed
+console:
+  title: Console
+  api_requests: API Requests
+  database_queries: Database Queries
+  clear_logs: Clear Logs
+  logs_cleared: Logs cleared
+message:
+  loading: Loading...
+  retry: Retry
+  list_is_blank: List Is Empty
+domains: Domains
+providers: Providers
+footer:
+  news: News

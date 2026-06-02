@@ -1,0 +1,31 @@
+# Build artifacts
+target/
+debug/
+release/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cargo
+Cargo.lock
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+*.bak
+*.orig

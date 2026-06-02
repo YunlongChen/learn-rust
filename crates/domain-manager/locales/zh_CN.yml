@@ -1,0 +1,85 @@
+_version: 1
+hello: 你好世界！
+messages: 你好
+add_domain: 新增域名
+add_provider: 新增厂商
+dns_record: 域名解析
+domain_name: 域名
+domain_manage: 域名管理
+agent_manage: Agent管理
+return: 返回
+reload: 加载
+delete: 删除
+edit: 编辑
+in_query: 查询中。。。
+add_dns_record: 添加记录
+query_dns_record: 同步记录
+modify_dns_record: 修改记录
+confirm: 确定
+cancel: 取消
+operation: 操作
+change_theme: 切换主题
+change_locale: 切换语言
+domain_manager: 域名管理器
+help:
+  title: 帮助
+sync: 同步
+syncing: 同步中。。。
+exit: 退出
+minimize: 最小化
+maximize: 最大化
+provider:
+  add: 服务商管理
+  validate_credential: 验证凭据
+settings:
+  title: 设置
+  appearance: 外观
+  notifications: 通知
+  general: 常规
+  background_type: 背景类型
+  background_opacity: 背景透明度
+  theme: 主题
+  language: 语言
+  none: 无
+  gradient: 渐变
+  image: 图片
+  light: 浅色
+  dark: 深色
+  Chinese: 中文
+  English: 英文
+  enable_notifications: 启用通知
+  auto_sync: 自动同步
+  sync_interval: 同步间隔
+  minutes: 分钟
+  china_red: 中国红
+  qipao_girl: 旗袍少女
+  toggle_theme: 切换主题
+  notification_preferences: 通知偏好设置
+  auto_start: 开机自启
+  check_updates: 检查更新
+  export_data: 导出数据
+  import_data: 导入数据
+  floating_window: 悬浮窗
+  enable_floating_window: 启用悬浮窗
+  disable_floating_window: 禁用悬浮窗
+notifications_under_development: 通知设置功能开发中...
+general_settings_under_development: 常规设置功能开发中...
+floating_window_enabled: 悬浮窗已启用
+floating_window_disabled: 悬浮窗已禁用
+floating_window_created: 悬浮窗已创建
+floating_window_closed: 悬浮窗已关闭
+feature_under_development: 此功能正在开发中
+console:
+  title: 控制台
+  api_requests: API请求
+  database_queries: 数据库查询
+  clear_logs: 清空日志
+  logs_cleared: 日志已清空
+message:
+  loading: 加载中...
+  retry: 重试
+  list_is_blank: 列表为空
+domains: 域名列表
+providers: 服务商
+footer:
+  news: 最新动态

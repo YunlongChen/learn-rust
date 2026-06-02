@@ -36,6 +36,6 @@ jobs:
       - name: CheckOut
         uses: actions/checkout@v4
       - name: Run tests
-        run: cargo test -p domain_manager
+        run: cargo test -p domain-manager
       - name: Build binaries
-        run: cargo build -p domain_manager --release
+        run: cargo build -p domain-manager --release

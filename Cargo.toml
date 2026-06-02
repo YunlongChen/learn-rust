@@ -11,18 +11,15 @@ repository = "https://stanic.xyz"
 
 [workspace]
 members = [
-    "crates/dns_manager",
-    "crates/domain_client",
-    "crates/hello-game",
-    "crates/test_db",
-    "crates/domain_server",
-    "crates/domain_manager",
-    "crates/http_server"]
+    "crates/domain-clients",
+    "crates/domain-server",
+    "crates/domain-manager",
+    "crates/domain-http-server",
+    "crates/domain-agent",
+    "crates/domain-stun"]
 resolver = "2"
-
 
 [dependencies]
 
 [workspace.dependencies]
-concurrency = { version = "0.1.0", path = "./crates/concurrency" }
 bytes.version = "1"

@@ -1,0 +1,6 @@
+mod m20250712_000001_create_account_table;
+mod m20250712_000001_create_dns_record_table;
+mod m20250712_000001_create_domain_table;
+mod m20250712_000001_create_provider_table;
+mod m20250720_000001_create_agent_table;
+pub mod migration;
