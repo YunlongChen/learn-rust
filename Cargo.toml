@@ -11,12 +11,12 @@ repository = "https://stanic.xyz"
 
 [workspace]
 members = [
-    "crates/domain_client",
-    "crates/domain_server",
-    "crates/domain_manager",
-    "crates/http_server",
-    "crates/domain_agent",
-    "crates/domain_stun"]
+    "crates/domain-clients",
+    "crates/domain-server",
+    "crates/domain-manager",
+    "crates/domain-http-server",
+    "crates/domain-agent",
+    "crates/domain-stun"]
 resolver = "2"
 
 [dependencies]

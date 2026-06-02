@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain STUN - Logs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5;
+            color: #2c3e50;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 0;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+        }
+
+        .nav {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .nav a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .nav a:hover {
+            text-decoration: underline;
+        }
+
+        .nav a.active {
+            color: white;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .filter-bar button {
+            padding: 0.5rem 1.25rem;
+            border: none;
+            border-radius: 4px;
+            background: #3498db;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .filter-bar button:hover {
+            background: #2980b9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #7f8c8d;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .level {
+            display: inline-block;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .level.info {
+            background: #3498db;
+            color: white;
+        }
+
+        .level.warn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .level.error {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .level.debug {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .pagination button {
+            padding: 0.4rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .pagination button:hover {
+            background: #ecf0f1;
+        }
+
+        .pagination .current {
+            font-weight: bold;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #95a5a6;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-inner">
+            <h1>Domain STUN Server</h1>
+            <div class="nav">
+                <a href="/">Dashboard</a>
+                <a href="/agents">Agents</a>
+                <a href="/docs">API Docs</a>
+                <a href="/logs" class="active">Logs</a>
+                <a href="/settings">Settings</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>系统日志</h2>
+
+            <form class="filter-bar" method="GET" action="/logs">
+                <select name="level">
+                    <option value="">全部</option>
+                    <option value="INFO" {% if current_level=="INFO" %}selected{% endif %}>INFO</option>
+                    <option value="WARN" {% if current_level=="WARN" %}selected{% endif %}>WARN</option>
+                    <option value="ERROR" {% if current_level=="ERROR" %}selected{% endif %}>ERROR</option>
+                    <option value="DEBUG" {% if current_level=="DEBUG" %}selected{% endif %}>DEBUG</option>
+                </select>
+                <select name="category">
+                    <option value="">全部</option>
+                    <option value="system" {% if current_category=="system" %}selected{% endif %}>system</option>
+                    <option value="agent" {% if current_category=="agent" %}selected{% endif %}>agent</option>
+                    <option value="stun" {% if current_category=="stun" %}selected{% endif %}>stun</option>
+                    <option value="turn" {% if current_category=="turn" %}selected{% endif %}>turn</option>
+                    <option value="http" {% if current_category=="http" %}selected{% endif %}>http</option>
+                </select>
+                <button type="submit">筛选</button>
+            </form>
+
+            {% if logs %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>级别</th>
+                        <th>类别</th>
+                        <th>Agent</th>
+                        <th>消息</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.timestamp }}</td>
+                        <td><span class="level {{ log.level | lower }}">{{ log.level }}</span></td>
+                        <td>{{ log.category }}</td>
+                        <td>{{ log.agent_id }}</td>
+                        <td>{{ log.message }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-data">暂无日志记录</p>
+            {% endif %}
+
+            <div class="pagination">
+                {% if page > 1 %}
+                <a href="/logs?level={{ current_level }}&category={{ current_category }}&page={{ page - 1 }}"><button type="button">上一页</button></a>
+                {% endif %}
+                <span class="current">第 {{ page }} / {{ total_pages }} 页</span>
+                {% if page < total_pages %}
+                <a href="/logs?level={{ current_level }}&category={{ current_category }}&page={{ page + 1 }}"><button type="button">下一页</button></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
