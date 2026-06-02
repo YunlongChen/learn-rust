@@ -329,13 +329,10 @@ async fn main() -> std::io::Result<()> {
         start_stun_server(stun_state).await;
     });
 
-    let tera = match tera::Tera::new("templates/**/*.html") {
-        Ok(t) => t,
-        Err(e) => {
-            info!("Template init error: {}, using defaults", e);
-            tera::Tera::default()
-        }
-    };
+    let tera = tera::Tera::new("templates/**/*.html").unwrap_or_else(|e| {
+        info!("Template init error: {}, using defaults", e);
+        tera::Tera::default()
+    });
 
     let bind_addr = format!("0.0.0.0:{}", config.server.port);
     info!("Starting HTTP server on http://{}", bind_addr);
