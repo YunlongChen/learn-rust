@@ -78,7 +78,7 @@ impl Service {
         info!("WebSocket server listening on port {}", ws_port);
 
         // Create REST app state
-        let app_state = AppState {};
+        let app_state = AppState { service: self.clone() };
 
         // Spawn gRPC server
         let grpc_handle = tokio::spawn(async move {
