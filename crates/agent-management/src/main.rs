@@ -1,6 +1,7 @@
 //! Agent Management Service Entry Point
 
 use agent_management::config::AppConfig;
+use agent_management::service::Service;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -33,16 +34,9 @@ async fn main() -> anyhow::Result<()> {
         config.rest.port
     );
 
-    // TODO: Initialize Service with config
-    // This will be implemented in Task 11
-    info!("Service initialization placeholder - full wiring in Task 11");
-
-    // Placeholder to keep the service running
-    info!("Agent Management Service initialized successfully");
-    info!("Waiting for Task 11 to wire up full service functionality...");
-
-    // For now, just block forever
-    tokio::signal::ctrl_c().await?;
+    // Create and run the service
+    let service = Service::new(config).await?;
+    service.run().await?;
 
     Ok(())
 }

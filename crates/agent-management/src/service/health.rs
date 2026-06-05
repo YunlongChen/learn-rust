@@ -176,6 +176,7 @@ pub fn calculate_component_scores(metrics: &NetworkHealthMetrics) -> ComponentSc
 }
 
 /// Health service for recording health scores to the database.
+#[derive(Clone)]
 pub struct HealthService {
     db: sea_orm::DatabaseConnection,
 }
