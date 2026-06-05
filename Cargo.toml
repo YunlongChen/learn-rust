@@ -11,6 +11,7 @@ repository = "https://stanic.xyz"
 
 [workspace]
 members = [
+    "crates/agent-protocol",
     "crates/domain-clients",
     "crates/domain-server",
     "crates/domain-manager",
