@@ -80,6 +80,9 @@ impl Service {
         // Create REST app state
         let app_state = AppState { service: self.clone() };
 
+        // Clone self for WebSocket server before moving into grpc_handle
+        let ws_service = self.clone();
+
         // Spawn gRPC server
         let grpc_handle = tokio::spawn(async move {
             let grpc_server = create_grpc_server(&grpc_addr, self.clone()).await
@@ -111,14 +114,16 @@ impl Service {
                 .expect("REST server failed");
         });
 
-        // Spawn WebSocket server (stubbed for now)
+        // Spawn WebSocket server
         let ws_handle = tokio::spawn(async move {
-            let ws_addr = format!("{}:{}", config.server.host, ws_port);
-            info!("WebSocket server stub listening on {}", ws_addr);
+            use crate::server::websocket::run_websocket_server;
 
-            // Stub: just log and keep running
-            tokio::signal::ctrl_c().await.ok();
-            info!("WebSocket server shutting down");
+            let ws_addr = format!("{}:{}", config.server.host, ws_port);
+            info!("WebSocket server starting on {}", ws_addr);
+
+            run_websocket_server(ws_service, ws_addr).await;
+
+            info!("WebSocket server shut down");
         });
 
         // Wait for all servers
