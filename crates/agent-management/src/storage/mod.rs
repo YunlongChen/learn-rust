@@ -2,7 +2,7 @@
 //!
 //! Provides PostgreSQL storage using sea-orm with entities and migrations.
 
-mod entities;
+pub mod entities;
 mod migrations;
 
 pub use entities::*;

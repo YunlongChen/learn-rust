@@ -10,5 +10,5 @@ pub mod system_info;
 // Re-export the Entity types from each module
 pub use agent::Entity as AgentEntity;
 pub use health_score::Entity as HealthScoreEntity;
-pub use lifecycle_event::Entity as LifecycleEventEntity;
+pub use lifecycle_event::{Entity as LifecycleEventEntity, ActiveModel as LifecycleEventActiveModel};
 pub use system_info::Entity as SystemInfoEntity;
