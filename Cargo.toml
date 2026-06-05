@@ -13,6 +13,7 @@ repository = "https://stanic.xyz"
 members = [
     "crates/agent-protocol",
     "crates/agent-management",
+    "crates/agent-management-client",
     "crates/domain-clients",
     "crates/domain-server",
     "crates/domain-manager",

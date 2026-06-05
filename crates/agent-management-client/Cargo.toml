@@ -1,0 +1,17 @@
+[package]
+name = "agent-management-client"
+version = "0.1.0"
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tonic = "0.12"
+prost = "0.13"
+uuid = { version = "1.0", features = ["v4"] }
+anyhow = "1.0"
+tokio = { version = "1", features = ["full"] }
+
+[build-dependencies]
+tonic-build = "0.12"
