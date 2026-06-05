@@ -4,6 +4,7 @@
 mod agent;
 mod api;
 mod cli;
+mod client;
 mod configs;
 mod countries;
 mod dm_logger;

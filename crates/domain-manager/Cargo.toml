@@ -8,6 +8,7 @@ default-run = "domain-manager"
 repository.workspace = true
 
 [dependencies]
+agent-management-client = { path = "../agent-management-client" }
 domain-clients = { path = "../domain-clients" }
 
 iced = { version = "0.13.1", features = ["svg", "tokio", "wgpu", "advanced"], default-features = false }
