@@ -9,3 +9,6 @@ pub mod service;
 pub mod storage;
 pub mod protocol;
 pub mod domain;
+pub mod server;
+
+pub mod generated;
