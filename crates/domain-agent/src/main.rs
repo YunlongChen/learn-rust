@@ -11,8 +11,10 @@
 mod client;
 mod config;
 mod crypto;
+mod diagnostic;
 mod proxy;
 mod p2p;
+mod protocol;
 mod tunnel;
 
 use tracing::{error, info, warn};
