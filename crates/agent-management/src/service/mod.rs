@@ -22,7 +22,7 @@ use tonic::transport::Server as TonicServer;
 use tracing::{info, error};
 
 /// Unified service containing all agent management services
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Service {
     pub agent_service: AgentService,
     pub lifecycle_service: LifecycleService,
@@ -82,7 +82,7 @@ impl Service {
 
         // Spawn gRPC server
         let grpc_handle = tokio::spawn(async move {
-            let grpc_server = create_grpc_server(&grpc_addr).await
+            let grpc_server = create_grpc_server(&grpc_addr, self.clone()).await
                 .expect("Failed to create gRPC server");
 
             TonicServer::builder()

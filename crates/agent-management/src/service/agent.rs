@@ -91,7 +91,7 @@ impl From<Model> for AgentInfo {
 /// Service for managing agents.
 ///
 /// This service provides methods to create, read, update, and delete agents.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AgentService {
     db: Database,
 }

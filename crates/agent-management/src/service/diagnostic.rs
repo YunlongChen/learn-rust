@@ -15,7 +15,7 @@ use crate::storage::entities::system_info::{Entity as SystemInfoEntity, ActiveMo
 ///
 /// This service provides methods to query system information, resource usage,
 /// and other diagnostic data from managed agents.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DiagnosticService {
     db: Database,
 }

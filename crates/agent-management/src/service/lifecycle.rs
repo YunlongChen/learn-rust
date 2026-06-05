@@ -16,7 +16,7 @@ use crate::storage::entities::lifecycle_event::{Entity as LifecycleEventEntity, 
 ///
 /// This service provides methods to record lifecycle events to the database
 /// and query event history for agents.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LifecycleService {
     db: Database,
 }

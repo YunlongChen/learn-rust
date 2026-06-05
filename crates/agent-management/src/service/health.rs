@@ -3,7 +3,7 @@
 //! Calculates health scores based on latency, jitter, packet loss, and bandwidth metrics.
 
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, Set};
+use sea_orm::{ActiveModelTrait, EntityTrait, ColumnTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -176,7 +176,7 @@ pub fn calculate_component_scores(metrics: &NetworkHealthMetrics) -> ComponentSc
 }
 
 /// Health service for recording health scores to the database.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HealthService {
     db: sea_orm::DatabaseConnection,
 }
@@ -209,6 +209,22 @@ impl HealthService {
         };
 
         active_model.insert(&self.db).await
+    }
+
+    /// Gets the latest health score for an agent.
+    pub async fn get_latest_score(
+        &self,
+        agent_id: Uuid,
+    ) -> Result<Option<health_score::Model>, sea_orm::DbErr> {
+        use crate::storage::entities::health_score::{Entity as HealthScoreEntity, Column};
+
+        let result = HealthScoreEntity::find()
+            .filter(Column::AgentId.eq(agent_id))
+            .order_by_desc(Column::ScoredAt)
+            .one(&self.db)
+            .await?;
+
+        Ok(result)
     }
 }
 
