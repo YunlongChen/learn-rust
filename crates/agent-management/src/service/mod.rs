@@ -43,7 +43,7 @@ impl Service {
         info!("Database initialized and migrations completed");
 
         // Initialize services
-        let agent_service = AgentService::new();
+        let agent_service = AgentService::new(database.clone());
         let lifecycle_service = LifecycleService::new(database.clone());
         let health_service = HealthService::new(database.get_conn().clone());
         let diagnostic_service = DiagnosticService::new();
