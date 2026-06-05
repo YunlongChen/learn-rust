@@ -9,7 +9,7 @@ pub mod health;
 pub mod lifecycle;
 
 pub use agent::{AgentService, AgentInfo};
-pub use diagnostic::{DiagnosticService, SystemInfo};
+pub use diagnostic::DiagnosticService;
 pub use health::{HealthService, NetworkHealthMetrics};
 pub use lifecycle::LifecycleService;
 
@@ -46,7 +46,7 @@ impl Service {
         let agent_service = AgentService::new(database.clone());
         let lifecycle_service = LifecycleService::new(database.clone());
         let health_service = HealthService::new(database.get_conn().clone());
-        let diagnostic_service = DiagnosticService::new();
+        let diagnostic_service = DiagnosticService::new(database.clone());
 
         info!("All services initialized successfully");
 
