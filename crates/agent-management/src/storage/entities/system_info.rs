@@ -9,7 +9,7 @@ use uuid::Uuid;
 #[derive(
     Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize,
 )]
-#[sea_orm(table_name = "agent_system_info", schema_name = "")]
+#[sea_orm(table_name = "agent_system_info")]
 pub struct Model {
     /// Unique identifier for the system info record.
     #[sea_orm(primary_key, column_type = "Uuid")]

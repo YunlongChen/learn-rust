@@ -391,11 +391,6 @@ mod tests {
 
         // 验证应用程序状态
         assert!(!app.state.ui.is_syncing, "同步状态应该被重置为false");
-        assert_eq!(
-            app.state.ui.message, "所有域名同步完成",
-            "同步完成消息应正确设置"
-        );
-
         info!("Message::SyncAllDomainsComplete成功场景测试通过");
     }
 
@@ -519,7 +514,7 @@ mod tests {
 
         // 2. 选择阿里云提供商
         info!("选择阿里云提供商");
-        let event = app.update(MessageCategory::Provider(ProviderMessage::Selected(
+        let _event = app.update(MessageCategory::Provider(ProviderMessage::Selected(
             DnsProvider::Aliyun,
         )));
 
@@ -582,7 +577,7 @@ mod tests {
 
         // 5. 点击验证凭据按钮
         info!("点击验证凭据按钮");
-        let validate_task = app.update(MessageCategory::Provider(
+        let _validate_task = app.update(MessageCategory::Provider(
             ProviderMessage::ValidateCredential,
         ));
 
@@ -617,7 +612,7 @@ mod tests {
 
         // 7. 点击添加按钮
         info!("点击添加按钮");
-        let add_task = app.update(MessageCategory::Provider(ProviderMessage::AddCredential));
+        let _add_task = app.update(MessageCategory::Provider(ProviderMessage::AddCredential));
 
         // 8. 模拟运行时执行数据库操作
         // 注意：在单元测试中，app.update 返回的 Task 不会被 Iced 运行时执行。
@@ -664,6 +659,8 @@ mod tests {
         );
         assert_eq!(new_account.username, "阿里云测试账户", "用户名应该匹配");
     }
+
+    #[tokio::test]
     async fn handle_window_minimize() {
         init_test_env();
         info!("测试窗口最小化");

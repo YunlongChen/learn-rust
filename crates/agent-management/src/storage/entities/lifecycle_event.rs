@@ -9,7 +9,7 @@ use uuid::Uuid;
 #[derive(
     Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize,
 )]
-#[sea_orm(table_name = "agent_lifecycle_events", schema_name = "")]
+#[sea_orm(table_name = "agent_lifecycle_events")]
 pub struct Model {
     /// Unique identifier for the lifecycle event.
     #[sea_orm(primary_key, column_type = "Uuid")]

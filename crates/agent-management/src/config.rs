@@ -25,13 +25,32 @@ impl Default for ServerConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseConfig {
     pub url: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub max_connections: u32,
+}
+
+impl DatabaseConfig {
+    /// Get connection URL with credentials if provided
+    pub fn connection_url(&self) -> String {
+        match (&self.username, &self.password) {
+            (Some(user), Some(pass)) => {
+                format!("postgres://{}:{}@{}", user, pass, self.url.trim_start_matches("postgres://"))
+            }
+            (Some(user), None) => {
+                format!("postgres://{}@{}", user, self.url.trim_start_matches("postgres://"))
+            }
+            _ => self.url.clone(),
+        }
+    }
 }
 
 impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
-            url: "postgres://localhost:5432/agent_management".to_string(),
+            url: "postgres://192.168.3.112:5432/agent_management".to_string(),
+            username: Some("agent_management".into()),
+            password: Some("123456".into()),
             max_connections: 10,
         }
     }

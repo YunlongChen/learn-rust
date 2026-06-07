@@ -316,6 +316,464 @@ pub struct StreamLifecycleRequest {
     #[prost(string, tag = "1")]
     pub agent_id: ::prost::alloc::string::String,
 }
+/// Generated client implementations.
+pub mod agent_management_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    /// Agent Management Service
+    #[derive(Debug, Clone)]
+    pub struct AgentManagementServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl AgentManagementServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> AgentManagementServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> AgentManagementServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            AgentManagementServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        /// Agent CRUD operations
+        pub async fn register_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RegisterRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RegisterResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/RegisterAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "RegisterAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAgentRequest>,
+        ) -> std::result::Result<tonic::Response<super::Agent>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/GetAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "GetAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_agents(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAgentsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAgentsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/ListAgents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "ListAgents",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateAgentRequest>,
+        ) -> std::result::Result<tonic::Response<super::Agent>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/UpdateAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "UpdateAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteAgentRequest>,
+        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/DeleteAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "DeleteAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Approval management
+        pub async fn approve_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ApproveRequest>,
+        ) -> std::result::Result<tonic::Response<super::Agent>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/ApproveAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "ApproveAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn deny_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DenyRequest>,
+        ) -> std::result::Result<tonic::Response<super::Agent>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/DenyAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "DenyAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Diagnostic info
+        pub async fn get_agent_system_info(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetSystemInfoRequest>,
+        ) -> std::result::Result<tonic::Response<super::SystemInfo>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/GetAgentSystemInfo",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "GetAgentSystemInfo",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Event streaming
+        pub async fn stream_agent_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StreamEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::AgentEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/StreamAgentEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "StreamAgentEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// Health scoring
+        pub async fn get_agent_health(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAgentHealthRequest>,
+        ) -> std::result::Result<tonic::Response<super::HealthScore>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/GetAgentHealth",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "GetAgentHealth",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stream_agent_health(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StreamHealthRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::HealthScore>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/StreamAgentHealth",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "StreamAgentHealth",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// Lifecycle events
+        pub async fn get_agent_lifecycle_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetLifecycleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::LifecycleEventsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/GetAgentLifecycleEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "GetAgentLifecycleEvents",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stream_lifecycle_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StreamLifecycleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::AgentEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/agent_management.AgentManagementService/StreamLifecycleEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "agent_management.AgentManagementService",
+                        "StreamLifecycleEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+    }
+}
 /// Generated server implementations.
 pub mod agent_management_service_server {
     #![allow(

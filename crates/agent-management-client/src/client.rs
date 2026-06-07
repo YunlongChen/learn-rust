@@ -1,12 +1,7 @@
 use anyhow::Result;
 use tonic::transport::Channel;
 
-// Re-export generated types
-pub mod agent_management {
-    tonic::include_proto!("agent_management");
-}
-
-use agent_management::{
+use agent_management::generated::agent_management::{
     agent_management_service_client::AgentManagementServiceClient,
     ApproveRequest, DenyRequest, GetAgentRequest, ListAgentsRequest,
 };
@@ -41,7 +36,7 @@ impl AgentManagementClient {
     }
 
     /// Get an agent by ID
-    pub async fn get_agent(&mut self, agent_id: &str) -> Result<agent_management::Agent> {
+    pub async fn get_agent(&mut self, agent_id: &str) -> Result<crate::proto::Agent> {
         let request = GetAgentRequest {
             agent_id: agent_id.to_string(),
         };
@@ -55,7 +50,7 @@ impl AgentManagementClient {
         status_filter: Option<&str>,
         approval_status_filter: Option<&str>,
         page_size: i32,
-    ) -> Result<agent_management::ListAgentsResponse> {
+    ) -> Result<crate::proto::ListAgentsResponse> {
         let request = ListAgentsRequest {
             status_filter: status_filter.map(String::from),
             approval_status_filter: approval_status_filter.map(String::from),
@@ -72,7 +67,7 @@ impl AgentManagementClient {
         agent_id: &str,
         approved_by: Option<&str>,
         notes: Option<&str>,
-    ) -> Result<agent_management::Agent> {
+    ) -> Result<crate::proto::Agent> {
         let request = ApproveRequest {
             agent_id: agent_id.to_string(),
             approved_by: approved_by.map(String::from),
@@ -88,7 +83,7 @@ impl AgentManagementClient {
         agent_id: &str,
         reason: &str,
         denied_by: Option<&str>,
-    ) -> Result<agent_management::Agent> {
+    ) -> Result<crate::proto::Agent> {
         let request = DenyRequest {
             agent_id: agent_id.to_string(),
             reason: reason.to_string(),

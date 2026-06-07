@@ -4,7 +4,7 @@
 //! for interacting with the agent management service.
 
 use anyhow::Result;
-use agent_management_client::client::agent_management;
+use agent_management_client::proto;
 use agent_management_client::{AgentManagementClient as InnerClient, Config};
 
 /// Wrapper client for the agent-management service.
@@ -25,7 +25,7 @@ impl AgentManagementClient {
     }
 
     /// Get an agent by its ID.
-    pub async fn get_agent(&mut self, agent_id: &str) -> Result<agent_management::Agent> {
+    pub async fn get_agent(&mut self, agent_id: &str) -> Result<proto::Agent> {
         self.inner.get_agent(agent_id).await
     }
 
@@ -35,7 +35,7 @@ impl AgentManagementClient {
         status_filter: Option<&str>,
         approval_status_filter: Option<&str>,
         page_size: i32,
-    ) -> Result<agent_management::ListAgentsResponse> {
+    ) -> Result<proto::ListAgentsResponse> {
         self.inner.list_agents(status_filter, approval_status_filter, page_size).await
     }
 
@@ -45,7 +45,7 @@ impl AgentManagementClient {
         agent_id: &str,
         approved_by: Option<&str>,
         notes: Option<&str>,
-    ) -> Result<agent_management::Agent> {
+    ) -> Result<proto::Agent> {
         self.inner.approve_agent(agent_id, approved_by, notes).await
     }
 
@@ -55,7 +55,7 @@ impl AgentManagementClient {
         agent_id: &str,
         reason: &str,
         denied_by: Option<&str>,
-    ) -> Result<agent_management::Agent> {
+    ) -> Result<proto::Agent> {
         self.inner.deny_agent(agent_id, reason, denied_by).await
     }
 }

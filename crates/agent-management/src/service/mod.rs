@@ -35,10 +35,10 @@ pub struct Service {
 impl Service {
     /// Creates a new Service instance with all subsystems initialized
     pub async fn new(config: AppConfig) -> Result<Self> {
-        info!("Initializing Agent Management Service...");
+        info!("Initializing Agent Management Service...:{:?}", &config.database.connection_url());
 
         // Initialize database
-        let database = Database::new(&config.database.url).await?;
+        let database = Database::new(&config.database.connection_url()).await?;
         database.run_migrations().await?;
         info!("Database initialized and migrations completed");
 
