@@ -27,14 +27,14 @@ pub enum WebPage {
 impl WebPage {
     pub fn get_url(&self) -> &str {
         match self {
-            WebPage::Repo => "https://github.com/YunlongChen/learn-rust",
+            WebPage::Repo => "https://github.com/YunlongChen/netops",
             WebPage::Website => "https://www.stanic.xyz",
             WebPage::WebsiteSponsor => "https://www.stanic.xyz/sponsor",
-            WebPage::WebsiteDownload => "https://github.com/YunlongChen/learn-rust/releases",
+            WebPage::WebsiteDownload => "https://github.com/YunlongChen/netops/releases",
             WebPage::WebsiteNews => "https://www.stanic.xyz/news",
-            WebPage::Issues => "https://github.com/YunlongChen/learn-rust/issues",
-            WebPage::IssueLanguages => "https://github.com/YunlongChen/learn-rust/issues/60",
-            WebPage::Wiki => "https://github.com/YunlongChen/learn-rust/wiki",
+            WebPage::Issues => "https://github.com/YunlongChen/netops/issues",
+            WebPage::IssueLanguages => "https://github.com/YunlongChen/netops/issues/60",
+            WebPage::Wiki => "https://github.com/YunlongChen/netops/wiki",
             WebPage::MyGitHub => "https://github.com/YunlongChen",
             // 自定义地址
             WebPage::Custom(_url) => todo!(),
@@ -46,10 +46,10 @@ impl WebPage {
 fn test_web_page() {
     assert_eq!(
         WebPage::Repo.get_url(),
-        "https://github.com/YunlongChen/learn-rust"
+        "https://github.com/YunlongChen/netops"
     );
     assert_eq!(
         WebPage::WebsiteDownload.get_url(),
-        "https://github.com/YunlongChen/learn-rust/releases"
+        "https://github.com/YunlongChen/netops/releases"
     );
 }

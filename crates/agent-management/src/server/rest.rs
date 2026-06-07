@@ -9,6 +9,7 @@ use axum::{
 };
 use std::sync::Arc;
 use serde::{Serialize, Deserialize};
+use tracing::info;
 use uuid::Uuid;
 
 use crate::service::agent::{AgentFilters, UpdateAgentInput};
@@ -318,6 +319,7 @@ async fn approve_agent(
         Ok(id) => id,
         Err(status) => return status.into_response(),
     };
+    info!("批准Agent注册！ agentId : {:?}",&agent_id);
 
     match state.service.agent_service.approve_agent(agent_id, "rest-api".to_string()).await {
         Ok(Some(agent)) => {
@@ -524,15 +526,13 @@ pub async fn create_rest_server(
 ) -> Result<Router, Box<dyn std::error::Error + Send + Sync>> {
     let app = Router::new()
         .route("/api/v1/agents", get(list_agents))
-        .route("/api/v1/agents/{id}", get(get_agent))
-        .route("/api/v1/agents/{id}", patch(update_agent))
-        .route("/api/v1/agents/{id}", delete(delete_agent))
-        .route("/api/v1/agents/{id}/approve", post(approve_agent))
-        .route("/api/v1/agents/{id}/deny", post(deny_agent))
-        .route("/api/v1/agents/{id}/system-info", get(get_system_info))
-        .route("/api/v1/agents/{id}/system-info/query", post(query_system_info))
-        .route("/api/v1/agents/{id}/health", get(get_health_score))
-        .route("/api/v1/agents/{id}/lifecycle", get(get_lifecycle_events))
+        .route("/api/v1/agents/:id", get(get_agent))
+        .route("/api/v1/agents/:id/approve", post(approve_agent))
+        .route("/api/v1/agents/:id/deny", post(deny_agent))
+        .route("/api/v1/agents/:id/system-info", get(get_system_info))
+        .route("/api/v1/agents/:id/system-info/query", post(query_system_info))
+        .route("/api/v1/agents/:id/health", get(get_health_score))
+        .route("/api/v1/agents/:id/lifecycle", get(get_lifecycle_events))
         .with_state(Arc::new(state));
 
     tracing::info!("REST server configured on {}", config.addr);
