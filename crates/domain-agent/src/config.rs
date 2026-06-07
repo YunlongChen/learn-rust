@@ -1,6 +1,6 @@
 //! Agent configuration
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
@@ -72,7 +72,7 @@ impl Default for ReconnectionConfig {
         Self {
             base_delay_ms: 1000,
             max_delay_ms: 300_000,
-            max_retries: 0,
+            max_retries: 5,
             jitter: 0.1,
         }
     }
@@ -195,6 +195,14 @@ impl AgentConfig {
     pub fn from_args() -> Self {
         let args = Args::parse();
 
+        // Show help and exit if --help is provided
+        if args.help {
+            let mut prog = Args::command();
+            let _ = prog.print_help();
+            println!();
+            std::process::exit(0);
+        }
+
         // Try to load from config file first
         let mut config = if let Some(config_path) = &args.config {
             AgentConfig::from_file(config_path).unwrap_or_else(|e| {
@@ -258,9 +266,14 @@ fn hostname() -> Option<String> {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "domain_agent")]
+#[command(name = "domain-agent")]
 #[command(about = "Domain Manager Agent - connects to Domain Manager Hub")]
+#[command(disable_help_flag(true))]
 struct Args {
+    /// Show help information
+    #[arg(long, help = "Show this help message")]
+    help: bool,
+
     /// Hub address (host:port)
     #[arg(short, long)]
     hub: Option<String>,

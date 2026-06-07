@@ -225,6 +225,7 @@ version = "0.1.0"
 dependencies = [
  "agent-protocol",
  "anyhow",
+ "async-trait",
  "axum",
  "chrono",
  "config",
@@ -239,10 +240,23 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tonic",
+ "tonic-build",
  "tower 0.5.3",
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "agent-management-client"
+version = "0.1.0"
+dependencies = [
+ "agent-management",
+ "anyhow",
+ "prost",
+ "tokio",
+ "tonic",
  "uuid",
 ]
 
@@ -1784,6 +1798,7 @@ dependencies = [
 name = "domain-manager"
 version = "0.1.0"
 dependencies = [
+ "agent-management-client",
  "anyhow",
  "arboard",
  "async-trait",
@@ -7380,6 +7395,20 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "tonic-build"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9557ce109ea773b399c9b9e5dca39294110b74f1f342cb347a80d1fce8c26a11"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
+ "prost-build",
+ "prost-types",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
