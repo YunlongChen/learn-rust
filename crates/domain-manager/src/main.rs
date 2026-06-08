@@ -4,6 +4,7 @@
 mod agent;
 mod api;
 mod cli;
+mod client;
 mod configs;
 mod countries;
 mod dm_logger;
@@ -36,6 +37,10 @@ use iced::{application, window, Font, Pixels, Point, Settings, Size, Task};
 use rust_i18n::i18n;
 use std::{panic, process};
 use tracing::{error, info};
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;

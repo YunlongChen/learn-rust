@@ -8,6 +8,7 @@ default-run = "domain-manager"
 repository.workspace = true
 
 [dependencies]
+domain-agent-management-client = { path = "../domain-agent-management-client" }
 domain-clients = { path = "../domain-clients" }
 
 iced = { version = "0.13.1", features = ["svg", "tokio", "wgpu", "advanced"], default-features = false }
@@ -48,6 +49,7 @@ sha2 = "0.10"
 async-trait = "0.1.83"
 validator = { version = "0.18.1", features = ["derive"] }
 thiserror = "1.0.50"
+mimalloc = "0.1.52"
 
 [dev-dependencies]
 serde_test = "1.0.177"

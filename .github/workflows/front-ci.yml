@@ -1,0 +1,42 @@
+name: WebUI CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "release/*"
+    paths:
+      - "crates/domain-agent-management/frontend/**"
+      - ".github/workflows/front-ci.yml"
+  pull_request:
+    branches:
+      - main
+      - "release/*"
+    paths:
+      - "crates/domain-agent-management/frontend/**"
+      - ".github/workflows/front-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  webui:
+    name: Typecheck and Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: crates/agent-management/frontend/package-lock.json
+
+      - name: Install WebUI dependencies
+        working-directory: crates/agent-management/frontend
+        run: npm ci
+
+      - name: Install WebUI dependencies
+        working-directory: crates/agent-management/frontend
+        run: npm run build

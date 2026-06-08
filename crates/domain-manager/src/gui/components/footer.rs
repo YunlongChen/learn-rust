@@ -202,7 +202,7 @@ fn get_button_sponsor<'a>(font: Font) -> Tooltip<'a, MessageCategory, StyleType>
 /// * `newer_release_available` - 是否有新版本可用
 fn get_release_details<'a>(
     language: Language,
-    font: Font,
+    _font: Font,
     font_footer: Font,
     newer_release_available: &Mutex<Option<bool>>,
 ) -> Row<'a, MessageCategory, StyleType> {
@@ -234,7 +234,7 @@ fn get_release_details<'a>(
             TextType::Standard
         });
 
-    let tooltip_text = if has_update {
+    let _tooltip_text = if has_update {
         new_version_available_translation(language).to_string()
     } else {
         "点击检查更新".to_string()

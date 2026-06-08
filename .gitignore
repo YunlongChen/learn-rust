@@ -3,3 +3,7 @@ release
 dist
 target
 domain_stun.db
+.claude
+.trae
+node_modules
+superpowers

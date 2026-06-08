@@ -3,14 +3,11 @@
 //! 显示和管理DNS记录的可重用组件
 
 use super::{Component, ComponentConfig, State};
-use crate::gui::handlers::message_handler::NavigationMessage::PageChanged;
 use crate::gui::handlers::message_handler::{DnsMessage, MessageCategory, NavigationMessage};
-use crate::gui::model::domain::DnsRecord;
 use crate::gui::pages::Page;
 use crate::gui::state::AppState;
 use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
-use crate::gui::styles::ContainerType as ContainerClass;
 use crate::model::dns_record_response::Type as RecordType;
 use crate::storage::DnsRecordModal;
 use crate::StyleType;

@@ -65,6 +65,24 @@ port = 0  # 0 = disabled
 ./domain_agent --config agent.toml
 ```
 
+
+### 源码启动
+
+```bash
+# 配置文件 (TOML)
+cargo run -p domain-agent -- -c config.toml
+
+# 命令行参数
+cargo run -p domain-agent -- --hub localhost:8080 --name my-agent --key abc123
+
+# 环境变量
+DOMAIN_AGENT_HUB=localhost:8080
+DOMAIN_AGENT_NAME=my-agent
+DOMAIN_AGENT_KEY=abc123
+
+cargo run -p domain-agent
+```
+
 ### 环境变量
 
 ```bash

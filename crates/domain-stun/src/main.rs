@@ -86,7 +86,7 @@ async fn get_stun_info(state: web::Data<AppState>) -> HttpResponse {
 }
 
 async fn save_agent_to_db(db: &DatabaseConnection, agent: &AgentInfo) {
-    let _ = db.execute(Statement::from_sql_and_values(
+    let _result = db.execute(Statement::from_sql_and_values(
         DatabaseBackend::Sqlite,
         "INSERT OR REPLACE INTO agents (id, name, public_addr, nat_type, connected_at, last_seen) VALUES ($1, $2, $3, $4, $5, $6)",
         vec![

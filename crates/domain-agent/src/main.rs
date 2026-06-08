@@ -11,11 +11,22 @@
 mod client;
 mod config;
 mod crypto;
+mod diagnostic;
 mod proxy;
 mod p2p;
+mod protocol;
 mod tunnel;
 
 use tracing::{error, info, warn};
+
+/// Generate a random u64 for jitter
+fn rand_u64() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64
+}
 
 use crate::client::AgentClient;
 use crate::config::AgentConfig;
@@ -54,14 +65,56 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create agent client
     let mut client = AgentClient::new(config.clone());
 
-    // Connect to Hub
-    match client.connect().await {
-        Ok(_) => {
-            info!("Connected to Hub successfully");
-        }
-        Err(e) => {
-            error!("Failed to connect to Hub: {}", e);
-            std::process::exit(1);
+    // Connect to Hub with retry
+    let reconnection = &config.reconnection;
+    let mut retries = 0u32;
+    let mut delay_ms = reconnection.base_delay_ms;
+
+    loop {
+        match client.connect().await {
+            Ok(_) => {
+                info!("Connected to Hub successfully");
+                break;
+            }
+            Err(e) => {
+                retries += 1;
+
+                // Check if we've exceeded max retries
+                if reconnection.max_retries > 0 && retries >= reconnection.max_retries {
+                    error!(
+                        "Failed to connect to Hub after {} retries: {}",
+                        retries, e
+                    );
+                    std::process::exit(1);
+                }
+
+                warn!(
+                    "Failed to connect to Hub (attempt {}{}): {}",
+                    retries,
+                    if reconnection.max_retries > 0 {
+                        format!("/{}", reconnection.max_retries)
+                    } else {
+                        "/∞".to_string()
+                    },
+                    e
+                );
+                warn!("Retrying in {} ms...", delay_ms);
+
+                tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+
+                // Apply exponential backoff with jitter
+                delay_ms = std::cmp::min(
+                    (delay_ms as u64 * 2) as u64,
+                    reconnection.max_delay_ms,
+                );
+
+                // Add jitter
+                if reconnection.jitter > 0.0 {
+                    let jitter_range =
+                        (delay_ms as f64 * reconnection.jitter) as u64;
+                    delay_ms += (rand_u64() % jitter_range);
+                }
+            }
         }
     }
 

@@ -10,8 +10,9 @@ use tokio::time::interval;
 use tokio_tungstenite::{client_async, connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
-
+use domain_agent_protocol::{SystemInfoQuery, SystemInfoReport, SystemInfoResponse};
 use crate::config::{AgentConfig, ProxyConfig};
+use crate::diagnostic::collect_system_info;
 
 /// Agent connection state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -374,6 +375,13 @@ impl AgentClient {
                 info!("Hub requested unregister: {:?}", reason);
                 return Err("Hub requested unregister".to_string());
             }
+            AgentMessage::SystemInfoQuery { query } => {
+                info!("Received SystemInfoQuery: {:?}", query.query_id);
+                // Respond with system info report
+                if let Err(e) = self.send_system_info_report().await {
+                    warn!("Failed to send system info report: {}", e);
+                }
+            }
             _ => {
                 debug!("Unhandled message type: {:?}", response);
             }
@@ -400,6 +408,24 @@ impl AgentClient {
 
         self.send_message(&json).await?;
         debug!("Heartbeat sent");
+
+        Ok(())
+    }
+
+    /// Send system info report
+    pub async fn send_system_info_report(&self) -> Result<(), String> {
+        let agent_id = *self.agent_id.read().await;
+        let agent_id = agent_id.ok_or_else(|| "Agent not registered".to_string())?;
+
+        let report = collect_system_info(agent_id);
+
+        let msg = AgentMessage::SystemInfoReport { report };
+
+        let json = serde_json::to_string(&msg)
+            .map_err(|e| format!("Failed to serialize system info report: {}", e))?;
+
+        self.send_message(&json).await?;
+        info!("System info report sent");
 
         Ok(())
     }
@@ -580,6 +606,27 @@ pub enum AgentMessage {
     #[serde(rename = "ApprovalDenied")]
     ApprovalDenied {
         reason: String,
+    },
+
+    /// System information query from hub
+    #[serde(rename = "SystemInfoQuery")]
+    SystemInfoQuery {
+        #[serde(flatten)]
+        query: SystemInfoQuery,
+    },
+
+    /// System information report from agent
+    #[serde(rename = "SystemInfoReport")]
+    SystemInfoReport {
+        #[serde(flatten)]
+        report: SystemInfoReport,
+    },
+
+    /// System information response
+    #[serde(rename = "SystemInfoResponse")]
+    SystemInfoResponse {
+        #[serde(flatten)]
+        response: SystemInfoResponse,
     },
 }
 

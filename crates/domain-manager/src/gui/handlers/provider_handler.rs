@@ -16,7 +16,6 @@ use crate::models::account::{Account, NewAccount};
 use crate::storage;
 use crate::storage::DomainModal;
 use iced::Task;
-use std::str::FromStr;
 use tokio::time;
 use tokio::time::Duration;
 use tracing::{debug, error, info, warn};

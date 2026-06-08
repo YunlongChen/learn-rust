@@ -240,7 +240,7 @@ impl DomainManagerV2 {
         // 加载域名列表
         match self.load_domains().await {
             Ok(domains) => {
-                let mut domains = domains;
+                let domains = domains;
                 // 如果没有数据，添加一些模拟数据用于测试
                 // if domains.is_empty() {
                 //     info!("数据库为空，添加模拟数据");
