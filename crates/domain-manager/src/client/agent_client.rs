@@ -4,8 +4,8 @@
 //! for interacting with the agent management service.
 
 use anyhow::Result;
-use agent_management_client::proto;
-use agent_management_client::{AgentManagementClient as InnerClient, Config};
+use domain_agent_management_client::proto;
+use domain_agent_management_client::{AgentManagementClient as InnerClient, Config};
 
 /// Wrapper client for the agent-management service.
 ///
@@ -36,7 +36,9 @@ impl AgentManagementClient {
         approval_status_filter: Option<&str>,
         page_size: i32,
     ) -> Result<proto::ListAgentsResponse> {
-        self.inner.list_agents(status_filter, approval_status_filter, page_size).await
+        self.inner
+            .list_agents(status_filter, approval_status_filter, page_size)
+            .await
     }
 
     /// Approve a pending agent.

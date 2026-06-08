@@ -7,14 +7,14 @@ on:
       - main
       - "release/*"
     paths:
-      - "crates/agent-management/frontend/**"
+      - "crates/domain-agent-management/frontend/**"
       - ".github/workflows/front-ci.yml"
   pull_request:
     branches:
       - main
       - "release/*"
     paths:
-      - "crates/agent-management/frontend/**"
+      - "crates/domain-agent-management/frontend/**"
       - ".github/workflows/front-ci.yml"
 
 permissions:

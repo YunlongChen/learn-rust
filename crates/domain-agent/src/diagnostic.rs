@@ -1,6 +1,6 @@
 //! System diagnostic collection for domain-agent.
 
-use agent_protocol::diagnostic::{
+use domain_agent_protocol::diagnostic::{
     CpuInfo, DiskInfo, EnvironmentInfo, MemoryInfo, NetworkInfo,
     NetworkInterface, OsInfo, ProcessInfo, ResourceInfo, SystemInfoReport,
 };

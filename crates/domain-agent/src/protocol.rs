@@ -2,10 +2,6 @@
 //!
 //! This module extends the base agent protocol with diagnostic-related messages.
 
-pub use agent_protocol::diagnostic::{
-    SystemInfoQuery, SystemInfoReport, SystemInfoResponse,
-};
-
 use serde::{Deserialize, Serialize};
 
 /// Enhanced agent metrics with network quality indicators.

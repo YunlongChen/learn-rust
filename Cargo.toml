@@ -11,9 +11,9 @@ repository = "https://stanic.xyz"
 
 [workspace]
 members = [
-    "crates/agent-protocol",
-    "crates/agent-management",
-    "crates/agent-management-client",
+    "crates/domain-agent-protocol",
+    "crates/domain-agent-management",
+    "crates/domain-agent-management-client",
     "crates/domain-clients",
     "crates/domain-server",
     "crates/domain-manager",
@@ -22,7 +22,17 @@ members = [
     "crates/domain-stun"]
 resolver = "2"
 
+exclude = [
+    "docs",
+    ".github",
+    "static",
+]
+
 [dependencies]
+mimalloc = { version = "*", features = ["secure"] }
 
 [workspace.dependencies]
 bytes.version = "1"
+
+[lints.clippy]
+uninlined_format_args = "allow"

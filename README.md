@@ -35,16 +35,16 @@ NetOps 是一个用 Rust 编写的**网络运维综合管理平台**，专注于
 
 ### 核心模块
 
-| Crate                                           | 说明                                  |
-|-------------------------------------------------|-------------------------------------|
-| [domain-manager](crates/domain-manager)         | GUI 域名管理工具，支持阿里云 DNS、Cloudflare 等   |
-| [domain-agent](crates/domain-agent)             | 轻量级客户端代理，支持反向隧道和 P2P NAT 打洞         |
-| [domain-stun](crates/domain-stun)               | STUN/TURN 服务器，用于 NAT 穿透和流量中继        |
-| [domain-server](crates/domain-server)           | 通用服务器框架                             |
-| [domain-http-server](crates/domain-http-server) | HTTP 服务器实现                          |
-| [domain-clients](crates/domain-clients)         | DNS API 客户端库                        |
-| [agent-management](crates/agent-management)     | Agent 生命周期管理服务（gRPC/REST/WebSocket） |
-| [agent-protocol](crates/agent-protocol)         | Agent 通信协议定义                        |
+| Crate                                              | 说明                                  |
+|----------------------------------------------------|-------------------------------------|
+| [domain-manager](crates/domain-manager)            | GUI 域名管理工具，支持阿里云 DNS、Cloudflare 等   |
+| [domain-agent](crates/domain-agent)                | 轻量级客户端代理，支持反向隧道和 P2P NAT 打洞         |
+| [domain-stun](crates/domain-stun)                  | STUN/TURN 服务器，用于 NAT 穿透和流量中继        |
+| [domain-server](crates/domain-server)              | 通用服务器框架                             |
+| [domain-http-server](crates/domain-http-server)    | HTTP 服务器实现                          |
+| [domain-clients](crates/domain-clients)            | DNS API 客户端库                        |
+| [agent-management](crates/domain-agent-management) | Agent 生命周期管理服务（gRPC/REST/WebSocket） |
+| [agent-protocol](crates/domain-agent-protocol)     | Agent 通信协议定义                        |
 
 ## 快速开始
 
@@ -101,7 +101,7 @@ cargo run -p domain-stun
 - [Domain Manager 使用指南](crates/domain-manager/README.md)
 - [STUN/TURN 服务部署](crates/domain-stun/DEPLOY.md)
 - [Agent 使用手册](crates/domain-agent/README.md)
-- [Agent Management API](crates/agent-management/API.md)
+- [Agent Management API](crates/domain-agent-management/API.md)
 
 ## 许可证
 

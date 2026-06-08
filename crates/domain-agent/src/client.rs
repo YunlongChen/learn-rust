@@ -10,10 +10,9 @@ use tokio::time::interval;
 use tokio_tungstenite::{client_async, connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
-
+use domain_agent_protocol::{SystemInfoQuery, SystemInfoReport, SystemInfoResponse};
 use crate::config::{AgentConfig, ProxyConfig};
 use crate::diagnostic::collect_system_info;
-use crate::protocol::{SystemInfoQuery, SystemInfoReport, SystemInfoResponse};
 
 /// Agent connection state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
