@@ -1,0 +1,81 @@
+name: Release Domain Manager
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "release/*"
+    paths:
+      - ".github/workflows/release.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 1
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest ]
+        BUILD_TARGET: [ release ]
+    outputs:
+      release_built: ${{ steps.set-output.outputs.release_built }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Temporarily modify the rust toolchain version
+        run: rustup override set stable
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Output rust version for educational purposes
+        run: rustup --version
+      - name: Cache
+        uses: actions/cache@v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/debug
+            target/release
+          key: ${{ runner.os }}-cargo
+      - name: CheckOut
+        uses: actions/checkout@v4
+      - name: Run tests
+        run: cargo test -p domain-manager
+      - name: Build binaries
+        run: cargo build -p domain-manager --release
+
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ./target/release/domain-manager.exe
+
+  # release-github:
+  #   permissions:
+  #     id-token: write
+  #     contents: write
+  #   name: Publish to GitHub releases
+  #   runs-on: ubuntu-latest
+  #   if: "startsWith(github.ref, 'refs/tags/')"
+  #   needs: [ build ]
+  #   steps:
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         pattern: binaries-*
+  #         merge-multiple: true
+  #     - name: Release
+  #       uses: softprops/action-gh-release@v2
+  #       with:
+  #         files: |
+  #           *.zip
+  #           *.exe
+  #         prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+  #         generate_release_notes: true
