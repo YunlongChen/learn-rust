@@ -14,8 +14,8 @@ use tokio_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use super::model::{Agent, AgentStatus, Capability};
-use super::protocol::{AgentMessage, AgentMessage::*, Session, TunnelType};
+use super::model::{Agent, AgentStatus};
+use super::protocol::{AgentMessage, AgentMessage::*, TunnelType};
 use super::registry::AgentRegistry;
 
 /// 计算密钥哈希
@@ -392,11 +392,11 @@ async fn handle_new_connection(
                     server_time: chrono::Utc::now().timestamp(),
                 }).await;
             }
-            DdnsUpdateResult { domain, success, old_ip, new_ip, error } => {
+            DdnsUpdateResult { domain, success, old_ip, new_ip, error: _ } => {
                 let agent_id = agent_conn.read().await.agent_id;
                 info!("DDNS 更新结果 from {}: {} - success={}, old={:?}, new={:?}", agent_id, domain, success, old_ip, new_ip);
             }
-            SslChallengeResponse { domain, success, key_authorization: _, error } => {
+            SslChallengeResponse { domain, success, key_authorization: _, error: _ } => {
                 let agent_id = agent_conn.read().await.agent_id;
                 info!("SSL 挑战响应 from {}: {} - success={}", agent_id, domain, success);
             }
@@ -407,7 +407,7 @@ async fn handle_new_connection(
 
             // ==================== Tunnel 消息处理 ====================
             TunnelRequest { tunnel_id, bind_port, tunnel_type } => {
-                let agent_id = agent_conn.read().await.agent_id;
+                let _agent_id = agent_conn.read().await.agent_id;
                 info!("收到 Tunnel 请求: tunnel_id={}, port={}, type={:?}", tunnel_id, bind_port, tunnel_type);
 
                 // 添加隧道

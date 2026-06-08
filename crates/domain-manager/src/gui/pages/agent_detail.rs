@@ -7,7 +7,7 @@ use crate::gui::handlers::message_handler::{AgentMessage, MessageCategory};
 use crate::gui::styles::container::ContainerType;
 use crate::StyleType;
 use iced::widget::{button, container, row, text, Column, Container, Row, Space};
-use iced::{Alignment, Element, Length, Padding};
+use iced::{Alignment, Element, Length};
 
 /// Agent 详情页面
 pub fn agent_detail_page(

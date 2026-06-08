@@ -2,7 +2,6 @@ use crate::gui::handlers::message_handler::{
     AppMessage, DatabaseMessage, MessageCategory, SyncMessage,
 };
 use crate::gui::handlers::{EventHandler, HandlerResult};
-use crate::gui::pages::Page;
 use crate::gui::state::app_state::{StateUpdate, UiUpdate};
 use crate::gui::state::AppState;
 use iced::Task;

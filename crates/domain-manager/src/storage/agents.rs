@@ -2,10 +2,8 @@
 //!
 //! 提供 Agent 的数据库操作
 
-use crate::storage::account::Relation;
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, DeleteResult};
-use serde::{Deserialize, Serialize};
 
 use crate::agent::model::{Agent, AgentApprovalState, AgentStatus};
 use crate::storage::entities::agents::{ActiveModel, Column, Entity, Model};

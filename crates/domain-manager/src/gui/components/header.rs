@@ -5,7 +5,7 @@ use crate::gui::components::tab::notifications_badge;
 use crate::gui::handlers::message_handler::NavigationMessage::PageChanged;
 use crate::gui::handlers::message_handler::SyncMessage::SyncAllDomains;
 use crate::gui::handlers::message_handler::{
-    MessageCategory, SyncMessage, UiMessage, WindowMessage,
+    MessageCategory, UiMessage, WindowMessage,
 };
 use crate::gui::manager_v2::DomainManagerV2;
 use crate::gui::pages::names::Page;

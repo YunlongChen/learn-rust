@@ -4,4 +4,3 @@
 
 pub mod agent_client;
 
-pub use agent_client::AgentManagementClient;

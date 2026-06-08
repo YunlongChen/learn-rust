@@ -6,7 +6,7 @@
 use crate::api::dns_client::DnsClientTrait;
 use crate::api::provider::aliyun::AliyunDnsClient;
 use crate::gui::handlers::message_handler::{
-    DnsMessage, MessageCategory, NavigationMessage, NotificationMessage,
+    DnsMessage, MessageCategory, NotificationMessage,
 };
 use crate::gui::handlers::{EventHandler, HandlerResult};
 use crate::gui::model::domain::{DnsProvider, DomainName};
@@ -20,8 +20,7 @@ use crate::models::record::NewRecord;
 use crate::storage::{accounts, domains, records, DnsRecordModal};
 use crate::utils::clipboard::copy_to_clipboard;
 use iced::Task;
-use sea_orm::{DatabaseConnection, DbErr}; // Import DbErr
-use std::error::Error;
+use sea_orm::DatabaseConnection; // Import DbErr
 use tracing::{debug, info, warn};
 
 /// DNS处理器

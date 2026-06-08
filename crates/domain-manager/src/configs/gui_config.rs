@@ -3,7 +3,6 @@ use crate::gui::styles::types::gradient_type::GradientType;
 use crate::translations::types::language::Language;
 use crate::translations::types::locale::Locale;
 use crate::{StyleType, DOMAIN_MANAGER_LOWERCASE, VERSION};
-use sea_orm::sqlx::encode::IsNull::No;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt::Display;

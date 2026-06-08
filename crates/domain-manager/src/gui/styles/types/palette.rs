@@ -1,9 +1,6 @@
 //! Module defining the `Colors` struct, which defines the colors in use in the GUI.
 
-use std::fs::File;
 use std::hash::{Hash, Hasher};
-use std::io::{BufReader, Read};
-use std::path::Path;
 
 use iced::Color;
 use plotters::style::RGBColor;

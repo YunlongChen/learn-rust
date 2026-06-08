@@ -13,7 +13,7 @@ use crate::gui::styles::button::ButtonType;
 use crate::gui::styles::container::ContainerType;
 use crate::gui::styles::text::TextType;
 use crate::gui::styles::types::style_type::StyleType;
-use crate::{get_text, StyleType as CrateStyleType}; // Ensure StyleType is imported correctly
+use crate::get_text; // Ensure StyleType is imported correctly
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Length, Padding};
 
