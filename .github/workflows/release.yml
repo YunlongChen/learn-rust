@@ -39,6 +39,8 @@ jobs:
           components: rustfmt, clippy
       - name: Output rust version for educational purposes
         run: rustup --version
+      - name: Install packaging tools
+        run: cargo install cargo-wix
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: CheckOut
@@ -47,11 +49,15 @@ jobs:
         run: cargo check -p domain-manager
       - name: Build binaries
         run: cargo build -p domain-manager --release --target ${{ matrix.target }}
+      - name: Build MSI
+        working-directory: crates/domain-manager
+        run: cargo wix --package domain-manager -c zh-CN --no-build --nocapture
       - name: List build artifacts
         shell: bash
         run: |
           set -euo pipefail
           ls -la target/${{matrix.target}}/release/*
+          ls -la target/wix/*.msi
       - name: Upload built artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -59,32 +65,13 @@ jobs:
           path: target/${{matrix.target}}/release/*.exe
           compression-level: 0
           if-no-files-found: error
-
-      - name: Install packaging tools
-        run: cargo install cargo-wix
-      - name: Build MSI
-        working-directory: crates/domain-manager
-        run: cargo wix --package domain-manager -c zh-CN
-
-      - name: Locate MSI artifact
-        id: locate
-        shell: powershell
-        run: |
-          $msi = Get-ChildItem -Path target/wix -Filter "*.msi" | Select-Object -First 1
-          if ($msi) {
-            "msi_path=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "msi_name=$($msi.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } else {
-            Write-Error "No MSI file found in target/wix"
-            exit 1
-          }
-
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v7
         with:
-          name: domain-manager-msi-${{ github.sha }}
-          path: ${{ steps.locate.outputs.msi_path }}
-          retention-days: 30
+          name: domain-manager-0.1.0-x86_64.msi
+          path: target/wix/*.msi
+          compression-level: 0
+          if-no-files-found: error
 
       - name: Display built artifacts
         run: |
