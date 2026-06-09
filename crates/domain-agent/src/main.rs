@@ -12,6 +12,7 @@ mod client;
 mod config;
 mod crypto;
 mod diagnostic;
+mod identity;
 mod proxy;
 mod p2p;
 mod protocol;
