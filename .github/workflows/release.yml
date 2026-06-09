@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - "release/v*"
-      - "feature/*"
     tags:
       - "v*"
 
@@ -43,6 +42,8 @@ jobs:
         run: cargo install cargo-wix
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: 'true'
       - name: CheckOut
         uses: actions/checkout@v6
       - name: Print all environment variables
@@ -50,6 +51,7 @@ jobs:
       - name: Run check
         run: cargo check -p domain-manager
       - name: Build MSI
+
         working-directory: crates/domain-manager
         run: cargo wix --target ${{ matrix.target }} --package domain-manager -c zh-CN --nocapture
       - name: List build artifacts
