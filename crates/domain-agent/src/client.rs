@@ -13,6 +13,7 @@ use uuid::Uuid;
 use domain_agent_protocol::{SystemInfoQuery, SystemInfoReport, SystemInfoResponse};
 use crate::config::{AgentConfig, ProxyConfig};
 use crate::diagnostic::collect_system_info;
+use crate::identity::AgentIdentity;
 
 /// Agent connection state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +36,7 @@ type WsRead = futures_util::stream::SplitStream<WsStream>;
 /// Agent client with persistent connection
 pub struct AgentClient {
     config: AgentConfig,
+    identity: AgentIdentity,
     state: Arc<AtomicU32>,
     agent_id: Arc<RwLock<Option<Uuid>>>,
     session_id: Arc<RwLock<Option<String>>>,
@@ -52,9 +54,10 @@ pub struct AgentClient {
 
 impl AgentClient {
     /// Create a new agent client
-    pub fn new(config: AgentConfig) -> Self {
+    pub fn new(config: AgentConfig, identity: AgentIdentity) -> Self {
         Self {
             config,
+            identity,
             state: Arc::new(AtomicU32::new(AgentState::Disconnected as u32)),
             agent_id: Arc::new(RwLock::new(None)),
             session_id: Arc::new(RwLock::new(None)),
@@ -181,7 +184,7 @@ impl AgentClient {
     /// Send registration message
     async fn send_registration(&self) -> Result<(), String> {
         let register_msg = AgentMessage::RegisterWithSecret {
-            agent_id: None,
+            agent_id: Some(self.identity.id().to_string()),
             agent_name: self.config.name.clone(),
             agent_key: self.config.key.clone(),
             capabilities: vec![

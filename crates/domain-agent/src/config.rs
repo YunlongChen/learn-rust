@@ -4,7 +4,7 @@ use clap::{CommandFactory, Parser};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 static CONFIG_FILE_PATH: OnceLock<Option<String>> = OnceLock::new();
@@ -103,6 +103,9 @@ pub struct AgentConfig {
     /// P2P listen port (0 = disabled)
     #[serde(default)]
     pub p2p_port: u16,
+    /// Configuration directory for identity and other files
+    #[serde(skip)]
+    pub config_dir: PathBuf,
 }
 
 /// File configuration structure for TOML
@@ -155,6 +158,7 @@ impl AgentConfig {
             reconnection: ReconnectionConfig::default(),
             tunnel_port: 0,
             p2p_port: 0,
+            config_dir: PathBuf::from("."),
         }
     }
 
@@ -166,11 +170,18 @@ impl AgentConfig {
         let file_config: FileConfig = toml::from_str(&content)
             .map_err(|e| format!("Failed to parse config file: {}", e))?;
 
+        // Determine config directory from config file path
+        let config_dir = PathBuf::from(path)
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."));
+
         let mut config = AgentConfig::new(
             file_config.agent.as_ref().and_then(|a| a.hub.clone()).unwrap_or_else(|| "localhost:8080".to_string()),
             file_config.agent.as_ref().and_then(|a| a.name.clone()).unwrap_or_else(|| "agent".to_string()),
             file_config.agent.as_ref().and_then(|a| a.key.clone()).unwrap_or_else(|| "".to_string()),
         );
+        config.config_dir = config_dir;
 
         if let Some(proxy) = file_config.proxy {
             config.proxy = proxy;

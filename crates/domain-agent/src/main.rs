@@ -31,6 +31,7 @@ fn rand_u64() -> u64 {
 
 use crate::client::AgentClient;
 use crate::config::AgentConfig;
+use crate::identity::AgentIdentity;
 use crate::p2p::P2pManager;
 use crate::tunnel::{TunnelManager, TunnelType};
 
@@ -63,8 +64,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("P2P external address: {}:{}", addr.ip, addr.port);
     }
 
+    // Load or create persistent identity
+    let identity = AgentIdentity::load_or_create(&config.config_dir)
+        .map_err(|e| format!("Failed to load identity: {}", e))?;
+
     // Create agent client
-    let mut client = AgentClient::new(config.clone());
+    let mut client = AgentClient::new(config.clone(), identity);
 
     // Connect to Hub with retry
     let reconnection = &config.reconnection;
