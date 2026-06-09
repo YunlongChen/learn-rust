@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - "release/v*"
+      - "feature/*"
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -33,6 +36,7 @@ jobs:
           profile: minimal
           override: true
           target: ${{ matrix.target }}
+          components: rustfmt, clippy
       - name: Output rust version for educational purposes
         run: rustup --version
       - name: Rust Cache
@@ -55,6 +59,39 @@ jobs:
           path: target/${{matrix.target}}/release/*.exe
           compression-level: 0
           if-no-files-found: error
+
+      - name: Install packaging tools
+        run: cargo install cargo-wix
+      - name: Build MSI
+        working-directory: crates/domain-manager
+        run: cargo wix --package domain-manager -c zh-CN
+
+      - name: Locate MSI artifact
+        id: locate
+        shell: powershell
+        run: |
+          $msi = Get-ChildItem -Path target/wix -Filter "*.msi" | Select-Object -First 1
+          if ($msi) {
+            echo "msi_path=$($msi.FullName)" | Out-String -Stream
+            echo "msi_name=$($msi.Name)" | Out-String -Stream
+          } else {
+            Write-Error "No MSI file found in target/wix"
+            exit 1
+          }
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: domain-manager-msi-${{ github.sha }}
+          path: ${{ steps.locate.outputs.msi_path }}
+          retention-days: 30
+
+      - name: Display built artifacts
+        run: |
+          echo "Built MSI: ${{ steps.locate.outputs.msi_name }}"
+          Get-ChildItem target/wix -Filter "*.msi" | ForEach-Object {
+            Write-Host "  - $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+          }
 
   release-crates-io:
     name: Release crates.io

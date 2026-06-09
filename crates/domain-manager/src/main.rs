@@ -1,5 +1,5 @@
-// #![cfg_attr(windows, windows_subsystem = "windows")]
-// #![allow(dead_code)]
+#![cfg_attr(windows, windows_subsystem = "windows")]
+#![allow(dead_code)]
 
 mod agent;
 mod api;
@@ -34,10 +34,10 @@ pub use crate::utils::i18_utils::get_text;
 use iced::window::icon::from_rgba;
 use iced::window::Position;
 use iced::{application, window, Font, Pixels, Point, Settings, Size, Task};
+use mimalloc::MiMalloc;
 use rust_i18n::i18n;
 use std::{panic, process};
 use tracing::{error, info};
-use mimalloc::MiMalloc;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -109,27 +109,27 @@ pub async fn main() -> iced::Result {
         DomainManagerV2::update,
         DomainManagerV2::view,
     )
-        .theme(DomainManagerV2::theme)
-        .window(window::Settings {
-            size: Size::new(window_state.width, window_state.height),
-            position: Position::Specific(Point::new(window_state.x, window_state.y)),
-            icon,
-            decorations: false, // 禁用窗口装饰器以实现自定义拖动
-            ..Default::default()
-        })
-        .subscription(DomainManagerV2::subscription)
-        .settings(Settings {
-            id: Some(String::from(DOMAIN_MANAGER_LOWERCASE)),
-            fonts: vec![
-                ICONS_BYTES.into(),
-                MAPLE_MONO_NF_CN_REGULAR.into(),
-                SARASA_MONO_BYTES.into(),
-                SARASA_MONO_BOLD_BYTES.into(),
-            ],
-            default_font: Font::with_name(FONT_CN_FAMILY_NAME),
-            default_text_size: Pixels::from(FONT_SIZE_BODY),
-            ..Default::default()
-        });
+    .theme(DomainManagerV2::theme)
+    .window(window::Settings {
+        size: Size::new(window_state.width, window_state.height),
+        position: Position::Specific(Point::new(window_state.x, window_state.y)),
+        icon,
+        decorations: false, // 禁用窗口装饰器以实现自定义拖动
+        ..Default::default()
+    })
+    .subscription(DomainManagerV2::subscription)
+    .settings(Settings {
+        id: Some(String::from(DOMAIN_MANAGER_LOWERCASE)),
+        fonts: vec![
+            ICONS_BYTES.into(),
+            MAPLE_MONO_NF_CN_REGULAR.into(),
+            SARASA_MONO_BYTES.into(),
+            SARASA_MONO_BOLD_BYTES.into(),
+        ],
+        default_font: Font::with_name(FONT_CN_FAMILY_NAME),
+        default_text_size: Pixels::from(FONT_SIZE_BODY),
+        ..Default::default()
+    });
     app.run_with(move || {
         (
             DomainManagerV2::new(config),
