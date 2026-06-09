@@ -1,12 +1,12 @@
-<?xml version='1.0' encoding='windows-1252'?>
+<?xml version='1.0' encoding='utf-8'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
   <Product
     Id='*'
     Name='Domain Manager'
     UpgradeCode='12345678-1234-1234-1234-123456789012'
     Manufacturer='Domain Manager Team'
-    Language='1033'
-    Codepage='1252'
+    Language='2052'
+    Codepage='65001'
     Version='$(var.Version)'>
 
     <Package Id='*'
@@ -14,9 +14,9 @@
       Description='Domain Manager Windows Installer'
       Manufacturer='Domain Manager Team'
       InstallerVersion='450'
-      Languages='1033'
+      Languages='2052'
       Compressed='yes'
-      SummaryCodepage='1252' />
+      SummaryCodepage='936' />
 
     <MajorUpgrade
       Schedule='afterInstallInitialize'

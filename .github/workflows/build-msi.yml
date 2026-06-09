@@ -35,7 +35,7 @@ jobs:
 
       - name: Build MSI
         working-directory: crates/domain-manager
-        run: cargo wix --package domain-manager
+        run: cargo wix --package domain-manager -c zh-CN
 
       - name: Locate MSI artifact
         id: locate
