@@ -307,6 +307,7 @@ async fn handle_new_connection(
 
         match msg {
             RegisterWithSecret {
+                agent_id: _,
                 agent_name,
                 agent_key,
                 capabilities,

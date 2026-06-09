@@ -1,5 +1,5 @@
 [agent]
-hub = "localhost:8080"
+hub = "localhost:8081"
 name = "my-agent"
 key = "my-secret-key"
-max_retries =  0
+max_retries = 0

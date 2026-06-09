@@ -13,6 +13,7 @@ use uuid::Uuid;
 use domain_agent_protocol::{SystemInfoQuery, SystemInfoReport, SystemInfoResponse};
 use crate::config::{AgentConfig, ProxyConfig};
 use crate::diagnostic::collect_system_info;
+use crate::identity::AgentIdentity;
 
 /// Agent connection state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +36,7 @@ type WsRead = futures_util::stream::SplitStream<WsStream>;
 /// Agent client with persistent connection
 pub struct AgentClient {
     config: AgentConfig,
+    identity: AgentIdentity,
     state: Arc<AtomicU32>,
     agent_id: Arc<RwLock<Option<Uuid>>>,
     session_id: Arc<RwLock<Option<String>>>,
@@ -52,9 +54,10 @@ pub struct AgentClient {
 
 impl AgentClient {
     /// Create a new agent client
-    pub fn new(config: AgentConfig) -> Self {
+    pub fn new(config: AgentConfig, identity: AgentIdentity) -> Self {
         Self {
             config,
+            identity,
             state: Arc::new(AtomicU32::new(AgentState::Disconnected as u32)),
             agent_id: Arc::new(RwLock::new(None)),
             session_id: Arc::new(RwLock::new(None)),
@@ -85,7 +88,7 @@ impl AgentClient {
         // Create WebSocket stream
         let ws_stream = self.create_ws_stream(&url).await?;
 
-        info!("WebSocket connected");
+        info!("WebSocket connected successfully");
 
         // Split and save the stream
         let (write, read) = ws_stream.split();
@@ -181,6 +184,7 @@ impl AgentClient {
     /// Send registration message
     async fn send_registration(&self) -> Result<(), String> {
         let register_msg = AgentMessage::RegisterWithSecret {
+            agent_id: Some(self.identity.id().to_string()),
             agent_name: self.config.name.clone(),
             agent_key: self.config.key.clone(),
             capabilities: vec![
@@ -195,8 +199,8 @@ impl AgentClient {
         let json = serde_json::to_string(&register_msg)
             .map_err(|e| format!("Failed to serialize message: {}", e))?;
 
+        info!("Sending RegisterWithSecret: {}", &json);
         self.send_message(&json).await?;
-        info!("Registration sent");
 
         Ok(())
     }
@@ -204,6 +208,7 @@ impl AgentClient {
     /// Wait for registration response
     async fn wait_for_registration_response(&mut self) -> Result<(), String> {
         let msg = self.receive_message().await?;
+        info!("Received registration response: {}", &msg);
 
         let response: AgentMessage = serde_json::from_str(&msg)
             .map_err(|e| format!("Failed to parse response: {}", e))?;
@@ -225,19 +230,31 @@ impl AgentClient {
 
                 if requires_approval {
                     self.set_state(AgentState::PendingApproval);
-                    info!("Agent requires approval, waiting...");
+                    info!("Agent requires approval, waiting for approval...");
                     self.wait_for_approval().await?;
                 } else {
                     self.set_state(AgentState::Registered);
+                    info!("Agent is now registered successfully");
                 }
 
                 self.reconnect.reset();
                 Ok(())
             }
             AgentMessage::RegisterRejected { reason, code } => {
+                error!("Registration rejected: {} (code: {})", reason, code);
+
+                // 如果是 AGENT_DENIED，不进行重连
+                if code == "AGENT_DENIED" {
+                    error!("Agent was denied by server, will not retry. Reason: {}", reason);
+                    return Err(format!("Registration rejected: {} (code: AGENT_DENIED)", reason));
+                }
+
                 Err(format!("Registration rejected: {} (code: {})", reason, code))
             }
-            _ => Err("Unexpected response type".to_string()),
+            _ => {
+                error!("Unexpected response type: {:?}", response);
+                Err("Unexpected response type".to_string())
+            }
         }
     }
 
@@ -248,25 +265,34 @@ impl AgentClient {
                 msg = self.receive_message() => {
                     match msg {
                         Ok(msg) => {
+                            info!("Received approval response: {}", &msg);
                             let response: AgentMessage = serde_json::from_str(&msg)
                                 .map_err(|e| format!("Failed to parse: {}", e))?;
 
                             match response {
                                 AgentMessage::ApprovalGranted { message, .. } => {
-                                    info!("Approval granted: {:?}", message);
+                                    info!("Approval granted: message={:?}", message);
                                     self.set_state(AgentState::Registered);
+                                    info!("Agent is now registered successfully");
                                     return Ok(());
                                 }
                                 AgentMessage::ApprovalDenied { reason } => {
+                                    error!("Approval denied: {}", reason);
                                     return Err(format!("Approval denied: {}", reason));
                                 }
-                                _ => continue,
+                                _ => {
+                            debug!("Ignoring message while waiting for approval: {:?}", response);
+                        }
                             }
                         }
-                        Err(e) => return Err(e),
+                        Err(e) => {
+                            error!("Error receiving approval response: {}", e);
+                            return Err(e);
+                        }
                     }
                 }
                 _ = tokio::time::sleep(Duration::from_secs(60)) => {
+                    error!("Approval timeout - no response received within 60 seconds");
                     return Err("Approval timeout".to_string());
                 }
             }
@@ -296,17 +322,23 @@ impl AgentClient {
             Some(Ok(msg)) => {
                 let text = msg.into_text()
                     .map_err(|e| format!("Failed to get text: {}", e))?;
-                debug!("Received: {}", text);
+                info!("Received message: {}", &text);
                 Ok(text)
             }
-            Some(Err(e)) => Err(format!("WebSocket error: {}", e)),
-            None => Err("WebSocket stream ended".to_string()),
+            Some(Err(e)) => {
+                error!("WebSocket error: {}", e);
+                Err(format!("WebSocket error: {}", e))
+            }
+            None => {
+                error!("WebSocket stream ended");
+                Err("WebSocket stream ended".to_string())
+            }
         }
     }
 
     /// Run the main loop: heartbeat and message handling
     pub async fn run(&mut self) -> Result<(), String> {
-        info!("Starting main loop");
+        info!("Starting main loop with 30-second heartbeat interval");
 
         let mut heartbeat_ticker = interval(Duration::from_secs(30));
         let mut consecutive_failures = 0u32;
@@ -316,15 +348,17 @@ impl AgentClient {
                 // Heartbeat
                 _ = heartbeat_ticker.tick() => {
                     if self.get_state() == AgentState::Registered {
+                        info!("Sending heartbeat...");
                         match self.send_heartbeat().await {
                             Ok(_) => {
+                                info!("Heartbeat sent successfully");
                                 consecutive_failures = 0;
                             }
                             Err(e) => {
                                 warn!("Heartbeat failed: {}", e);
                                 consecutive_failures += 1;
                                 if consecutive_failures >= 3 {
-                                    error!("Too many heartbeat failures, reconnecting...");
+                                    error!("Too many heartbeat failures ({}), reconnecting...", consecutive_failures);
                                     self.handle_disconnect().await?;
                                 }
                             }
@@ -350,7 +384,7 @@ impl AgentClient {
 
                 // Shutdown signal
                 _ = self.wait_for_shutdown() => {
-                    info!("Shutdown signal received");
+                    info!("Shutdown signal received, exiting main loop");
                     break;
                 }
             }
@@ -366,18 +400,24 @@ impl AgentClient {
 
         match response {
             AgentMessage::HeartbeatAck { server_time } => {
-                debug!("Heartbeat acknowledged, server time: {}", server_time);
+                info!("HeartbeatAck received: server_time={}", server_time);
             }
             AgentMessage::ApprovalGranted { message, .. } => {
-                info!("Approval granted while in Registered state: {:?}", message);
+                info!("ApprovalGranted received while in Registered state: message={:?}", message);
             }
             AgentMessage::Unregister { reason } => {
-                info!("Hub requested unregister: {:?}", reason);
+                info!("Unregister requested by Hub: reason={:?}", reason);
+
+                // 如果是 denied_by_admin，立即退出不重连
+                if reason.as_ref().map(|r| r.contains("denied_by_admin")).unwrap_or(false) {
+                    error!("Agent was denied by administrator, exiting without retry...");
+                    return Err("Registration rejected: Agent denied by administrator (code: AGENT_DENIED)".to_string());
+                }
+
                 return Err("Hub requested unregister".to_string());
             }
             AgentMessage::SystemInfoQuery { query } => {
-                info!("Received SystemInfoQuery: {:?}", query.query_id);
-                // Respond with system info report
+                info!("SystemInfoQuery received: query_id={}", query.query_id);
                 if let Err(e) = self.send_system_info_report().await {
                     warn!("Failed to send system info report: {}", e);
                 }
@@ -406,8 +446,8 @@ impl AgentClient {
         let json = serde_json::to_string(&msg)
             .map_err(|e| format!("Failed to serialize heartbeat: {}", e))?;
 
+        info!("Sending Heartbeat: {}", &json);
         self.send_message(&json).await?;
-        debug!("Heartbeat sent");
 
         Ok(())
     }
@@ -417,6 +457,7 @@ impl AgentClient {
         let agent_id = *self.agent_id.read().await;
         let agent_id = agent_id.ok_or_else(|| "Agent not registered".to_string())?;
 
+        info!("Collecting system info for agent_id={}", agent_id);
         let report = collect_system_info(agent_id);
 
         let msg = AgentMessage::SystemInfoReport { report };
@@ -424,8 +465,8 @@ impl AgentClient {
         let json = serde_json::to_string(&msg)
             .map_err(|e| format!("Failed to serialize system info report: {}", e))?;
 
+        info!("Sending SystemInfoReport: {}", &json);
         self.send_message(&json).await?;
-        info!("System info report sent");
 
         Ok(())
     }
@@ -433,6 +474,7 @@ impl AgentClient {
     /// Handle disconnection with reconnection
     async fn handle_disconnect(&mut self) -> Result<(), String> {
         self.set_state(AgentState::Reconnecting);
+        info!("Handling disconnection, entering reconnection mode");
         self.clear_connection().await;
 
         while self.reconnect.should_retry() {
@@ -456,6 +498,7 @@ impl AgentClient {
             }
         }
 
+        error!("Max retries exceeded, giving up reconnection");
         Err("Max retries exceeded".to_string())
     }
 
@@ -476,12 +519,14 @@ impl AgentClient {
     /// Disconnect gracefully
     pub async fn disconnect(&mut self) -> Result<(), String> {
         self.set_state(AgentState::ShuttingDown);
+        info!("Initiating graceful disconnect");
 
         // Send unregister message
         let msg = AgentMessage::Unregister { reason: Some("Client initiated".to_string()) };
         let json = serde_json::to_string(&msg)
             .map_err(|e| format!("Failed to serialize: {}", e))?;
 
+        info!("Sending Unregister message: {}", &json);
         if let Err(e) = self.send_message(&json).await {
             warn!("Failed to send unregister: {}", e);
         }
@@ -514,7 +559,13 @@ impl AgentClient {
         let tx_guard = self.shutdown_tx.read().await;
         if let Some(tx) = tx_guard.as_ref() {
             let mut rx = tx.subscribe();
+            info!("Waiting for shutdown signal...");
             let _ = rx.recv().await;
+            info!("Shutdown signal received");
+        } else {
+            // No shutdown mechanism configured - block forever
+            // This allows the agent to keep running until externally killed
+            std::future::pending::<()>().await;
         }
     }
 }
@@ -551,6 +602,8 @@ pub enum AgentMessage {
     /// Register with secret
     #[serde(rename = "RegisterWithSecret")]
     RegisterWithSecret {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        agent_id: Option<String>,
         agent_name: String,
         agent_key: String,
         capabilities: Vec<String>,

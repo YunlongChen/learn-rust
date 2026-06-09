@@ -16,6 +16,8 @@ pub enum AgentMessage {
     /// Agent 使用密钥注册（新版，推荐）
     #[serde(rename = "RegisterWithSecret")]
     RegisterWithSecret {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        agent_id: Option<String>,
         agent_name: String,
         agent_key: String,
         capabilities: Vec<Capability>,

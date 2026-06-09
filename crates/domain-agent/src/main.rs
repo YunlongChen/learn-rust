@@ -12,6 +12,7 @@ mod client;
 mod config;
 mod crypto;
 mod diagnostic;
+mod identity;
 mod proxy;
 mod p2p;
 mod protocol;
@@ -30,6 +31,7 @@ fn rand_u64() -> u64 {
 
 use crate::client::AgentClient;
 use crate::config::AgentConfig;
+use crate::identity::AgentIdentity;
 use crate::p2p::P2pManager;
 use crate::tunnel::{TunnelManager, TunnelType};
 
@@ -62,8 +64,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("P2P external address: {}:{}", addr.ip, addr.port);
     }
 
+    // Load or create persistent identity
+    let identity = AgentIdentity::load_or_create(&config.config_dir)
+        .map_err(|e| format!("Failed to load identity: {}", e))?;
+
     // Create agent client
-    let mut client = AgentClient::new(config.clone());
+    let mut client = AgentClient::new(config.clone(), identity);
 
     // Connect to Hub with retry
     let reconnection = &config.reconnection;
@@ -77,6 +83,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 break;
             }
             Err(e) => {
+                // 检查是否是 AGENT_DENIED 错误，如果是则直接退出，不进行重连
+                if e.contains("AGENT_DENIED") {
+                    error!("Agent was denied by administrator, exiting...");
+                    std::process::exit(1);
+                }
+
                 retries += 1;
 
                 // Check if we've exceeded max retries

@@ -21,35 +21,6 @@ use domain_agent_protocol::lifecycle::{EventSource, LifecycleEvent, LifecycleEve
 
 use crate::service::Service;
 
-/// WebSocket message types received from agents
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-#[allow(dead_code)]
-enum AgentMessage {
-    #[serde(rename = "RegisterWithSecret")]
-    RegisterWithSecret {
-        agent_name: String,
-        agent_key: String,
-        capabilities: Vec<String>,
-        version: Option<String>,
-        hostname: String,
-    },
-
-    #[serde(rename = "SystemInfoReport")]
-    SystemInfoReport {
-        agent_id: String,
-        timestamp: String,
-        data: SystemInfoData,
-    },
-
-    #[serde(rename = "Heartbeat")]
-    Heartbeat {
-        status: String,
-        metrics: HeartbeatMetrics,
-        timestamp: i64,
-    },
-}
-
 /// System information data nested in SystemInfoReport
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SystemInfoData {
@@ -66,36 +37,39 @@ struct HeartbeatMetrics {
     bandwidth_kbps: Option<f64>,
 }
 
-/// Response sent back to agents
+/// Response sent back to agents (protocol format: type + payload)
 #[derive(Debug, Serialize)]
-struct ResponseMessage {
-    success: bool,
-    message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    agent_id: Option<String>,
+#[serde(tag = "type", content = "payload")]
+enum ServerMessage {
+    #[serde(rename = "RegisterAccepted")]
+    RegisterAccepted(RegisterAcceptedPayload),
+
+    #[serde(rename = "RegisterRejected")]
+    RegisterRejected(RegisterRejectedPayload),
+
+    #[serde(rename = "Error")]
+    Error(ErrorPayload),
 }
 
-impl ResponseMessage {
-    fn success(msg: impl Into<String>) -> Self {
-        Self {
-            success: true,
-            message: msg.into(),
-            agent_id: None,
-        }
-    }
+#[derive(Debug, Serialize)]
+struct RegisterAcceptedPayload {
+    agent_id: Uuid,
+    session_id: String,
+    server_time: i64,
+    requires_approval: bool,
+    message: Option<String>,
+}
 
-    fn error(msg: impl Into<String>) -> Self {
-        Self {
-            success: false,
-            message: msg.into(),
-            agent_id: None,
-        }
-    }
+#[derive(Debug, Serialize)]
+struct RegisterRejectedPayload {
+    reason: String,
+    code: String,
+}
 
-    fn with_agent_id(mut self, agent_id: Uuid) -> Self {
-        self.agent_id = Some(agent_id.to_string());
-        self
-    }
+#[derive(Debug, Serialize)]
+struct ErrorPayload {
+    code: String,
+    message: String,
 }
 
 /// WebSocket server for handling agent connections
@@ -180,6 +154,8 @@ impl WebSocketServer {
         write: &mut futures_util::stream::SplitSink<WebSocketStream<TcpStream>, Message>,
         text: &str,
     ) -> Result<()> {
+        info!("Received text message: {:?}", &text);
+
         // Parse the message type field to route appropriately
         let parse_result: Result<serde_json::Value, _> = serde_json::from_str(text);
 
@@ -189,29 +165,91 @@ impl WebSocketServer {
 
                 match msg_type {
                     Some("RegisterWithSecret") => {
-                        let msg: RegisterWithSecretMsg = serde_json::from_str(text)?;
-                        self.handle_register(write, msg).await?;
+                        info!("Routing message to RegisterWithSecret handler");
+                        if let Some(payload) = json.get("payload") {
+                            let msg: RegisterWithSecretPayload = serde_json::from_value(payload.clone())?;
+                            info!("RegisterWithSecret payload: agent_name={}, hostname={}, capabilities={:?}",
+                                  msg.agent_name, msg.hostname, msg.capabilities);
+                            self.handle_register(write, msg).await?;
+                        } else {
+                            info!("RegisterWithSecret missing payload field");
+                            let response = ServerMessage::Error(ErrorPayload {
+                                code: "INVALID_MESSAGE".to_string(),
+                                message: "Missing 'payload' field in RegisterWithSecret".to_string(),
+                            });
+                            self.send_response(write, &response).await?;
+                        }
                     }
                     Some("SystemInfoReport") => {
-                        let msg: SystemInfoReportMsg = serde_json::from_str(text)?;
-                        self.handle_system_info(write, msg).await?;
+                        info!("Routing message to SystemInfoReport handler");
+                        if let Some(payload) = json.get("payload") {
+                            let msg: SystemInfoReportPayload = serde_json::from_value(payload.clone())?;
+                            info!("SystemInfoReport payload: agent_id={}, timestamp={}", msg.agent_id, msg.timestamp);
+                            self.handle_system_info(write, msg).await?;
+                        } else {
+                            info!("SystemInfoReport missing payload field");
+                            let response = ServerMessage::Error(ErrorPayload {
+                                code: "INVALID_MESSAGE".to_string(),
+                                message: "Missing 'payload' field in SystemInfoReport".to_string(),
+                            });
+                            self.send_response(write, &response).await?;
+                        }
                     }
                     Some("Heartbeat") => {
-                        let msg: HeartbeatMsg = serde_json::from_str(text)?;
-                        self.handle_heartbeat(write, msg).await?;
+                        info!("Routing message to Heartbeat handler");
+                        if let Some(payload) = json.get("payload") {
+                            let msg: HeartbeatPayload = serde_json::from_value(payload.clone())?;
+                            info!("Heartbeat payload: status={}, timestamp={}, latency_ms={:?}",
+                                  msg.status, msg.timestamp, msg.metrics.latency_ms);
+                            self.handle_heartbeat(write, msg).await?;
+                        } else {
+                            info!("Heartbeat missing payload field");
+                            let response = ServerMessage::Error(ErrorPayload {
+                                code: "INVALID_MESSAGE".to_string(),
+                                message: "Missing 'payload' field in Heartbeat".to_string(),
+                            });
+                            self.send_response(write, &response).await?;
+                        }
+                    }
+                    Some("Unregister") => {
+                        info!("Routing message to Unregister handler");
+                        if let Some(payload) = json.get("payload") {
+                            let msg: UnregisterPayload = serde_json::from_value(payload.clone())?;
+                            info!("Unregister payload: reason={:?}", msg.reason);
+                            self.handle_unregister(write, msg).await?;
+                        } else {
+                            info!("Unregister missing payload field");
+                            let response = ServerMessage::Error(ErrorPayload {
+                                code: "INVALID_MESSAGE".to_string(),
+                                message: "Missing 'payload' field in Unregister".to_string(),
+                            });
+                            self.send_response(write, &response).await?;
+                        }
                     }
                     Some(t) => {
-                        let response = ResponseMessage::error(format!("Unknown message type: {}", t));
+                        info!("Unknown message type received: {}", t);
+                        let response = ServerMessage::Error(ErrorPayload {
+                            code: "UNKNOWN_MESSAGE_TYPE".to_string(),
+                            message: format!("Unknown message type: {}", t),
+                        });
                         self.send_response(write, &response).await?;
                     }
                     None => {
-                        let response = ResponseMessage::error("Missing 'type' field in message");
+                        info!("Message missing 'type' field");
+                        let response = ServerMessage::Error(ErrorPayload {
+                            code: "INVALID_MESSAGE".to_string(),
+                            message: "Missing 'type' field in message".to_string(),
+                        });
                         self.send_response(write, &response).await?;
                     }
                 }
             }
             Err(e) => {
-                let response = ResponseMessage::error(format!("Invalid JSON: {}", e));
+                info!("Failed to parse JSON: {}", e);
+                let response = ServerMessage::Error(ErrorPayload {
+                    code: "INVALID_JSON".to_string(),
+                    message: format!("Invalid JSON: {}", e),
+                });
                 self.send_response(write, &response).await?;
             }
         }
@@ -223,9 +261,10 @@ impl WebSocketServer {
     async fn send_response(
         &self,
         write: &mut futures_util::stream::SplitSink<WebSocketStream<TcpStream>, Message>,
-        response: &ResponseMessage,
+        response: &ServerMessage,
     ) -> Result<()> {
         let json = serde_json::to_string(response)?;
+        info!("Sending response: {:?}", &json);
         write.send(Message::Text(json)).await?;
         Ok(())
     }
@@ -234,12 +273,53 @@ impl WebSocketServer {
     async fn handle_register(
         &self,
         write: &mut futures_util::stream::SplitSink<WebSocketStream<TcpStream>, Message>,
-        msg: RegisterWithSecretMsg,
+        msg: RegisterWithSecretPayload,
     ) -> Result<()> {
-        info!("Processing RegisterWithSecret for agent: {}", msg.agent_name);
+        info!("Processing RegisterWithSecret: agent_name={}, hostname={}", msg.agent_name, msg.hostname);
 
-        // Generate a new agent ID
-        let agent_id = Uuid::new_v4();
+        // Determine the agent_id to use
+        let agent_id = match &msg.agent_id {
+            Some(agent_id_str) => {
+                if let Ok(agent_id) = Uuid::parse_str(agent_id_str) {
+                    match self.service.agent_service.get_agent(agent_id).await {
+                        Ok(Some(agent)) => {
+                            if agent.approval_state == "denied" {
+                                info!("Agent {} was denied, rejecting registration", agent_id);
+                                let response = ServerMessage::RegisterRejected(RegisterRejectedPayload {
+                                    code: "AGENT_DENIED".to_string(),
+                                    reason: "Agent was denied by administrator".to_string(),
+                                });
+                                self.send_response(write, &response).await?;
+                                return Ok(());
+                            }
+                            // Agent exists with non-denied state, use existing ID
+                            info!("Agent {} exists with approval_state={}, proceeding", agent_id, agent.approval_state);
+                            agent_id
+                        }
+                        Ok(None) => {
+                            // Agent doesn't exist, use the provided ID for new registration
+                            info!("Agent {} not found, will create new record with provided ID", agent_id);
+                            agent_id
+                        }
+                        Err(e) => {
+                            // Query failed, generate new ID
+                            warn!("Failed to query agent {}: {}, generating new ID", agent_id, e);
+                            Uuid::new_v4()
+                        }
+                    }
+                } else {
+                    // Invalid UUID format, generate new
+                    warn!("Invalid agent_id format: {}, generating new ID", agent_id_str);
+                    Uuid::new_v4()
+                }
+            }
+            None => {
+                // No agent_id provided, generate new
+                info!("No agent_id provided, generating new ID");
+                Uuid::new_v4()
+            }
+        };
+
         let now = Utc::now();
 
         // Create agent input
@@ -257,9 +337,13 @@ impl WebSocketServer {
             last_seen_at: Some(now),
         };
 
+        info!("Creating agent with id={}, name={}", agent_id, msg.agent_name);
+
         // Create agent via AgentService
         match self.service.agent_service.create_agent(input).await {
             Ok(_agent_info) => {
+                info!("Agent created successfully: id={}, name={}", agent_id, msg.agent_name);
+
                 // Record lifecycle event
                 let event = LifecycleEvent::new(
                     agent_id,
@@ -274,16 +358,29 @@ impl WebSocketServer {
 
                 if let Err(e) = self.service.lifecycle_service.record_event(&event).await {
                     error!("Failed to record lifecycle event: {}", e);
+                } else {
+                    info!("Lifecycle event recorded for agent: id={}", agent_id);
                 }
 
-                // Send success response with agent_id
-                let response = ResponseMessage::success("Registration successful")
-                    .with_agent_id(agent_id);
+                // Send RegisterAccepted response
+                let session_id = Uuid::new_v4().to_string();
+                info!("Sending RegisterAccepted: agent_id={}, session_id={}", agent_id, session_id);
+                let response = ServerMessage::RegisterAccepted(RegisterAcceptedPayload {
+                    agent_id,
+                    session_id,
+                    server_time: Utc::now().timestamp(),
+                    requires_approval: false,
+                    message: Some("Registration successful".to_string()),
+                });
                 self.send_response(write, &response).await?;
             }
             Err(e) => {
-                error!("Failed to create agent: {}", e);
-                let response = ResponseMessage::error(format!("Registration failed: {}", e));
+                error!("Failed to create agent {}: {}", msg.agent_name, e);
+                info!("Sending RegisterRejected for agent: {}", msg.agent_name);
+                let response = ServerMessage::RegisterRejected(RegisterRejectedPayload {
+                    reason: e.to_string(),
+                    code: "REGISTRATION_FAILED".to_string(),
+                });
                 self.send_response(write, &response).await?;
             }
         }
@@ -295,18 +392,22 @@ impl WebSocketServer {
     async fn handle_system_info(
         &self,
         write: &mut futures_util::stream::SplitSink<WebSocketStream<TcpStream>, Message>,
-        msg: SystemInfoReportMsg,
+        msg: SystemInfoReportPayload,
     ) -> Result<()> {
         let agent_id = match Uuid::parse_str(&msg.agent_id) {
             Ok(id) => id,
             Err(_) => {
-                let response = ResponseMessage::error("Invalid agent_id format");
+                info!("Invalid agent_id format in SystemInfoReport: {}", msg.agent_id);
+                let response = ServerMessage::Error(ErrorPayload {
+                    code: "INVALID_AGENT_ID".to_string(),
+                    message: "Invalid agent_id format".to_string(),
+                });
                 self.send_response(write, &response).await?;
                 return Ok(());
             }
         };
 
-        info!("Processing SystemInfoReport for agent: {}", agent_id);
+        info!("Processing SystemInfoReport: agent_id={}, timestamp={}", agent_id, msg.timestamp);
 
         // Parse timestamp
         let timestamp = DateTime::parse_from_rfc3339(&msg.timestamp)
@@ -325,14 +426,25 @@ impl WebSocketServer {
             resources: self.extract_resource_info(&msg.data.extra),
         };
 
+        info!("Storing system info for agent_id={}", agent_id);
         match self.service.diagnostic_service.store_system_info(agent_id, report).await {
             Ok(_) => {
-                let response = ResponseMessage::success("System info recorded");
+                info!("System info stored successfully for agent_id={}", agent_id);
+                let response = ServerMessage::RegisterAccepted(RegisterAcceptedPayload {
+                    agent_id,
+                    session_id: String::new(),
+                    server_time: Utc::now().timestamp(),
+                    requires_approval: false,
+                    message: Some("System info recorded".to_string()),
+                });
                 self.send_response(write, &response).await?;
             }
             Err(e) => {
-                error!("Failed to store system info: {}", e);
-                let response = ResponseMessage::error(format!("Failed to store system info: {}", e));
+                error!("Failed to store system info for agent_id={}: {}", agent_id, e);
+                let response = ServerMessage::Error(ErrorPayload {
+                    code: "SYSTEM_INFO_FAILED".to_string(),
+                    message: e.to_string(),
+                });
                 self.send_response(write, &response).await?;
             }
         }
@@ -379,40 +491,71 @@ impl WebSocketServer {
     async fn handle_heartbeat(
         &self,
         write: &mut futures_util::stream::SplitSink<WebSocketStream<TcpStream>, Message>,
-        msg: HeartbeatMsg,
+        msg: HeartbeatPayload,
     ) -> Result<()> {
-        info!("Processing Heartbeat with status: {}", msg.status);
-
-        // Get agent_id from heartbeat - need to find agent first
-        // For now, we'll skip the update if we don't have an agent_id
-        // The heartbeat contains status but not agent_id directly
-        // We may need to look this up or have the agent include it
+        info!("Processing Heartbeat: status={}, timestamp={}", msg.status, msg.timestamp);
 
         // Extract metrics for health score calculation
         // Note: Without agent_id, we can't record health score
-        let _network_metrics = crate::service::health::NetworkHealthMetrics {
+        let network_metrics = crate::service::health::NetworkHealthMetrics {
             latency_ms: msg.metrics.latency_ms,
             jitter_ms: msg.metrics.jitter_ms,
             packet_loss_percent: msg.metrics.packet_loss_percent,
             bandwidth_kbps: msg.metrics.bandwidth_kbps,
         };
 
+        info!("Heartbeat metrics: latency_ms={:?}, jitter_ms={:?}, packet_loss={:?}, bandwidth={:?}",
+              network_metrics.latency_ms, network_metrics.jitter_ms,
+              network_metrics.packet_loss_percent, network_metrics.bandwidth_kbps);
+
         // Note: Without agent_id, we can't update last_seen_at or record health score
         // The agent would need to send its ID in the heartbeat or we need another way to identify it
 
-        let response = ResponseMessage::success("Heartbeat received");
+        // Send heartbeat acknowledgment
+        let response = ServerMessage::RegisterAccepted(RegisterAcceptedPayload {
+            agent_id: Uuid::nil(),
+            session_id: String::new(),
+            server_time: Utc::now().timestamp(),
+            requires_approval: false,
+            message: Some("Heartbeat received".to_string()),
+        });
+        self.send_response(write, &response).await?;
+
+        Ok(())
+    }
+
+    /// Handle Unregister message
+    async fn handle_unregister(
+        &self,
+        write: &mut futures_util::stream::SplitSink<WebSocketStream<TcpStream>, Message>,
+        msg: UnregisterPayload,
+    ) -> Result<()> {
+        info!("Processing Unregister: reason={:?}", msg.reason);
+
+        // Note: We should update agent status to "disconnected" here
+        // But we don't have agent_id from the unregister message itself
+        // In a real implementation, we'd need to track the agent_id from registration
+
+        info!("Sending Unregister acknowledgment");
+        let response = ServerMessage::RegisterAccepted(RegisterAcceptedPayload {
+            agent_id: Uuid::nil(),
+            session_id: String::new(),
+            server_time: Utc::now().timestamp(),
+            requires_approval: false,
+            message: Some("Unregister acknowledged".to_string()),
+        });
         self.send_response(write, &response).await?;
 
         Ok(())
     }
 }
 
-// Message type wrappers for deserialization
+// Message payload types for deserialization (extracted from 'payload' field)
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct RegisterWithSecretMsg {
-    #[serde(rename = "type")]
-    msg_type: String,
+struct RegisterWithSecretPayload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    agent_id: Option<String>,
     agent_name: String,
     agent_key: String,
     capabilities: Vec<String>,
@@ -421,21 +564,22 @@ struct RegisterWithSecretMsg {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct SystemInfoReportMsg {
-    #[serde(rename = "type")]
-    msg_type: String,
+struct SystemInfoReportPayload {
     agent_id: String,
     timestamp: String,
     data: SystemInfoData,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct HeartbeatMsg {
-    #[serde(rename = "type")]
-    msg_type: String,
+struct HeartbeatPayload {
     status: String,
     metrics: HeartbeatMetrics,
     timestamp: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct UnregisterPayload {
+    reason: Option<String>,
 }
 
 /// Runs the WebSocket server as a background task
