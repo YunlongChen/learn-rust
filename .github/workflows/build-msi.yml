@@ -1,0 +1,65 @@
+name: Build MSI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'crates/domain-manager/**'
+      - 'Cargo.toml'
+  pull_request:
+    paths:
+      - 'crates/domain-manager/**'
+      - 'Cargo.toml'
+  workflow_dispatch:
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install WiX Toolset
+        run: |
+          chocolatey install wixtoolset -y
+          # Refresh environment after WiX installation
+          refreshenv || true
+          # Verify candle.exe is available
+          Get-Command candle.exe -ErrorAction Stop
+
+      - name: Build MSI
+        working-directory: crates/domain-manager
+        run: cargo wix --package domain-manager
+
+      - name: Locate MSI artifact
+        id: locate
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem -Path target/wix -Filter "*.msi" | Select-Object -First 1
+          if ($msi) {
+            echo "msi_path=$($msi.FullName)" | Out-String -Stream
+            echo "msi_name=$($msi.Name)" | Out-String -Stream
+          } else {
+            Write-Error "No MSI file found in target/wix"
+            exit 1
+          }
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: domain-manager-msi-${{ github.sha }}
+          path: ${{ steps.locate.outputs.msi_path }}
+          retention-days: 30
+
+      - name: Display built artifacts
+        run: |
+          echo "Built MSI: ${{ steps.locate.outputs.msi_name }}"
+          Get-ChildItem target/wix -Filter "*.msi" | ForEach-Object {
+            Write-Host "  - $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+          }
