@@ -1,4 +1,4 @@
-name: Release Domain Manager
+name: Release
 
 on:
   workflow_dispatch:
@@ -19,44 +19,38 @@ env:
 jobs:
   build:
     strategy:
-      fail-fast: false
+      fail-fast: true
+      max-parallel: 1
       matrix:
         os: [ windows-latest ]
+        target: [ x86_64-pc-windows-msvc ]
         BUILD_TARGET: [ release ]
     outputs:
       release_built: ${{ steps.set-output.outputs.release_built }}
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Temporarily modify the rust toolchain version
-        run: rustup override set stable
       - name: Setup | Rust
         uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
       - name: Output rust version for educational purposes
         run: rustup --version
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: CheckOut
         uses: actions/checkout@v6
-      #      - name: Run check
-      #        run: cargo check -p domain-manager
-      #      - name: Build binaries
-      #        run: cargo build -p domain-manager --release
-      #      - name: Upload built artifacts
-      #        uses: actions/upload-artifact@v7
-      #        with:
-      #          name: domain-manager.exe
-      #          path: target/release/*.exe
-      #          compression-level: 0
-      #          if-no-files-found: error
+      - name: Run check
+        run: cargo check -p domain-manager
+      - name: Build binaries
+        run: cargo build -p domain-manager --release --target ${{ matrix.target }}
+      - name: List build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -la target/${{matrix.target}}/release/*
       - name: Upload built artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: index.html
-          path: static/
+          name: domain-manager.exe
+          path: target/${{matrix.target}}/release/*.exe
           compression-level: 0
           if-no-files-found: error
 
