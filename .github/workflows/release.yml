@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
-      - "release/*"
-    paths:
-      - ".github/workflows/release.yml"
+      - "release/v*"
 
 permissions:
   contents: read
