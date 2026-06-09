@@ -40,12 +40,12 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: CheckOut
-        uses: actions/checkout@v4
-      #      - name: Run tests
-      #        run: cargo test -p domain-manager
-      #      - name: Build binaries
-      #        run: cargo build -p domain-manager --release
-      - name: Upload built .deb artifacts
+        uses: actions/checkout@v6
+      - name: Run check
+        run: cargo check -p domain-manager
+      - name: Build binaries
+        run: cargo build -p domain-manager --release
+      - name: Upload built artifacts
         uses: actions/upload-artifact@v7
         with:
           name: domain-manager.exe
