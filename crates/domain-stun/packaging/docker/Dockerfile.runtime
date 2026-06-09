@@ -1,0 +1,25 @@
+FROM debian:bookworm-slim
+
+ARG STUN_VERSION=dev
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /etc/netops-stun
+
+COPY .docker-dist/netops-stun /usr/local/bin/netops-stun
+COPY .docker-dist/config.yaml /etc/netops-stun/config.yaml
+COPY .docker-dist/webui /etc/netops-stun/webui
+COPY .docker-dist/LICENSE /usr/share/licenses/netops-stun/LICENSE
+
+RUN chmod +x /usr/local/bin/netops-stun \
+    && sed -i 's/:5335/:53/' /etc/netops-stun/config.yaml || true
+
+ENV STUN_VERSION=${STUN_VERSION}
+ENV TZ=UTC
+
+EXPOSE 3479/tcp
+
+ENTRYPOINT ["netops-stun"]
+CMD ["start", "-c", "/etc/netops-stun/config.yaml", "-d", "/etc/netops-stun"]
