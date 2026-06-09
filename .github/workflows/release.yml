@@ -72,8 +72,8 @@ jobs:
         run: |
           $msi = Get-ChildItem -Path target/wix -Filter "*.msi" | Select-Object -First 1
           if ($msi) {
-            echo "msi_path=$($msi.FullName)" | Out-String -Stream
-            echo "msi_name=$($msi.Name)" | Out-String -Stream
+            "msi_path=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "msi_name=$($msi.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           } else {
             Write-Error "No MSI file found in target/wix"
             exit 1
