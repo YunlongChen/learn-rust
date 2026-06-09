@@ -37,27 +37,19 @@ jobs:
           override: true
       - name: Output rust version for educational purposes
         run: rustup --version
-      - name: Cache
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/debug
-            target/release
-          key: ${{ runner.os }}-cargo
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: CheckOut
         uses: actions/checkout@v4
       #      - name: Run tests
       #        run: cargo test -p domain-manager
       #      - name: Build binaries
       #        run: cargo build -p domain-manager --release
-
       - name: Upload built .deb artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: index.html
-          path: static/*.html
+          name: domain-manager.exe
+          path: target/release/*.exe
           compression-level: 0
           if-no-files-found: error
 
