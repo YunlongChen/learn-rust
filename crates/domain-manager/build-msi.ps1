@@ -74,9 +74,9 @@ if ($Method -eq "cargo-wix") {
 
     # 构建MSI
     if ($BuildType -eq "debug") {
-        cargo wix --package domain_manager --no-build
+        cargo wix --package domain-manager --no-build -c zh-CN
     } else {
-        cargo wix --package domain_manager
+        cargo wix --package domain-manager -c zh-CN
     }
 
     if ($LASTEXITCODE -eq 0) {
@@ -114,9 +114,9 @@ if ($Method -eq "wix") {
     # 构建Rust项目
     Write-Host "构建Rust项目..." -ForegroundColor Yellow
     if ($BuildType -eq "debug") {
-        cargo build --package domain_manager
+        cargo build --package domain-manager
     } else {
-        cargo build --release --package domain_manager
+        cargo build --release --package domain-manager
     }
 
     if ($LASTEXITCODE -ne 0) {
@@ -131,14 +131,14 @@ if ($Method -eq "wix") {
     }
 
     # WiX源文件路径
-    $wxsFile = Join-Path $PSScriptRoot "wix\domain_manager.wxs"
+    $wxsFile = Join-Path $PSScriptRoot "wix\domain-manager.wxs"
     if (-not (Test-Path $wxsFile)) {
         Write-Error "WiX源文件未找到: $wxsFile"
         exit 1
     }
 
     # 编译WiX源文件
-    $wixobjFile = Join-Path $wixOutputDir "domain_manager.wixobj"
+    $wixobjFile = Join-Path $wixOutputDir "domain-manager.wixobj"
     $targetBinDir = if ($BuildType -eq "debug") { "$ProjectRoot\target\debug" } else { "$ProjectRoot\target\release" }
 
     Write-Host "编译WiX源文件..." -ForegroundColor Yellow
@@ -151,13 +151,13 @@ if ($Method -eq "wix") {
     }
 
     # 链接生成MSI
-    $msiFile = Join-Path $wixOutputDir "domain_manager.msi"
+    $msiFile = Join-Path $wixOutputDir "domain-manager.msi"
     Write-Host "链接生成MSI安装包..." -ForegroundColor Yellow
     & light.exe -out $msiFile -ext WixUIExtension $wixobjFile
 
     if ($LASTEXITCODE -eq 0) {
         # 复制MSI到输出目录
-        $destPath = Join-Path $OutputDir "domain_manager.msi"
+        $destPath = Join-Path $OutputDir "domain-manager.msi"
         Copy-Item $msiFile $destPath -Force
 
         $msiInfo = Get-Item $destPath

@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - "release/v*"
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -14,7 +16,7 @@ env:
   CARGO_INCREMENTAL: 1
 
 jobs:
-  build:
+  build-domain-manager:
     strategy:
       fail-fast: true
       max-parallel: 1
@@ -33,21 +35,31 @@ jobs:
           profile: minimal
           override: true
           target: ${{ matrix.target }}
+          components: rustfmt, clippy
       - name: Output rust version for educational purposes
         run: rustup --version
+      - name: Install packaging tools
+        run: cargo install cargo-wix
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: 'true'
       - name: CheckOut
         uses: actions/checkout@v6
+      - name: Print all environment variables
+        run: printenv
       - name: Run check
         run: cargo check -p domain-manager
-      - name: Build binaries
-        run: cargo build -p domain-manager --release --target ${{ matrix.target }}
+      - name: Build MSI
+
+        working-directory: crates/domain-manager
+        run: cargo wix --target ${{ matrix.target }} --package domain-manager -c zh-CN --nocapture
       - name: List build artifacts
         shell: bash
         run: |
           set -euo pipefail
           ls -la target/${{matrix.target}}/release/*
+          ls -la target/wix/*.msi
       - name: Upload built artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -55,12 +67,96 @@ jobs:
           path: target/${{matrix.target}}/release/*.exe
           compression-level: 0
           if-no-files-found: error
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: domain-manager-0.1.0-x86_64.msi
+          path: target/wix/*.msi
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Display built artifacts
+        run: |
+          echo "Built MSI: ${{ steps.locate.outputs.msi_name }}"
+          Get-ChildItem target/wix -Filter "*.msi" | ForEach-Object {
+            Write-Host "  - $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+          }
+
+#  build-domain-agent-management:
+#    strategy:
+#      fail-fast: true
+#      max-parallel: 1
+#      matrix:
+#        include:
+#          - os: ubuntu-latest
+#            target: x86_64-unknown-linux-gnu
+#            exe: domain-agent-management
+#            archive_ext: tar.gz
+#            build_tool: cargo
+#            make_deb: true
+#            upx_kind: linux
+#        os: [ ubuntu-latest ]
+#        target: [ x86_64-unknown-linux-gnu ]
+#        BUILD_TARGET: [ release ]
+#    outputs:
+#      release_built: ${{ steps.set-output.outputs.release_built }}
+#    runs-on: ${{ matrix.os }}
+#    steps:
+#      - name: Setup | Rust
+#        uses: actions-rs/toolchain@v1
+#        with:
+#          toolchain: stable
+#          profile: minimal
+#          override: true
+#          target: ${{ matrix.target }}
+#          components: rustfmt, clippy
+#      - name: Output rust version for educational purposes
+#        run: rustup --version
+#      - name: Rust Cache
+#        uses: Swatinem/rust-cache@v2
+#      - name: CheckOut
+#        uses: actions/checkout@v6
+#      - name: Run check
+#        run: cargo check -p domain-agent-management
+#      - name: Build binaries
+#        working-directory:
+#        run: cargo build -p domain-agent-management --release --target ${{ matrix.target }}
+#      - name: Build MSI
+#        working-directory: crates/domain-manager
+#        run: cargo wix --package domain-manager -c zh-CN --no-build --nocapture
+#      - name: List build artifacts
+#        shell: bash
+#        run: |
+#          set -euo pipefail
+#          ls -la target/${{matrix.target}}/release/*
+#          ls -la target/wix/*.msi
+#      - name: Upload built artifacts
+#        uses: actions/upload-artifact@v7
+#        with:
+#          name: domain-manager.exe
+#          path: target/${{matrix.target}}/release/*.exe
+#          compression-level: 0
+#          if-no-files-found: error
+#      - name: Upload MSI artifact
+#        uses: actions/upload-artifact@v7
+#        with:
+#          name: domain-manager-0.1.0-x86_64.msi
+#          path: target/wix/*.msi
+#          compression-level: 0
+#          if-no-files-found: error
+#
+#      - name: Display built artifacts
+#        run: |
+#          echo "Built MSI: ${{ steps.locate.outputs.msi_name }}"
+#          Get-ChildItem target/wix -Filter "*.msi" | ForEach-Object {
+#            Write-Host "  - $($_.Name) ($([math]::Round($_.Length / 1MB, 2)) MB)"
+#          }
 
   release-crates-io:
     name: Release crates.io
     runs-on: windows-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ build ]
+    needs: [ build-domain-manager ]
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
@@ -76,7 +172,7 @@ jobs:
     name: Publish to GitHub releases
     runs-on: windows-latest
     #    if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ build ]
+    needs: [ build-domain-manager ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3

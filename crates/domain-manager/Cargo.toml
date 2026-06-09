@@ -73,7 +73,6 @@ maintenance = { status = "actively-developed" }
 [package.metadata.wix]
 upgrade-guid = "12345678-1234-1234-1234-123456789012"
 path-guid = "87654321-4321-4321-4321-210987654321"
-include = ["wix/domain-manager.wxs"]
 license = false
 eula = false
 
