@@ -277,33 +277,49 @@ impl WebSocketServer {
     ) -> Result<()> {
         info!("Processing RegisterWithSecret: agent_name={}, hostname={}", msg.agent_name, msg.hostname);
 
-        // Check if agent_id is provided and if so, check if agent exists and is denied
-        if let Some(agent_id_str) = &msg.agent_id {
-            if let Ok(agent_id) = Uuid::parse_str(agent_id_str) {
-                match self.service.agent_service.get_agent(agent_id).await {
-                    Ok(Some(agent)) => {
-                        if agent.approval_state == "denied" {
-                            info!("Agent {} was denied, rejecting registration", agent_id);
-                            let response = ServerMessage::RegisterRejected(RegisterRejectedPayload {
-                                code: "AGENT_DENIED".to_string(),
-                                reason: "Agent was denied by administrator".to_string(),
-                            });
-                            self.send_response(write, &response).await?;
-                            return Ok(());
+        // Determine the agent_id to use
+        let agent_id = match &msg.agent_id {
+            Some(agent_id_str) => {
+                if let Ok(agent_id) = Uuid::parse_str(agent_id_str) {
+                    match self.service.agent_service.get_agent(agent_id).await {
+                        Ok(Some(agent)) => {
+                            if agent.approval_state == "denied" {
+                                info!("Agent {} was denied, rejecting registration", agent_id);
+                                let response = ServerMessage::RegisterRejected(RegisterRejectedPayload {
+                                    code: "AGENT_DENIED".to_string(),
+                                    reason: "Agent was denied by administrator".to_string(),
+                                });
+                                self.send_response(write, &response).await?;
+                                return Ok(());
+                            }
+                            // Agent exists with non-denied state, use existing ID
+                            info!("Agent {} exists with approval_state={}, proceeding", agent_id, agent.approval_state);
+                            agent_id
+                        }
+                        Ok(None) => {
+                            // Agent doesn't exist, use the provided ID for new registration
+                            info!("Agent {} not found, will create new record with provided ID", agent_id);
+                            agent_id
+                        }
+                        Err(e) => {
+                            // Query failed, generate new ID
+                            warn!("Failed to query agent {}: {}, generating new ID", agent_id, e);
+                            Uuid::new_v4()
                         }
                     }
-                    Ok(None) => {
-                        info!("Agent {} not found, proceeding with registration", agent_id);
-                    }
-                    Err(e) => {
-                        warn!("Failed to query agent {}: {}, proceeding with registration", agent_id, e);
-                    }
+                } else {
+                    // Invalid UUID format, generate new
+                    warn!("Invalid agent_id format: {}, generating new ID", agent_id_str);
+                    Uuid::new_v4()
                 }
             }
-        }
+            None => {
+                // No agent_id provided, generate new
+                info!("No agent_id provided, generating new ID");
+                Uuid::new_v4()
+            }
+        };
 
-        // Generate a new agent ID
-        let agent_id = Uuid::new_v4();
         let now = Utc::now();
 
         // Create agent input

@@ -242,6 +242,13 @@ impl AgentClient {
             }
             AgentMessage::RegisterRejected { reason, code } => {
                 error!("Registration rejected: {} (code: {})", reason, code);
+
+                // 如果是 AGENT_DENIED，不进行重连
+                if code == "AGENT_DENIED" {
+                    error!("Agent was denied by server, will not retry. Reason: {}", reason);
+                    return Err(format!("Registration rejected: {} (code: AGENT_DENIED)", reason));
+                }
+
                 Err(format!("Registration rejected: {} (code: {})", reason, code))
             }
             _ => {
@@ -400,6 +407,13 @@ impl AgentClient {
             }
             AgentMessage::Unregister { reason } => {
                 info!("Unregister requested by Hub: reason={:?}", reason);
+
+                // 如果是 denied_by_admin，立即退出不重连
+                if reason.as_ref().map(|r| r.contains("denied_by_admin")).unwrap_or(false) {
+                    error!("Agent was denied by administrator, exiting without retry...");
+                    return Err("Registration rejected: Agent denied by administrator (code: AGENT_DENIED)".to_string());
+                }
+
                 return Err("Hub requested unregister".to_string());
             }
             AgentMessage::SystemInfoQuery { query } => {

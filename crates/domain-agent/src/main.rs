@@ -83,6 +83,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 break;
             }
             Err(e) => {
+                // 检查是否是 AGENT_DENIED 错误，如果是则直接退出，不进行重连
+                if e.contains("AGENT_DENIED") {
+                    error!("Agent was denied by administrator, exiting...");
+                    std::process::exit(1);
+                }
+
                 retries += 1;
 
                 // Check if we've exceeded max retries
