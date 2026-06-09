@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+mkdir -p /var/lib/netops-stun
+mkdir -p /etc/netops-stun
+
+if [ -d /usr/share/netops-stun/webui ] && [ ! -e /var/lib/netops-stun/webui ]; then
+    ln -s /usr/share/netops-stun/webui /var/lib/netops-stun/webui
+fi
+
+#DEBHELPER#
+
+exit 0

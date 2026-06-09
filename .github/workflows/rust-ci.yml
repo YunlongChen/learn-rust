@@ -5,16 +5,12 @@ on:
   push:
     branches:
       - main
-      - "release/*"
-      - "feature/*"
     paths:
       - "crates/*/src/**"
       - ".github/workflows/rust-ci.yml"
   pull_request:
     branches:
       - main
-      - "release/*"
-      - "feature/*"
     paths:
       - "crates/*/src/**"
       - ".github/workflows/rust-ci.yml"
@@ -29,7 +25,8 @@ env:
 jobs:
   build-and-test:
     strategy:
-      fail-fast: false
+      max-parallel: 1
+      fail-fast: true
       matrix:
         os: [ windows-latest ]
         BUILD_TARGET: [ release ]
@@ -47,18 +44,11 @@ jobs:
           override: true
       - name: Output rust version for educational purposes
         run: rustup --version
-      - name: Cache
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/debug
-            target/release
-          key: ${{ runner.os }}-cargo
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: CheckOut
-        uses: actions/checkout@v4
-      - name: Run tests
+        uses: actions/checkout@v6
+      - name: Run Check
+        run: cargo check -p domain-manager
+      - name: Run Test
         run: cargo test -p domain-manager
-      - name: Build binaries
-        run: cargo build -p domain-manager --release

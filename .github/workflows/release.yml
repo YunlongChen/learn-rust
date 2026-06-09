@@ -1,13 +1,10 @@
-name: Release Domain Manager
+name: Release
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - main
-      - "release/*"
-    paths:
-      - ".github/workflows/release.yml"
+      - "release/v*"
 
 permissions:
   contents: read
@@ -19,64 +16,102 @@ env:
 jobs:
   build:
     strategy:
-      fail-fast: false
+      fail-fast: true
+      max-parallel: 1
       matrix:
         os: [ windows-latest ]
+        target: [ x86_64-pc-windows-msvc ]
         BUILD_TARGET: [ release ]
     outputs:
       release_built: ${{ steps.set-output.outputs.release_built }}
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Temporarily modify the rust toolchain version
-        run: rustup override set stable
       - name: Setup | Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           override: true
+          target: ${{ matrix.target }}
       - name: Output rust version for educational purposes
         run: rustup --version
-      - name: Cache
-        uses: actions/cache@v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/debug
-            target/release
-          key: ${{ runner.os }}-cargo
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
       - name: CheckOut
-        uses: actions/checkout@v4
-#      - name: Run tests
-#        run: cargo test -p domain-manager
-#      - name: Build binaries
-#        run: cargo build -p domain-manager --release
-
-      - name: Upload binary artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/checkout@v6
+      - name: Run check
+        run: cargo check -p domain-manager
+      - name: Build binaries
+        run: cargo build -p domain-manager --release --target ${{ matrix.target }}
+      - name: List build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -la target/${{matrix.target}}/release/*
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: *.html
-          path: ./static/
+          name: domain-manager.exe
+          path: target/${{matrix.target}}/release/*.exe
+          compression-level: 0
+          if-no-files-found: error
+
+  release-crates-io:
+    name: Release crates.io
+    runs-on: windows-latest
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [ build ]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo login
+        run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
+      - name: cargo publish
+        run: cargo publish
 
   release-github:
     permissions:
       id-token: write
       contents: write
     name: Publish to GitHub releases
-    runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
+    runs-on: windows-latest
+    #    if: "startsWith(github.ref, 'refs/tags/')"
     needs: [ build ]
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
         with:
-          pattern: binaries-*
+          path: release-assets
           merge-multiple: true
-      - name: Release
-        uses: softprops/action-gh-release@v2
+      - name: List downloaded release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -la release-assets
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          files: |
-            *.zip
-            *.exe
-          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+          files: release-assets/*
+          draft: false
           generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+          name: Domain Manager ${{ github.ref_name }}
+          prerelease: true
+          body: |
+            ## Domain Manager ${{ github.ref_name }}
+            业余的网络管理工具
+            ### 下载
+
+            - **macOS**: `Domain Manager-${{ github.ref_name }}-macOS.dmg`（推荐）或 `Domain Manager-${{ github.ref_name }}-macOS.zip`（解压即用）
+            - **Windows**: `Domain Manager-${{ github.ref_name }}-Windows.msi`（安装版）或 `Domain Manager-${{ github.ref_name }}-Windows-Portable.zip`（绿色版）
+            - **Linux (x86_64)**: `Domain Manager-${{ github.ref_name }}-Linux-x86_64.AppImage` / `.deb` / `.rpm`
+            - **Linux (ARM64)**: `Domain Manager-${{ github.ref_name }}-Linux-arm64.AppImage` / `.deb` / `.rpm`
+            
+            > `.tar.gz` 为 Tauri updater 自动更新专用，无需手动下载。
+            
+            ---
+            macOS 版本未通过 Apple 代码签名和公证，暂时不提供。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
