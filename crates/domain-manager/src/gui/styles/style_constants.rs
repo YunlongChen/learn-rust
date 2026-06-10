@@ -199,12 +199,6 @@ pub const MON_AMOUR_PALETTE_EXTENSION: PaletteExtension = PaletteExtension {
     red_alert_color: RED_ALERT_COLOR_DAILY,
 };
 
-pub const SARASA_MONO_BYTES: &[u8] =
-    include_bytes!("../../../resources/fonts/full/sarasa-mono-sc-regular.ttf");
-
-pub const SARASA_MONO_BOLD_BYTES: &[u8] =
-    include_bytes!("../../../resources/fonts/full/sarasa-mono-sc-bold.ttf");
-
 pub const MAPLE_MONO_NF_CN_REGULAR: &[u8] =
     include_bytes!("../../../resources/fonts/full/MapleMono-NF-CN-Regular.ttf");
 

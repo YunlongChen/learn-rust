@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 description = "STUN/TURN server for Domain Agent NAT traversal"
 
+[workspace]
+
 [dependencies]
 # Web framework
 actix-web = "4"

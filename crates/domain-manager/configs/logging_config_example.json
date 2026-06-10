@@ -1,0 +1,11 @@
+{
+  "logging_config": {
+    "level": "INFO",
+    "output": {
+      "Console": {}
+    },
+    "format": "Text",
+    "enable_colors": true,
+    "module_filter": null
+  }
+}

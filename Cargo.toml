@@ -18,8 +18,7 @@ members = [
     "crates/domain-server",
     "crates/domain-manager",
     "crates/domain-http-server",
-    "crates/domain-agent",
-    "crates/domain-stun"
+    "crates/domain-agent"
 ]
 resolver = "2"
 
@@ -34,6 +33,14 @@ mimalloc = { version = "*", features = ["secure"] }
 
 [workspace.dependencies]
 bytes.version = "1"
+
+[profile.release]
+# 优化代码大小
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
 
 [lints.clippy]
 uninlined_format_args = "allow"

@@ -33,9 +33,6 @@ pub async fn init_database(database_config: &DatabaseConfig) -> anyhow::Result<D
 
     let mut options = ConnectOptions::new(url);
 
-    let cpus = num_cpus::get() as u32;
-    debug!("当前系统cpu数量:{}", cpus);
-
     options
         .max_connections(10)
         .sqlx_logging(true)

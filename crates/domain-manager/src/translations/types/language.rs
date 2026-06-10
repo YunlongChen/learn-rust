@@ -1,7 +1,3 @@
-use crate::countries::flags_pictures::{CN, DE, FLAGS_WIDTH_BIG, FR, GB, JP, KR, UNKNOWN};
-use crate::StyleType;
-use iced::widget::svg::Handle;
-use iced::widget::Svg;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -80,34 +76,6 @@ impl Language {
         Language::ZH,
         Language::ZH_TW,
     ];
-
-    pub fn get_flag<'a>(self) -> Svg<'a, StyleType> {
-        Svg::new(Handle::from_memory(Vec::from(match self {
-            Language::ZH => CN,
-            Language::ZH_TW => UNKNOWN,
-            Language::DE => DE,
-            Language::ES => UNKNOWN,
-            Language::FR => FR,
-            Language::EN => GB,
-            Language::IT => UNKNOWN,
-            Language::KO => KR,
-            Language::PL => UNKNOWN,
-            Language::PT => UNKNOWN,
-            Language::RO => UNKNOWN,
-            Language::RU => UNKNOWN,
-            Language::TR => UNKNOWN,
-            Language::UK => UNKNOWN,
-            Language::EL => UNKNOWN,
-            // Language::FA => IR,
-            Language::SV => UNKNOWN,
-            Language::FI => UNKNOWN,
-            Language::JA => JP,
-            Language::UZ => UNKNOWN,
-            Language::VI => UNKNOWN,
-            Language::ID => UNKNOWN,
-        })))
-        .width(FLAGS_WIDTH_BIG)
-    }
 
     pub fn is_up_to_date(self) -> bool {
         matches!(

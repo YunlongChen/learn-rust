@@ -1,0 +1,26 @@
+{
+  "domain_names": [],
+  "name": "Domain Manager",
+  "description": "A Simple Domain Manager",
+  "version": "1.0.0",
+  "author": "stanic.xyz",
+  "license": "MulanPSL2",
+  "locale": "zh_CN",
+  "style_type": {
+    "style": "Day"
+  },
+  "language": "ZH",
+  "color_gradient": "Mild",
+  "ali_access_key_id": "23",
+  "ali_access_key_secret": "23",
+  "window_state": {
+    "x": 100.0,
+    "y": 100.0,
+    "width": 1200.0,
+    "height": 800.0
+  },
+  "background_config": {
+    "background_type": "None",
+    "opacity": 0.41
+  }
+}

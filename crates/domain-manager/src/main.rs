@@ -6,14 +6,11 @@ mod api;
 mod cli;
 mod client;
 mod configs;
-mod countries;
 mod dm_logger;
 pub mod error;
 mod gui;
-mod mmdb;
 mod model;
 mod models;
-mod notifications;
 pub mod storage;
 mod translations;
 mod utils;
@@ -25,22 +22,15 @@ use crate::configs::gui_config::Config;
 use crate::dm_logger::init_logging;
 use crate::gui::handlers::message_handler::{AppMessage, MessageCategory};
 use crate::gui::manager_v2::DomainManagerV2;
-use crate::gui::styles::style_constants::{
-    FONT_SIZE_BODY, ICONS_BYTES, MAPLE_MONO_NF_CN_REGULAR, SARASA_MONO_BOLD_BYTES,
-    SARASA_MONO_BYTES,
-};
+use crate::gui::styles::style_constants::{FONT_SIZE_BODY, ICONS_BYTES, MAPLE_MONO_NF_CN_REGULAR};
 pub use crate::gui::styles::types::style_type::StyleType;
 pub use crate::utils::i18_utils::get_text;
 use iced::window::icon::from_rgba;
 use iced::window::Position;
 use iced::{application, window, Font, Pixels, Point, Settings, Size, Task};
-use mimalloc::MiMalloc;
 use rust_i18n::i18n;
 use std::{panic, process};
 use tracing::{error, info};
-
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
 
 const TITLE_SIZE: u16 = 36;
 const TITLE_PADDING: u16 = 20;
@@ -120,12 +110,7 @@ pub async fn main() -> iced::Result {
     .subscription(DomainManagerV2::subscription)
     .settings(Settings {
         id: Some(String::from(DOMAIN_MANAGER_LOWERCASE)),
-        fonts: vec![
-            ICONS_BYTES.into(),
-            MAPLE_MONO_NF_CN_REGULAR.into(),
-            SARASA_MONO_BYTES.into(),
-            SARASA_MONO_BOLD_BYTES.into(),
-        ],
+        fonts: vec![ICONS_BYTES.into(), MAPLE_MONO_NF_CN_REGULAR.into()],
         default_font: Font::with_name(FONT_CN_FAMILY_NAME),
         default_text_size: Pixels::from(FONT_SIZE_BODY),
         ..Default::default()

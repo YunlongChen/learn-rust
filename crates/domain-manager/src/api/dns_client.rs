@@ -158,8 +158,8 @@ impl DnsClientTrait for DnsClient {
                 );
                 client.update_dns_record(domain_name, record).await
             }
-            _ => Err(anyhow!("DNS records not implemented for this provider")),
             None => Err(anyhow!("No DNS provider configured")),
+            _ => Err(anyhow!("DNS records not implemented for this provider")),
         }
     }
 
