@@ -1,0 +1,15 @@
+[package]
+name = "domain-agent-management-web-dist-wrap"
+version = "0.0.1"
+edition = "2021"
+authors = ["Stan <1576302867@qq.com>"]
+license = "Apache-2.0"
+description = "domain-agent-management server's console front-end dist embed wrap project."
+
+readme = "README.md"
+keywords = ["console"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rust-embed = "8.11.0"

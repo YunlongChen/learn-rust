@@ -2,7 +2,7 @@
 release
 dist
 target
-domain_stun.db
+domain-stun.db
 .claude
 .trae
 node_modules

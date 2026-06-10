@@ -19,7 +19,9 @@ members = [
     "crates/domain-manager",
     "crates/domain-http-server",
     "crates/domain-agent",
-    "crates/domain-stun"]
+    "crates/domain-stun",
+    "crates/domain-agent-management/frontend/dist-wrap"
+]
 resolver = "2"
 
 exclude = [
