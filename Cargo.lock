@@ -1731,6 +1731,7 @@ dependencies = [
  "axum",
  "chrono",
  "config",
+ "domain-agent-management-web-dist-wrap",
  "domain-agent-protocol",
  "futures-util",
  "prost",
@@ -1766,6 +1767,8 @@ dependencies = [
 [[package]]
 name = "domain-agent-management-web-dist-wrap"
 version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6331f7b5c7be82184df12742e59933a4397a0d8bdc326b26a3a12f3df68e7bf7"
 dependencies = [
  "rust-embed",
 ]
