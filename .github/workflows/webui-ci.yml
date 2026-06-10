@@ -39,10 +39,10 @@ jobs:
           npm ci
           npm run build
 
-      - name: cargo login
-        run: cargo login ${{ secrets.CARGO_IO_TOKEN }}
       - name: cargo publish
+        working-directory: crates/domain-agent-management/frontend
         run: |
+          cargo login ${{ secrets.CARGO_IO_TOKEN }}
           cp -rf dist dist-wrap/src
           cd dist
           zip ../dist.zip -r ./
@@ -52,12 +52,12 @@ jobs:
           cd dist-wrap
           cargo publish
           cd -
+          mv ../dist.zip ${{ github.workspace }}/
       - name: Upload binary artifacts
         uses: actions/upload-artifact@v7
         with:
           name: binaries
-          path: |
-            *.zip
+          path: dist.zip
 
   release-github:
     permissions:
