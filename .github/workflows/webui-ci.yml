@@ -1,4 +1,4 @@
-name: WebUI CI
+name: WebUI-CI
 
 on:
   workflow_dispatch:
