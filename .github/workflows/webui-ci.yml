@@ -50,7 +50,7 @@ jobs:
           rm -rf .git
           ls -al dist-wrap/src/dist/
           cd dist-wrap
-          cargo publish
+          cargo publish --allow-dirty
           cd -
           mv ../dist.zip ${{ github.workspace }}/
       - name: Upload binary artifacts
