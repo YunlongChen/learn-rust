@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use crate::service::agent::{AgentFilters, UpdateAgentInput};
 use crate::service::Service;
+use crate::web_config::{index, serve_asset};
 
 /// Application state shared across handlers
 #[derive(Clone)]
@@ -525,6 +526,11 @@ pub async fn create_rest_server(
     state: AppState,
 ) -> Result<Router, Box<dyn std::error::Error + Send + Sync>> {
     let app = Router::new()
+        // Web UI routes
+        .route("/", get(index))
+        .route("/index.html", get(index))
+        .route("/assets/*path", get(serve_asset))
+        // API routes
         .route("/api/v1/agents", get(list_agents))
         .route("/api/v1/agents/:id", get(get_agent))
         .route("/api/v1/agents/:id/approve", post(approve_agent))

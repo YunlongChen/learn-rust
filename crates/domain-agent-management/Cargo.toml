@@ -30,6 +30,7 @@ anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 config = "0.15"
+domain-agent-management-web-dist-wrap = "0.0.1"
 
 [[bin]]
 name = "agent-management"

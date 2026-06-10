@@ -53,3 +53,5 @@ pub mod domain;
 pub mod server;
 
 pub mod generated;
+
+pub mod web_config;
