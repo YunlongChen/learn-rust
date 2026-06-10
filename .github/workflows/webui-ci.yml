@@ -8,14 +8,14 @@ on:
       - "release/*"
     paths:
       - "crates/domain-agent-management/frontend/**"
-      - ".github/workflows/front-ci.yml"
+      - ".github/workflows/webui-ci.yml"
   pull_request:
     branches:
       - main
       - "release/*"
     paths:
       - "crates/domain-agent-management/frontend/**"
-      - ".github/workflows/front-ci.yml"
+      - ".github/workflows/webui-ci.yml"
 
 permissions:
   contents: read
@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: crates/domain-agent-management/frontend/package-lock.json
 
       - name: Install WebUI dependencies
-        working-directory: crates/agent-management/frontend
+        working-directory: crates/domain-agent-management/frontend
         run: |
           npm ci
           npm run build
